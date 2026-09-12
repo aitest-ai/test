@@ -38,7 +38,9 @@ jobs:
           async def render(i, item):
               mp3=out/f'tts_{i:02}.mp3'
               words=out/f'tts_{i:02}_words.json'
-              communicate=edge_tts.Communicate(item['text'], voice, rate=rate, boundary='WordBoundary')
+              display_text=item.get('display_text', item.get('text',''))
+              tts_text=item.get('tts_text', item.get('text',''))
+              communicate=edge_tts.Communicate(tts_text, voice, rate=rate, boundary='WordBoundary')
               word_rows=[]
               with mp3.open('wb') as audio_file:
                   async for chunk in communicate.stream():
@@ -57,7 +59,8 @@ jobs:
                   'title': item['title'],
                   'voice': voice,
                   'rate': rate,
-                  'text': item['text'],
+                  'display_text': display_text,
+                  'tts_text': tts_text,
                   'words': word_rows,
               }, ensure_ascii=False, indent=2), encoding='utf-8')
               print('Generated', i, item['title'], 'word boundaries:', len(word_rows))
