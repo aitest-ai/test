@@ -22,28 +22,57 @@ jobs:
       - name: Install edge-tts
         run: pip install edge-tts
 
-      - name: Generate zh-TW narration segments
+      - name: Generate zh-TW narration with word boundaries
         shell: bash
         run: |
           mkdir -p tts_output
           python - <<'PY'
-          import json, subprocess, pathlib
+          import asyncio, json, pathlib
+          import edge_tts
+
           data=json.load(open('tts_scripts.json',encoding='utf-8'))
           out=pathlib.Path('tts_output')
           voice='zh-TW-HsiaoChenNeural'
-          for i,item in enumerate(data,1):
+          rate='-5%'
+
+          async def render(i, item):
               mp3=out/f'tts_{i:02}.mp3'
-              srt=out/f'tts_{i:02}.srt'
-              cmd=['edge-tts','--voice',voice,'--rate=-5%','--text',item['text'],
-                   '--write-media',str(mp3),'--write-subtitles',str(srt)]
-              print('Generating',i,item['title'])
-              subprocess.run(cmd,check=True)
+              words=out/f'tts_{i:02}_words.json'
+              communicate=edge_tts.Communicate(item['text'], voice, rate=rate)
+              word_rows=[]
+              with mp3.open('wb') as audio_file:
+                  async for chunk in communicate.stream():
+                      if chunk['type']=='audio':
+                          audio_file.write(chunk['data'])
+                      elif chunk['type']=='WordBoundary':
+                          word_rows.append({
+                              'offset_100ns': int(chunk['offset']),
+                              'duration_100ns': int(chunk['duration']),
+                              'start': float(chunk['offset'])/10_000_000.0,
+                              'duration': float(chunk['duration'])/10_000_000.0,
+                              'end': float(chunk['offset']+chunk['duration'])/10_000_000.0,
+                              'text': chunk['text'],
+                          })
+              words.write_text(json.dumps({
+                  'title': item['title'],
+                  'voice': voice,
+                  'rate': rate,
+                  'text': item['text'],
+                  'words': word_rows,
+              }, ensure_ascii=False, indent=2), encoding='utf-8')
+              print('Generated', i, item['title'], 'word boundaries:', len(word_rows))
+
+          async def main():
+              for i,item in enumerate(data,1):
+                  await render(i,item)
+
+          asyncio.run(main())
           PY
 
       - name: Upload narration artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: library-zh-tw-tts
+          name: library-zh-tw-tts-word-boundary
           path: tts_output/
           retention-days: 7
