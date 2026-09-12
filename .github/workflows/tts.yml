@@ -1,0 +1,59 @@
+name: Free zh-TW TTS Render
+
+on:
+  push:
+    paths:
+      - 'tts_scripts.json'
+      - '.github/workflows/tts.yml'
+  workflow_dispatch:
+
+jobs:
+  render-tts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install edge-tts
+        run: pip install edge-tts
+
+      - name: Generate zh-TW narration segments
+        shell: bash
+        run: |
+          mkdir -p tts_output
+          python - <<'PY'
+          import json, subprocess, pathlib
+          data=json.load(open('tts_scripts.json',encoding='utf-8'))
+          out=pathlib.Path('tts_output')
+          voice='zh-TW-HsiaoChenNeural'
+          for i,item in enumerate(data,1):
+              mp3=out/f'tts_{i:02}.mp3'
+              srt=out/f'tts_{i:02}.srt'
+              cmd=['edge-tts','--voice',voice,'--rate=-5%','--text',item['text'],
+                   '--write-media',str(mp3),'--write-subtitles',str(srt)]
+              print('Generating',i,item['title'])
+              subprocess.run(cmd,check=True)
+          PY
+
+      - name: Create metadata
+        run: |
+          python - <<'PY'
+          import json, pathlib, subprocess
+          rows=[]
+          for p in sorted(pathlib.Path('tts_output').glob('*.mp3')):
+              r=subprocess.run(['ffprobe','-v','error','-show_entries','format=duration','-of','default=noprint_wrappers=1:nokey=1',str(p)],capture_output=True,text=True,check=True)
+              rows.append({'file':p.name,'duration':float(r.stdout.strip())})
+          pathlib.Path('tts_output/durations.json').write_text(json.dumps(rows,ensure_ascii=False,indent=2),encoding='utf-8')
+          PY
+
+      - name: Upload narration artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: library-zh-tw-tts
+          path: tts_output/
+          retention-days: 7
