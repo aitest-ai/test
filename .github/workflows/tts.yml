@@ -22,7 +22,7 @@ jobs:
       - name: Install edge-tts
         run: pip install edge-tts
 
-      - name: Generate zh-TW narration with word boundaries
+      - name: Generate zh-TW dialogue with word boundaries
         shell: bash
         run: |
           mkdir -p tts_output
@@ -32,14 +32,16 @@ jobs:
 
           data=json.load(open('tts_scripts.json',encoding='utf-8'))
           out=pathlib.Path('tts_output')
-          voice='zh-TW-HsiaoChenNeural'
-          rate='-5%'
+          default_voice='zh-TW-HsiaoChenNeural'
+          default_rate='-5%'
 
           async def render(i, item):
               mp3=out/f'tts_{i:02}.mp3'
               words=out/f'tts_{i:02}_words.json'
               display_text=item.get('display_text', item.get('text',''))
               tts_text=item.get('tts_text', item.get('text',''))
+              voice=item.get('voice', default_voice)
+              rate=item.get('rate', default_rate)
               communicate=edge_tts.Communicate(tts_text, voice, rate=rate, boundary='WordBoundary')
               word_rows=[]
               with mp3.open('wb') as audio_file:
@@ -57,13 +59,14 @@ jobs:
                           })
               words.write_text(json.dumps({
                   'title': item['title'],
+                  'speaker': item.get('speaker',''),
                   'voice': voice,
                   'rate': rate,
                   'display_text': display_text,
                   'tts_text': tts_text,
                   'words': word_rows,
               }, ensure_ascii=False, indent=2), encoding='utf-8')
-              print('Generated', i, item['title'], 'word boundaries:', len(word_rows))
+              print('Generated', i, item.get('speaker',''), voice, 'word boundaries:', len(word_rows))
 
           async def main():
               for i,item in enumerate(data,1):
@@ -76,6 +79,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: library-zh-tw-tts-word-boundary
+          name: dialogue-prototype-zh-tw
           path: tts_output/
           retention-days: 7
