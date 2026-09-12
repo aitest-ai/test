@@ -38,7 +38,7 @@ jobs:
           async def render(i, item):
               mp3=out/f'tts_{i:02}.mp3'
               words=out/f'tts_{i:02}_words.json'
-              communicate=edge_tts.Communicate(item['text'], voice, rate=rate)
+              communicate=edge_tts.Communicate(item['text'], voice, rate=rate, boundary='WordBoundary')
               word_rows=[]
               with mp3.open('wb') as audio_file:
                   async for chunk in communicate.stream():
