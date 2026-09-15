@@ -19,58 +19,138 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install edge-tts
-        run: pip install edge-tts
+      - name: Install TTS and audio tools
+        run: |
+          pip install edge-tts pydub
+          sudo apt-get update -y
+          sudo apt-get install -y ffmpeg
 
-      - name: Generate zh-TW dialogue with word boundaries
+      - name: Generate dual-character zh-TW dialogue
         shell: bash
         run: |
           mkdir -p tts_output
           python - <<'PY'
-          import asyncio, json, pathlib
+          import asyncio, json, pathlib, time
+          from pydub import AudioSegment
           import edge_tts
 
-          data=json.load(open('tts_scripts.json',encoding='utf-8'))
-          out=pathlib.Path('tts_output')
-          default_voice='zh-TW-HsiaoChenNeural'
-          default_rate='-5%'
+          data = json.load(open('tts_scripts.json', encoding='utf-8'))
+          out = pathlib.Path('tts_output')
+          default_voice = 'zh-TW-HsiaoChenNeural'
+          default_rate = '-3%'
+          default_pitch = '+0Hz'
+          default_volume = '+0%'
 
           async def render(i, item):
-              mp3=out/f'tts_{i:02}.mp3'
-              words=out/f'tts_{i:02}_words.json'
-              display_text=item.get('display_text', item.get('text',''))
-              tts_text=item.get('tts_text', item.get('text',''))
-              voice=item.get('voice', default_voice)
-              rate=item.get('rate', default_rate)
-              communicate=edge_tts.Communicate(tts_text, voice, rate=rate, boundary='WordBoundary')
-              word_rows=[]
-              with mp3.open('wb') as audio_file:
-                  async for chunk in communicate.stream():
-                      if chunk['type']=='audio':
-                          audio_file.write(chunk['data'])
-                      elif chunk['type']=='WordBoundary':
-                          word_rows.append({
-                              'offset_100ns': int(chunk['offset']),
-                              'duration_100ns': int(chunk['duration']),
-                              'start': float(chunk['offset'])/10_000_000.0,
-                              'duration': float(chunk['duration'])/10_000_000.0,
-                              'end': float(chunk['offset']+chunk['duration'])/10_000_000.0,
-                              'text': chunk['text'],
-                          })
-              words.write_text(json.dumps({
-                  'title': item['title'],
-                  'speaker': item.get('speaker',''),
-                  'voice': voice,
-                  'rate': rate,
-                  'display_text': display_text,
-                  'tts_text': tts_text,
-                  'words': word_rows,
-              }, ensure_ascii=False, indent=2), encoding='utf-8')
-              print('Generated', i, item.get('speaker',''), voice, 'word boundaries:', len(word_rows))
+              mp3 = out / f'tts_{i:03}.mp3'
+              words = out / f'tts_{i:03}_words.json'
+              display_text = item.get('display_text', item.get('text', ''))
+              tts_text = item.get('tts_text', item.get('text', ''))
+              voice = item.get('voice', default_voice)
+              rate = item.get('rate', default_rate)
+              pitch = item.get('pitch', default_pitch)
+              volume = item.get('volume', default_volume)
+
+              last_error = None
+              for attempt in range(1, 4):
+                  try:
+                      communicate = edge_tts.Communicate(
+                          tts_text,
+                          voice,
+                          rate=rate,
+                          pitch=pitch,
+                          volume=volume,
+                          boundary='WordBoundary',
+                      )
+                      word_rows = []
+                      with mp3.open('wb') as audio_file:
+                          async for chunk in communicate.stream():
+                              if chunk['type'] == 'audio':
+                                  audio_file.write(chunk['data'])
+                              elif chunk['type'] == 'WordBoundary':
+                                  word_rows.append({
+                                      'offset_100ns': int(chunk['offset']),
+                                      'duration_100ns': int(chunk['duration']),
+                                      'start': float(chunk['offset']) / 10_000_000.0,
+                                      'duration': float(chunk['duration']) / 10_000_000.0,
+                                      'end': float(chunk['offset'] + chunk['duration']) / 10_000_000.0,
+                                      'text': chunk['text'],
+                                  })
+                      words.write_text(json.dumps({
+                          'title': item.get('title', f'line-{i}'),
+                          'scene': item.get('scene', ''),
+                          'speaker': item.get('speaker', ''),
+                          'voice': voice,
+                          'rate': rate,
+                          'pitch': pitch,
+                          'volume': volume,
+                          'display_text': display_text,
+                          'tts_text': tts_text,
+                          'words': word_rows,
+                      }, ensure_ascii=False, indent=2), encoding='utf-8')
+                      print('Generated', i, item.get('speaker', ''), voice, 'word boundaries:', len(word_rows))
+                      return mp3
+                  except Exception as exc:
+                      last_error = exc
+                      print(f'Attempt {attempt}/3 failed for line {i}: {exc}')
+                      if mp3.exists():
+                          mp3.unlink()
+                      await asyncio.sleep(2 * attempt)
+              raise last_error
+
+          def srt_time(ms):
+              h = ms // 3_600_000
+              ms %= 3_600_000
+              m = ms // 60_000
+              ms %= 60_000
+              s = ms // 1000
+              ms %= 1000
+              return f'{h:02}:{m:02}:{s:02},{ms:03}'
 
           async def main():
-              for i,item in enumerate(data,1):
-                  await render(i,item)
+              rendered = []
+              for i, item in enumerate(data, 1):
+                  mp3 = await render(i, item)
+                  rendered.append((i, item, mp3))
+
+              combined = AudioSegment.silent(duration=250)
+              timeline = []
+              srt_rows = []
+              cursor_ms = len(combined)
+
+              for i, item, mp3 in rendered:
+                  audio = AudioSegment.from_file(mp3)
+                  start_ms = cursor_ms
+                  combined += audio
+                  cursor_ms += len(audio)
+                  end_ms = cursor_ms
+
+                  timeline.append({
+                      'index': i,
+                      'scene': item.get('scene', ''),
+                      'speaker': item.get('speaker', ''),
+                      'voice': item.get('voice', default_voice),
+                      'display_text': item.get('display_text', item.get('text', '')),
+                      'tts_text': item.get('tts_text', item.get('text', '')),
+                      'start_ms': start_ms,
+                      'end_ms': end_ms,
+                      'duration_ms': len(audio),
+                  })
+
+                  srt_rows.append(str(i))
+                  srt_rows.append(f'{srt_time(start_ms)} --> {srt_time(end_ms)}')
+                  srt_rows.append(item.get('display_text', item.get('text', '')))
+                  srt_rows.append('')
+
+                  gap = int(item.get('gap_after_ms', 220))
+                  combined += AudioSegment.silent(duration=gap)
+                  cursor_ms += gap
+
+              combined.export(out / 'full_dialogue.mp3', format='mp3', bitrate='192k')
+              (out / 'full_dialogue.srt').write_text('\n'.join(srt_rows), encoding='utf-8')
+              (out / 'timeline.json').write_text(json.dumps(timeline, ensure_ascii=False, indent=2), encoding='utf-8')
+              (out / 'source_dialogue.json').write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+              print('Full dialogue duration ms:', len(combined))
 
           asyncio.run(main())
           PY
@@ -79,6 +159,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dialogue-prototype-zh-tw
+          name: dongxin-library-dual-dialogue-zh-tw
           path: tts_output/
           retention-days: 7
