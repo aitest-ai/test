@@ -1,0 +1,34 @@
+[
+  {
+    "title": "學生發問",
+    "speaker": "學生",
+    "voice": "zh-TW-HsiaoYuNeural",
+    "rate": "-3%",
+    "display_text": "老師，我借到這本書，好像有點破掉了，怎麼辦",
+    "tts_text": "老師，我借到這本書，好像有點破掉了，怎麼辦"
+  },
+  {
+    "title": "館員說明",
+    "speaker": "館員",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-5%",
+    "display_text": "別擔心，我們先一起檢查看看。先看封面和書背，再翻一翻內頁",
+    "tts_text": "別擔心，我們先一起檢查看看。先看封面和書背，再翻一翻內頁"
+  },
+  {
+    "title": "館員提醒",
+    "speaker": "館員",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-5%",
+    "display_text": "如果原本就有破損、污漬或鬆脫，先告訴館員，不要自己用膠帶黏",
+    "tts_text": "如果原本就有破損、污漬或鬆脫，先告訴館員，不要自己用膠帶黏"
+  },
+  {
+    "title": "學生回應",
+    "speaker": "學生",
+    "voice": "zh-TW-HsiaoYuNeural",
+    "rate": "-3%",
+    "display_text": "我知道了。借書前先檢查，等要還書時也要保持書本完整",
+    "tts_text": "我知道了。借書前先檢查，等要環書時也要保持書本完整"
+  }
+]
