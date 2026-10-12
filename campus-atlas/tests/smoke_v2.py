@@ -30,6 +30,7 @@ async def main():
    await page.locator("#floor-switcher .floor-btn").nth(2).click()
    await page.wait_for_timeout(850)
    checks["floor_active"]=await page.locator("#floor-switcher .floor-btn.active").inner_text()
+   checks["sliced_roofs_hidden"]=await page.evaluate("window.__campus.getHealth().roofsHidden")
    await page.screenshot(path=str(OUT/"02_floor_2.png"),timeout=15000)
    await page.locator("#mode-walk").click()
    before=await page.evaluate("({...window.__campus.state.player})")
@@ -61,7 +62,7 @@ async def main():
   checks["page_errors"]=issues
   checks["passed"]=(checks.get("http_status")==200 and checks.get("webgl") is True and
     checks.get("building_selected") is True and checks.get("reference_facades")==1 and checks.get("selected_room")=="資訊教室" and
-    checks.get("floor_active")=="2F" and checks.get("walk_distance",0)>.15 and
+    checks.get("floor_active")=="2F" and checks.get("sliced_roofs_hidden")==1 and checks.get("walk_distance",0)>.15 and
     checks.get("page_errors")==[])
   if checks["passed"]:
    await page.set_viewport_size({"width":390,"height":844})
