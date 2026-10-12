@@ -20,7 +20,7 @@ function seeded(i){const a=Math.sin(i*93.194+17.39)*43758.5453;return a-Math.flo
 function tileTexture(){const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');g.fillStyle='#d8e1d3';g.fillRect(0,0,256,256);for(let y=0;y<8;y++)for(let x=0;x<8;x++){let k=x+8*y;g.fillStyle=`rgba(${130+Math.floor(seeded(k)*40)},${155+Math.floor(seeded(k+50)*34)},${136+Math.floor(seeded(k+90)*35)},.09)`;g.fillRect(x*32+1,y*32+1,30,30);}g.strokeStyle='rgba(102,130,110,.11)';for(let i=0;i<=256;i+=32){g.beginPath();g.moveTo(i,0);g.lineTo(i,256);g.stroke();g.beginPath();g.moveTo(0,i);g.lineTo(256,i);g.stroke();}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(12,10);return new THREE.MeshStandardMaterial({map:t,roughness:.96});}
 function grassTexture(){const c=document.createElement('canvas');c.width=c.height=256;let g=c.getContext('2d');g.fillStyle='#91b598';g.fillRect(0,0,256,256);for(let i=0;i<6500;i++){const x=seeded(i*3)*256,y=seeded(i*3+1)*256,r=seeded(i+4);g.fillStyle=r>.6?'#98ba9f':r>.3?'#8dad90':'#a5bfa3';g.globalAlpha=.15+seeded(i+5)*.21;g.fillRect(x,y,1+seeded(i+2)*3,1+seeded(i+6)*3)}g.globalAlpha=1;const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(9,7);return new THREE.MeshStandardMaterial({map:t,roughness:1});}
 function createGround(){plane(world,0,-.13,0,600,600,'#a9c2ab');plane(world,0,-.08,0,school.site.width,school.site.depth,grassTexture());
-  box(world,0,-.05,0,school.site.width+.8,.25,school.site.depth+.8,'#c2caba');
+  box(world,0,-.05,0,school.site.width+.8,.18,school.site.depth+.8,'#c2caba');
   plane(world,0,.07,0,school.site.width-2,school.site.depth-2,grassTexture());
   const paver=tileTexture();plane(world,0,.12,18,18,62,paver);plane(world,0,.13,-1,95,8,paver);
   plane(world,-27,.13,20,36,16,paver);plane(world,24,.13,32,26,10,paver);
@@ -169,8 +169,8 @@ function createPlayer(){const group=new THREE.Group();scene.add(group);playerMes
  group.position.set(state.player.x,.18,state.player.z);group.rotation.y=state.player.heading;
 }
 function initThree(){if(!THREE)throw new Error('THREE unavailable');const el=$('#scene');scene=new THREE.Scene();scene.background=new THREE.Color('#d9e8e5');scene.fog=new THREE.Fog('#d9e8e5',135,280);
- camera=new THREE.PerspectiveCamera(49,1,.1,500);renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;el.appendChild(renderer.domElement);
- scene.add(new THREE.HemisphereLight('#f5ffff','#9fae97',.91));let sun=new THREE.DirectionalLight('#fff1d9',1.25);sun.position.set(-50,100,55);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-100;sun.shadow.camera.right=100;sun.shadow.camera.top=100;sun.shadow.camera.bottom=-100;sun.shadow.camera.near=1;sun.shadow.camera.far=250;sun.shadow.bias=-.0006;scene.add(sun);
+ camera=new THREE.PerspectiveCamera(49,1,.1,500);renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.3));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.76;el.appendChild(renderer.domElement);
+ scene.add(new THREE.HemisphereLight('#f5ffff','#9fae97',.64));let sun=new THREE.DirectionalLight('#fff1d9',.82);sun.position.set(-50,100,55);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-100;sun.shadow.camera.right=100;sun.shadow.camera.top=100;sun.shadow.camera.bottom=-100;sun.shadow.camera.near=1;sun.shadow.camera.far=250;sun.shadow.bias=-.0006;scene.add(sun);
  world=new THREE.Group();scene.add(world);createGround();buildBuildings();buildOutdoor();createPlayer();raycaster=new THREE.Raycaster();clock=new THREE.Clock();
  state.orbit.target=new THREE.Vector3(0,4,0);listenScene();onResize();new ResizeObserver(onResize).observe(el);requestAnimationFrame(animate);
 }
@@ -236,7 +236,7 @@ function renderLists(){const q=state.search.toLowerCase();const target=$('#build
 function setMode(mode){state.mode=mode;$('#mode-overview').classList.toggle('active',mode==='overview');$('#mode-walk').classList.toggle('active',mode==='walk');$('#walk-hud').classList.toggle('hidden',mode!=='walk');$('#mobile-joystick').classList.toggle('hidden',mode!=='walk');
  $('#scene-label').textContent=mode==='walk'?'地面步行 · 第三人稱':'全校鳥瞰';
  if(mode==='overview'){if(!state.building){state.orbit.target.set(0,4,0);state.orbit.dist=104;}}
- else{focusBuilding(null,0);$('#selection-card').classList.add('hidden');}
+ else{focusBuilding(null,0);$('#selection-card').classList.add('hidden');const p=state.player;camera.position.set(p.x-Math.sin(p.heading)*7.8,5.4,p.z-Math.cos(p.heading)*7.8);camera.lookAt(p.x,1.9,p.z);}
 }
 function routeDestination(item){const b=item.building||((item.floors)?item:null);if(!b)return {x:item.x,z:item.z};const pos=item.floor?item.x:b.x;const dir=b.front==='north'?-1:1;
  return {x:pos,z:b.z+dir*(b.depth/2+3.2)};}
