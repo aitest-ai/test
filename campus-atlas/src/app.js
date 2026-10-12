@@ -177,7 +177,7 @@ function initThree(){if(!THREE)throw new Error('THREE unavailable');const el=$('
 function onResize(){if(!renderer)return;const r=$('#scene').getBoundingClientRect();const w=Math.max(300,r.width),h=Math.max(250,r.height);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}
 function isBlocked(x,z,radius=.7){if(Math.abs(x)>school.site.width/2-3||Math.abs(z)>school.site.depth/2-3)return true;return obstacles.some(o=>Math.abs(x-o.x)<o.hw+radius&&Math.abs(z-o.z)<o.hd+radius)}
 function movePlayer(dx,dz){const p=state.player,nx=p.x+dx,nz=p.z+dz;if(!isBlocked(nx,p.z,.42))p.x=nx;if(!isBlocked(p.x,nz,.42))p.z=nz}
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.065);const mode=state.mode;
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.24);const mode=state.mode;
  if(mode==='walk'){
   let p=state.player,forward=0,lateral=0;const k=refs.keys||{};
   if(k.KeyW||k.ArrowUp)forward++;if(k.KeyS||k.ArrowDown)forward--;
