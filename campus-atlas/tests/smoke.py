@@ -58,7 +58,17 @@ async def main():
    except:pass
   checks["title"]=await page.title()
   checks["page_errors"]=issues
+  checks["passed"]=(checks.get("http_status")==200 and checks.get("webgl") is True and
+    checks.get("building_selected") is True and checks.get("selected_room")=="資訊教室" and
+    checks.get("floor_active")=="2F" and checks.get("walk_distance",0)>.15 and
+    checks.get("page_errors")==[])
+  if checks["passed"]:
+   await page.set_viewport_size({"width":390,"height":844})
+   await page.locator("#mode-overview").click()
+   await page.wait_for_timeout(900)
+   await page.screenshot(path=str(OUT/"06_mobile.png"),timeout=15000)
   (OUT/"results.json").write_text(json.dumps(checks,ensure_ascii=False,indent=2),encoding="utf-8")
   print(json.dumps(checks,ensure_ascii=False,indent=2))
   await browser.close()
+  if not checks.get("passed"):raise RuntimeError("Campus Atlas smoke test failed; check qa-output/results.json")
 if __name__=="__main__":asyncio.run(main())
