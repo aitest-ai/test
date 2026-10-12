@@ -139,11 +139,12 @@ function buildBuilding(b){const root=new THREE.Group();root.position.set(b.x,0,b
  }
  // roof and parapet, HVAC details
  const roofY=b.floors*H+.08;
- baseTag(box(root,0,roofY,0,width+1.25,.28,depth+1.15,'#e7e0d5'),b);
- [-1,1].forEach(s=>{box(root,0,roofY+.49,s*(depth/2+.42),width+1.2,.82,.25,'#e7e2d8');box(root,s*(width/2+.45),roofY+.49,0,.25,.82,depth+1,'#e7e2d8');});
- for(let i=0;i<Math.min(3,cnt);i++){box(root,-width/3+i*width/3,roofY+.37,-1,1.7,.5,1.2,'#b9c5c0');}
+ const roofGroup=new THREE.Group();root.add(roofGroup);
+ baseTag(box(roofGroup,0,roofY,0,width+1.25,.28,depth+1.15,'#e7e0d5'),b);
+ [-1,1].forEach(s=>{box(roofGroup,0,roofY+.49,s*(depth/2+.42),width+1.2,.82,.25,'#e7e2d8');box(roofGroup,s*(width/2+.45),roofY+.49,0,.25,.82,depth+1,'#e7e2d8');});
+ for(let i=0;i<Math.min(3,cnt);i++){box(roofGroup,-width/3+i*width/3,roofY+.37,-1,1.7,.5,1.2,'#b9c5c0');}
  // roof signage floats on courtyard front for easy reading
- let sign=addName(root,b.name,0,roofY+1.8,front+.3,1);baseTag(sign,b);
+ let sign=addName(roofGroup,b.name,0,roofY+1.8,front+.3,1);baseTag(sign,b);
  // Front steps & entrance strip
  box(root,0,.11,front+2.0,width*.9,.2,2,'#d6d8c9');
  for(let i=0;i<5;i++){
@@ -151,7 +152,7 @@ function buildBuilding(b){const root=new THREE.Group();root.position.set(b.x,0,b
     box(root,sx,.17,front+1.0,1.4,.12,.95,'#eee5d6');
  }
  const photoDetail=b.facadeReference?addDongxinFacade({THREE,building:b,root,floors,box,baseTag}):null;
- const model={root,floors,b,photoDetail};buildingModels.set(b.id,model);
+ const model={root,floors,b,photoDetail,roofGroup};buildingModels.set(b.id,model);
  obstacles.push({x:b.x,z:b.z,hw:width/2+.5,hd:depth/2+.5});
  if(photoDetail)obstacles.push(photoDetail.additionalObstacle);
 }
@@ -217,7 +218,7 @@ function raySelect(e){const r=renderer.domElement.getBoundingClientRect();const 
  for(const hit of hits){let obj=hit.object;while(obj){if(obj.userData?.roomId){const room=rooms.find(x=>x.id===obj.userData.roomId);if(room){selectItem(room);return}}if(obj.userData?.buildingId){const b=school.buildings.find(x=>x.id===obj.userData.buildingId);if(b){selectItem(b);return}}obj=obj.parent;}}
 }
 function focusBuilding(b,floor=0){state.building=b;state.activeFloor=floor;
- for(const [id,model] of buildingModels){model.floors.forEach((g,i)=>{g.visible=id!==b?.id||floor===0||i<floor});if(model.photoDetail)model.photoDetail.roofAccent.visible=id!==b?.id||floor===0;}
+ for(const [id,model] of buildingModels){model.floors.forEach((g,i)=>{g.visible=id!==b?.id||floor===0||i<floor});model.roofGroup.visible=id!==b?.id||floor===0;if(model.photoDetail)model.photoDetail.roofAccent.visible=id!==b?.id||floor===0;}
  renderFloors();if(b&&state.mode==='overview'){const h=(floor>0?Math.max(3,(floor-.35)*b.floorHeight):b.floors*b.floorHeight*.5);state.orbit.target.set(b.x,h,b.z);state.orbit.dist=THREE.MathUtils.clamp(b.width*1.7,37,66);}}
 function renderFloors(){const b=state.building;const cont=$('#floor-switcher');cont.innerHTML='';let nums=[0,...Array.from({length:b?.floors||4},(_,i)=>i+1)];for(const f of nums){const el=document.createElement('button');el.className='floor-btn'+(state.activeFloor===f?' active':'');el.textContent=f===0?'全部':`${f}F`;el.title=f===0?'顯示整棟建築':`顯示 ${f} 樓及以下`;el.addEventListener('click',()=>{if(!b&&school.buildings[0])focusBuilding(school.buildings[0],f);else focusBuilding(b,f);if(state.mode==='walk')setMode('overview');});cont.append(el)}}
 function selectItem(item){state.selected=item;const b=item.building||((item.floors)?item:null);if(b)focusBuilding(b,item.floor||0);
@@ -281,5 +282,5 @@ function setupUI(){renderFloors();renderLists();$('#search').addEventListener('i
  $('#help-close').addEventListener('click',()=>$('#help-overlay').classList.add('hidden'));
  $('#help-ok').addEventListener('click',()=>$('#help-overlay').classList.add('hidden'));
 }
-try{initThree();setupUI();$('#scene-loading').classList.add('hidden');window.__campus={state,school,rooms,selectItem,setMode,findPath,isBlocked,getHealth:()=>({rendered:renderer.info.render.calls,buildings:buildingModels.size,rooms:rooms.length,photoFacades:[...buildingModels.values()].filter(v=>!!v.photoDetail).length,mode:state.mode,canvas:renderer.domElement.width+'x'+renderer.domElement.height})};}
+try{initThree();setupUI();$('#scene-loading').classList.add('hidden');window.__campus={state,school,rooms,selectItem,setMode,findPath,isBlocked,getHealth:()=>({rendered:renderer.info.render.calls,buildings:buildingModels.size,rooms:rooms.length,photoFacades:[...buildingModels.values()].filter(v=>!!v.photoDetail).length,roofsHidden:[...buildingModels.values()].filter(v=>!v.roofGroup.visible).length,mode:state.mode,canvas:renderer.domElement.width+'x'+renderer.domElement.height})};}
 catch(err){console.error('3D campus initialization failed',err);$('#scene-loading').classList.add('hidden');$('#scene-error').classList.remove('hidden');$('#scene-error').textContent=`3D 場景初始化失敗：${err.message}`;}
