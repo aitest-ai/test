@@ -33,7 +33,7 @@ async def main():
    await page.locator("#mode-walk").click()
    before=await page.evaluate("({...window.__campus.state.player})")
    await page.keyboard.down("w")
-   await page.wait_for_timeout(900)
+   await page.wait_for_timeout(1800)
    await page.keyboard.up("w")
    await page.wait_for_timeout(250)
    after=await page.evaluate("({...window.__campus.state.player})")
