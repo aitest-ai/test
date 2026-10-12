@@ -12,8 +12,8 @@
 <body>
 <div id="app">
   <header class="topbar">
-    <div class="brandmark"><span class="mark">▦</span><span class="brandcopy"><strong>校園漫遊實驗室</strong><small>CAMPUS ATLAS <span class="dot">·</span> PROTOTYPE 01</small></span></div>
-    <div class="head-center"><span class="location-pip"></span><span>臺北市南港區</span><span class="head-divider"></span><strong>東新國小 · 建模草案</strong></div>
+    <div class="brandmark"><span class="mark">▦</span><span class="brandcopy"><strong>校園漫遊實驗室</strong><small>CAMPUS ATLAS <span class="dot">·</span> PHOTO STUDY 02</small></span></div>
+    <div class="head-center"><span class="location-pip"></span><span>臺北市南港區</span><span class="head-divider"></span><strong>東新國小 · 新校舍外觀研究</strong></div>
     <div class="head-actions"><span class="status"><span></span> 3D 場景運作中</span><button class="icon-btn" id="help-btn" title="操作說明">?</button></div>
   </header>
 
@@ -55,10 +55,10 @@
       <div class="minimap-wrap"><div class="mini-head"><span>校園縮圖</span><span>N ↑</span></div><canvas id="minimap" width="224" height="155"></canvas><small id="map-caption">目前位置 · 校園中央</small></div>
       <div id="walk-hud" class="walk-hud hidden"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移動</span><span>拖曳畫面轉向</span><span><kbd>Shift</kbd> 加速</span></div>
       <div id="mobile-joystick" class="mobile-joystick hidden"><div class="joystick-inner"></div></div>
-      <div class="scene-bottom-label">MODEL LAB / 001 <span>•</span> 示意配置，尚非學校實際測繪圖</div>
+      <div class="scene-bottom-label">MODEL LAB / 002 <span>•</span> 新校舍外觀照片參照｜座標與教室仍為示意</div>
     </main>
   </div>
-  <div id="intro" class="modal-layer"><div class="intro-dialog"><div class="intro-eyebrow">WELCOME TO CAMPUS ATLAS <span>↗</span></div><div class="intro-accent">01 / 04</div><h2>一所校園，<br><em>一個可以走進去的世界。</em></h2><p>先體驗 3D 校園、教室搜尋、樓層切換與步行導航。這是用獨立程式化模型建立的<strong>示範配置</strong>，接下來再依東新國小真實建築逐棟調整。</p><div class="intro-quick"><span>◌ 可步行</span><span>◧ 可切樓層</span><span>⌁ 可找教室</span></div><div class="intro-actions"><button id="start-walk" class="primary-cta">走進示範校園 <span>→</span></button><button id="start-overview" class="outline-cta">先從鳥瞰開始 ↗</button></div><small>※ 所有建築名稱、尺寸、教室配置均為原型示意，並非東新國小現況資料。</small></div></div>
+  <div id="intro" class="modal-layer"><div class="intro-dialog"><div class="intro-eyebrow">WELCOME TO CAMPUS ATLAS <span>↗</span></div><div class="intro-accent">01 / 04</div><h2>從一棟紅磚校舍，<br><em>慢慢建回真正的校園。</em></h2><p>先體驗 3D 校園、教室搜尋、樓層切換與步行導航。第一棟紅磚教室棟參考臺北市政府的完工照片，其他仍是<strong>示範配置</strong>，接下來再依東新國小真實建築逐棟調整。</p><div class="intro-quick"><span>◌ 可步行</span><span>◧ 可切樓層</span><span>⌁ 可找教室</span></div><div class="intro-actions"><button id="start-walk" class="primary-cta">走進示範校園 <span>→</span></button><button id="start-overview" class="outline-cta">先從鳥瞰開始 ↗</button></div><small>※ 紅磚教室棟僅參照外觀特徵；全部座標、尺寸、樓層及教室分配未經實測。</small></div></div>
   <div id="help-overlay" class="modal-layer hidden"><div class="help-dialog"><button id="help-close" class="selection-close">×</button><p class="eyebrow">HOW TO EXPLORE</p><h2>操作指南</h2><div class="help-grid"><div><strong>鳥瞰</strong><p>拖曳旋轉校園，滑鼠滾輪縮放；點選建築即可查看教室。</p></div><div><strong>步行</strong><p>W A S D 移動，Shift 加速；拖曳場景改變前進方向。</p></div><div><strong>尋路</strong><p>選擇建築或教室後按「規劃步行路線」，角色會沿路線走向入口。</p></div><div><strong>樓層</strong><p>選擇建築，再選擇樓層，系統會隱藏較高樓層供你查看。</p></div></div><button id="help-ok" class="outline-cta">了解，開始探索 →</button></div></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
