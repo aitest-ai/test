@@ -99,7 +99,7 @@ async def main():
       performance_resource_count:performance.getEntriesByType('resource').length,
       inline_script_analysis:(()=>{
         const blocks=[...document.querySelectorAll('script:not([src])')].map(s=>s.textContent||'');
-        const code=blocks.join('\n');
+        const code=blocks.join('\\n');
         const terms=['new THREE.BoxGeometry','new THREE.PlaneGeometry','new THREE.CylinderGeometry',
           'new THREE.ExtrudeGeometry','new THREE.BufferGeometry','new THREE.Mesh',
           'new THREE.InstancedMesh','THREE.CanvasTexture','THREE.Raycaster',
@@ -138,5 +138,7 @@ async def main():
   "network_records":len(network),"analyzed_js":len(scripts),"models":len(models),
   "engine_hints":{name:sum(name in s["signatures"] for s in scripts) for name in PATTERNS},
   "errors":len(errors),"note":"Only public metadata; no login sessions, unlicensed asset bundles, or backend code."}
+ summary["dom_analyzed"]=sum("inline_script_analysis" in x for x in pages)
  save("summary.json",summary);print(json.dumps(summary,ensure_ascii=False,indent=2))
+ if summary["dom_analyzed"] != len(PAGES):raise RuntimeError("Some DOM analyses failed; inspect pages.json")
 if __name__=="__main__":asyncio.run(main())
