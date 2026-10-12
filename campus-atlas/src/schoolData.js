@@ -1,14 +1,14 @@
-// 校園資料層。原型為虛構示意配置，不代表東新國小實際地圖。
+// 校園資料層。其中第一棟採外觀照片參照，其餘尺寸、位置、教室配置仍為示意。
 // 長度單位：公尺。座標 [x, z]，校園中心為 [0,0]。
 export const school = {
   name: '東新國小・建模草案',
   site: { width: 122, depth: 100 },
   spawn: { x: 0, z: 18, heading: Math.PI },
   buildings: [
-    { id: 'a', name: '探索樓', tag: 'TEACHING BLOCK A', kind: '教學大樓', color: '#c3a48b', x: -22, z: -25, width: 40, depth: 12, floors: 3, floorHeight: 3.6, front: 'south', roomCount: 4, rooms: [
-      ['一年一班', '一年二班', '一年三班', '自然探索教室'],
-      ['二年一班', '二年二班', '二年三班', '視聽教室'],
-      ['三年一班', '三年二班', '三年三班', '多功能教室'] ] },
+    { id: 'a', name: '新校舍・紅磚教室棟', tag: 'PHOTO-GUIDED BLOCK', kind: '外觀照片參照', facadeReference: true, color: '#b66e51', x: -22, z: -25, width: 40, depth: 12, floors: 3, floorHeight: 3.6, front: 'south', roomCount: 4, rooms: [
+      ['示意教室 1-1', '示意教室 1-2', '示意教室 1-3', '示意教室 1-4'],
+      ['示意教室 2-1', '示意教室 2-2', '示意教室 2-3', '示意教室 2-4'],
+      ['示意教室 3-1', '示意教室 3-2', '示意教室 3-3', '示意教室 3-4'] ] },
     { id: 'b', name: '知行樓', tag: 'TEACHING BLOCK B', kind: '教學大樓', color: '#d2b4a1', x: 26, z: -25, width: 36, depth: 12, floors: 4, floorHeight: 3.55, front: 'south', roomCount: 4, rooms: [
       ['四年一班', '四年二班', '四年三班', '閱讀角'],
       ['五年一班', '五年二班', '五年三班', '藝文教室'],
