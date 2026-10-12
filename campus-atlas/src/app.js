@@ -1,4 +1,5 @@
 import {school, allRooms} from './schoolData.js';
+import {addDongxinFacade} from './dongxinFacade.js';
 
 const $=s=>document.querySelector(s);
 const rooms=allRooms();
@@ -149,8 +150,10 @@ function buildBuilding(b){const root=new THREE.Group();root.position.set(b.x,0,b
     const sx=-width*.31+i*width*.155;
     box(root,sx,.17,front+1.0,1.4,.12,.95,'#eee5d6');
  }
- const model={root,floors,b};buildingModels.set(b.id,model);
+ const photoDetail=b.facadeReference?addDongxinFacade({THREE,building:b,root,floors,box,baseTag}):null;
+ const model={root,floors,b,photoDetail};buildingModels.set(b.id,model);
  obstacles.push({x:b.x,z:b.z,hw:width/2+.5,hd:depth/2+.5});
+ if(photoDetail)obstacles.push(photoDetail.additionalObstacle);
 }
 function buildBuildings(){for(const b of school.buildings)buildBuilding(b);}
 function createPlayer(){const group=new THREE.Group();scene.add(group);playerMesh=group;
@@ -214,13 +217,13 @@ function raySelect(e){const r=renderer.domElement.getBoundingClientRect();const 
  for(const hit of hits){let obj=hit.object;while(obj){if(obj.userData?.roomId){const room=rooms.find(x=>x.id===obj.userData.roomId);if(room){selectItem(room);return}}if(obj.userData?.buildingId){const b=school.buildings.find(x=>x.id===obj.userData.buildingId);if(b){selectItem(b);return}}obj=obj.parent;}}
 }
 function focusBuilding(b,floor=0){state.building=b;state.activeFloor=floor;
- for(const [id,model] of buildingModels){model.floors.forEach((g,i)=>{g.visible=id!==b?.id||floor===0||i<floor});}
+ for(const [id,model] of buildingModels){model.floors.forEach((g,i)=>{g.visible=id!==b?.id||floor===0||i<floor});if(model.photoDetail)model.photoDetail.roofAccent.visible=id!==b?.id||floor===0;}
  renderFloors();if(b&&state.mode==='overview'){const h=(floor>0?Math.max(3,(floor-.35)*b.floorHeight):b.floors*b.floorHeight*.5);state.orbit.target.set(b.x,h,b.z);state.orbit.dist=THREE.MathUtils.clamp(b.width*1.7,37,66);}}
 function renderFloors(){const b=state.building;const cont=$('#floor-switcher');cont.innerHTML='';let nums=[0,...Array.from({length:b?.floors||4},(_,i)=>i+1)];for(const f of nums){const el=document.createElement('button');el.className='floor-btn'+(state.activeFloor===f?' active':'');el.textContent=f===0?'全部':`${f}F`;el.title=f===0?'顯示整棟建築':`顯示 ${f} 樓及以下`;el.addEventListener('click',()=>{if(!b&&school.buildings[0])focusBuilding(school.buildings[0],f);else focusBuilding(b,f);if(state.mode==='walk')setMode('overview');});cont.append(el)}}
 function selectItem(item){state.selected=item;const b=item.building||((item.floors)?item:null);if(b)focusBuilding(b,item.floor||0);
  $('#selection-card').classList.remove('hidden');$('#selection-type').textContent=item.floor?'CLASSROOM · SPACE':item.kind==='戶外運動'?'OPEN SPACE · COURT':'CAMPUS · BUILDING';
  $('#selection-title').textContent=item.name;
- $('#selection-sub').textContent=item.floor?`${b.name} · ${item.floor} 樓 · 示範教室`:(item.floors?`${item.floors} 層樓 · ${item.rooms.flat().length} 間示範空間`:`${item.kind} · 校園戶外設施`);
+ $('#selection-sub').textContent=item.floor?`${b.name} · ${item.floor} 樓 · 教室配置待核對`:(item.floors?`${item.floors} 層樓 · ${item.facadeReference?'外觀照片參照／教室示意':'全棟示意配置'}`:`${item.kind} · 校園戶外設施`);
  $('#selection-kind').textContent=item.kind||b.kind;$('#selection-floor').textContent=item.floor?`${item.floor}F`:(item.floors?`1F — ${item.floors}F`:'戶外');
  if(item.x!==undefined&&state.mode==='overview'){
   if(!b){state.orbit.target.set(item.x,1.2,item.z);state.orbit.dist=44;}
@@ -278,5 +281,5 @@ function setupUI(){renderFloors();renderLists();$('#search').addEventListener('i
  $('#help-close').addEventListener('click',()=>$('#help-overlay').classList.add('hidden'));
  $('#help-ok').addEventListener('click',()=>$('#help-overlay').classList.add('hidden'));
 }
-try{initThree();setupUI();$('#scene-loading').classList.add('hidden');window.__campus={state,school,rooms,selectItem,setMode,findPath,isBlocked,getHealth:()=>({rendered:renderer.info.render.calls,buildings:buildingModels.size,rooms:rooms.length,mode:state.mode,canvas:renderer.domElement.width+'x'+renderer.domElement.height})};}
+try{initThree();setupUI();$('#scene-loading').classList.add('hidden');window.__campus={state,school,rooms,selectItem,setMode,findPath,isBlocked,getHealth:()=>({rendered:renderer.info.render.calls,buildings:buildingModels.size,rooms:rooms.length,photoFacades:[...buildingModels.values()].filter(v=>!!v.photoDetail).length,mode:state.mode,canvas:renderer.domElement.width+'x'+renderer.domElement.height})};}
 catch(err){console.error('3D campus initialization failed',err);$('#scene-loading').classList.add('hidden');$('#scene-error').classList.remove('hidden');$('#scene-error').textContent=`3D 場景初始化失敗：${err.message}`;}
