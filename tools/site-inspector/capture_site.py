@@ -97,6 +97,27 @@ async def main():
       canvas_count:document.querySelectorAll('canvas').length,webgl:gl,
       script_urls:[...document.querySelectorAll('script[src]')].map(s=>s.src),
       performance_resource_count:performance.getEntriesByType('resource').length,
+      inline_script_analysis:(()=>{
+        const blocks=[...document.querySelectorAll('script:not([src])')].map(s=>s.textContent||'');
+        const code=blocks.join('\n');
+        const terms=['new THREE.BoxGeometry','new THREE.PlaneGeometry','new THREE.CylinderGeometry',
+          'new THREE.ExtrudeGeometry','new THREE.BufferGeometry','new THREE.Mesh',
+          'new THREE.InstancedMesh','THREE.CanvasTexture','THREE.Raycaster',
+          'new THREE.Group','new THREE.Shape','computeBoundingBox','collision',
+          'navmesh','findPath','shortestPath','pathfinding','createBuilding',
+          'buildBuilding','buildCampus','createCampus','rooms.json','Firestore',
+          'stair','corridor','wall','floor','roof','GLTFLoader'];
+        const occurrence=Object.fromEntries(terms.map(t=>[t,code.split(t).length-1]));
+        const fn=[...code.matchAll(/function\s+([A-Za-z_$][\w$]*)\s*\(/g)]
+            .map(x=>x[1]).slice(0,100);
+        const geo=[...code.matchAll(/new\s+THREE\.([A-Za-z]+Geometry)/g)]
+            .map(x=>x[1]);
+        return {block_count:blocks.length,chars:code.length,
+          block_lengths:blocks.map(x=>x.length).slice(0,30),
+          occurrence,geometry_constructor_counts:Object.fromEntries(
+            [...new Set(geo)].map(x=>[x,geo.filter(y=>y===x).length])),
+          sample_named_functions:fn};
+      })(),
       visible_text:document.body?.innerText?.slice(0,700)||''};
     }"""))
     await page.screenshot(path=str(OUT/("page_"+str(i)+".png")),timeout=25000)
