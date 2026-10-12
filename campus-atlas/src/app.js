@@ -6,7 +6,7 @@ const rooms=allRooms();
 const state={mode:'overview',selected:null,building:null,activeFloor:0,search:'',walking:false,
   player:{x:school.spawn.x,z:school.spawn.z,heading:school.spawn.heading},route:[],routeIndex:0,
   dragging:false,pointerStart:null,orbit:{az:.67,polar:.98,dist:104,target:null},joy:{x:0,y:0}};
-let scene,camera,renderer,world,playerMesh,raycaster,clock,routeObject=null,siteCanvas,walkingTween=0;
+let scene,camera,renderer,world,playerMesh,raycaster,clock,routeObject=null,siteCanvas,walkingTween=0,frameCounter=0;
 const THREE=window.THREE;
 const mats={},buildingModels=new Map(),hitMeshes=[], obstacles=[],refs={};
 const U={forest:'#285f50',terracotta:'#cfa384',cream:'#f4eddf',glass:'#84aabb',coral:'#d4a87c',pavement:'#e0e4d6',wood:'#aa8063'};
@@ -181,7 +181,7 @@ function initThree(){if(!THREE)throw new Error('THREE unavailable');const el=$('
 function onResize(){if(!renderer)return;const r=$('#scene').getBoundingClientRect();const w=Math.max(300,r.width),h=Math.max(250,r.height);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}
 function isBlocked(x,z,radius=.7){if(Math.abs(x)>school.site.width/2-3||Math.abs(z)>school.site.depth/2-3)return true;return obstacles.some(o=>Math.abs(x-o.x)<o.hw+radius&&Math.abs(z-o.z)<o.hd+radius)}
 function movePlayer(dx,dz){const p=state.player,nx=p.x+dx,nz=p.z+dz;if(!isBlocked(nx,p.z,.42))p.x=nx;if(!isBlocked(p.x,nz,.42))p.z=nz}
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.24);const mode=state.mode;
+function animate(){requestAnimationFrame(animate);frameCounter++;const dt=Math.min(clock.getDelta(),.24);const mode=state.mode;
  if(mode==='walk'){
   let p=state.player,forward=0,lateral=0;const k=refs.keys||{};
   if(k.KeyW||k.ArrowUp)forward++;if(k.KeyS||k.ArrowDown)forward--;
@@ -282,5 +282,5 @@ function setupUI(){renderFloors();renderLists();$('#search').addEventListener('i
  $('#help-close').addEventListener('click',()=>$('#help-overlay').classList.add('hidden'));
  $('#help-ok').addEventListener('click',()=>$('#help-overlay').classList.add('hidden'));
 }
-try{initThree();setupUI();$('#scene-loading').classList.add('hidden');window.__campus={state,school,rooms,selectItem,setMode,findPath,isBlocked,getHealth:()=>({rendered:renderer.info.render.calls,buildings:buildingModels.size,rooms:rooms.length,photoFacades:[...buildingModels.values()].filter(v=>!!v.photoDetail).length,roofsHidden:[...buildingModels.values()].filter(v=>!v.roofGroup.visible).length,mode:state.mode,canvas:renderer.domElement.width+'x'+renderer.domElement.height})};}
+try{initThree();setupUI();$('#scene-loading').classList.add('hidden');window.__campus={state,school,rooms,selectItem,setMode,findPath,isBlocked,getHealth:()=>({rendered:renderer.info.render.calls,buildings:buildingModels.size,rooms:rooms.length,photoFacades:[...buildingModels.values()].filter(v=>!!v.photoDetail).length,roofsHidden:[...buildingModels.values()].filter(v=>!v.roofGroup.visible).length,frames:frameCounter,keyW:!!refs.keys?.KeyW,mode:state.mode,canvas:renderer.domElement.width+'x'+renderer.domElement.height})};}
 catch(err){console.error('3D campus initialization failed',err);$('#scene-loading').classList.add('hidden');$('#scene-error').classList.remove('hidden');$('#scene-error').textContent=`3D 場景初始化失敗：${err.message}`;}
