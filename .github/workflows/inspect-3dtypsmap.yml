@@ -1,0 +1,40 @@
+name: Inspect 3DTYPSMap (read-only)
+on:
+  push:
+    branches:
+      - rea-3dtypsmap-20261012
+    paths:
+      - tools/site-inspector/**
+      - .github/workflows/inspect-3dtypsmap.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out inspection branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install isolated browser runtime
+        run: |
+          python -m pip install --disable-pip-version-check 'playwright==1.56.0'
+          python -m playwright install --with-deps chromium
+      - name: Inspect public site
+        run: python tools/site-inspector/inspect.py
+      - name: Upload observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 3dtypsmap-inspection
+          path: inspection-output/
+          if-no-files-found: warn
+          retention-days: 7
