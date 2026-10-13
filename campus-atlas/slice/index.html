@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>東新國小 3D 校舍・垂直切片</title>
+<meta name="description" content="可步行的教室棟垂直切片：走廊、樓梯、碰撞、樓層切換、導航到教室門口。尺寸與教室名稱皆為示意。">
+<link rel="stylesheet" href="./src/ui/style.css">
+</head>
+<body>
+<canvas id="scene" tabindex="0"></canvas>
+<div id="loading"><div>正在生成校舍…</div></div>
+<header id="top">
+  <button id="pbtn" aria-label="搜尋與教室清單">☰</button>
+  <div class="ttl"><strong>東新國小 3D 校舍</strong><small>垂直切片 · 一棟可走進去的教室棟</small></div>
+  <span class="badge" title="尺寸、位置、教室名稱皆為示意，未經校方測繪">示意資料・未經校方測繪</span>
+  <span id="fps"></span>
+  <button id="helpbtn" aria-label="操作說明">?</button>
+</header>
+<aside id="panel">
+  <input id="q" type="search" placeholder="搜尋教室，例如 2-3、3F" autocomplete="off">
+  <div id="list"></div>
+</aside>
+<div id="info" hidden><div><strong id="iname"></strong><small id="isub"></small></div>
+  <div class="btns"><button id="go" class="pri">帶我去</button><button id="tp">傳送到門口</button><button id="clr" aria-label="取消選取">✕</button></div></div>
+<div id="status" hidden><span id="stext"></span><button id="stop">結束導覽 ×</button></div>
+<div id="toast" hidden></div>
+<nav id="floors" aria-label="樓層"></nav>
+<div id="modes"><button data-m="third" class="on">第三人稱</button><button data-m="first">第一人稱</button><button data-m="bird">鳥瞰</button><button id="spd">速度 100%</button></div>
+<div id="where"></div>
+<div id="joy"><div id="joyknob"></div></div>
+<div id="help" hidden><div class="card"><h2>操作方式</h2>
+<p><b>W / S</b> 前進／後退　<b>A / D</b> 左／右轉彎（鏡頭跟著轉）　<b>Q / E</b> 橫移　<b>Shift</b> 跑步</p>
+<p><b>拖曳畫面</b> 轉視角　<b>滾輪</b> 縮放　<b>V</b> 切換視角　<b>Esc</b> 取消導覽</p>
+<p>左側清單選教室 →「帶我去」自動沿黃色路線走到門口（含樓梯）；右側可切樓層，鳥瞰時可剖開樓層並點選教室。</p>
+<p class="note">本切片的尺寸、位置、教室名稱皆為<b>示意</b>，未經校方測繪；外觀語彙參照東新國小新校舍照片。</p>
+<button id="helpclose" class="pri">開始</button></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

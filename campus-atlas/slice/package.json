@@ -1,0 +1,1 @@
+{"name":"campus-slice","private":true,"type":"module","scripts":{"test":"node tests/sim.test.mjs"}}
