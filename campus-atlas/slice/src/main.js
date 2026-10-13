@@ -112,7 +112,7 @@ function pickRoom(e) { const r = canvas.getBoundingClientRect(), v = new THREE.V
 // ---------- 主迴圈 ----------
 function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
-let fpsN = 0, fpsT = 0, hudT = 0; const camPos = new THREE.Vector3(); let camInit = false, camLim = Infinity;
+let fpsN = 0, fpsT = 0, hudT = 0; const camPos = new THREE.Vector3(), camPrev = new THREE.Vector3(), camPrevS = { x: 0, z: 0 }; let camPrevInit = false, camTh = 0, camThInit = false; let camInit = false, camLim = Infinity;
 function update(dt) {
   S.moving = false;
   const fwd = (keys.f ? 1 : 0) - (keys.b ? 1 : 0) + joy.y, turn = (keys.tl ? 1 : 0) - (keys.tr ? 1 : 0) - joy.x * 0.9, str = (keys.sr ? 1 : 0) - (keys.sl ? 1 : 0);
@@ -150,13 +150,20 @@ function update(dt) {
     S.occ = t * want < want * 0.8;
     const des = new THREE.Vector3(S.x + bx * dA * cp, tgt.y + spn * dA, S.z + bz * dA * cp);
     des.y = Math.max(Math.min(des.y, world.ceilingY(des.x, des.z, S.y) - 0.15), S.yCam + 0.35);
-    if (!camInit) { camPos.copy(des); camInit = true; camLim = Infinity; }
-    camPos.lerp(des, 1 - Math.exp(-dt * 6.5));                              // 鏡頭位置指數平滑（不逐分量跳動）
+    if (!camInit) { camPos.copy(des); camInit = true; camLim = Infinity; camPrevInit = false; camThInit = false; }
+    camPos.lerp(des, 1 - Math.exp(-dt * 6.5));
+    { const ex = camPos.x - S.x, ez = camPos.z - S.z, Lh = Math.hypot(ex, ez);       // 繞角色的方位角速度上限：U 形轉彎／進出梯間時鏡頭不會甩動
+      if (Lh > 0.3) { const th = Math.atan2(ex, ez); if (camThInit) { const w = (S.occ ? 3.4 : 2.6) * dt, dth = clamp(angDiff(camTh, th), -w, w); camTh += dth; } else camTh = th; camThInit = true;
+        camPos.x = S.x + Math.sin(camTh) * Lh; camPos.z = S.z + Math.cos(camTh) * Lh; } }                              // 鏡頭位置指數平滑（不逐分量跳動）
     { const ex = camPos.x - S.x, ez = camPos.z - S.z, Lh = Math.hypot(ex, ez);   // 安全：平滑後仍不可穿牆；被擋時「快速但不瞬間」收近
       if (Lh > 0.05) { const t2 = world.ray(S.x, S.z, camPos.x, camPos.z, S.y, 0.16), Lallow = t2 < 1 ? Math.max(0.9, t2 * Lh - 0.1) : Lh;
         if (!isFinite(camLim) || Lallow >= camLim) camLim = Lallow; else camLim += (Lallow - camLim) * (1 - Math.exp(-dt * 9));
-        const Ls = Math.min(Lh, camLim); camPos.x = S.x + ex / Lh * Ls; camPos.z = S.z + ez / Lh * Ls; }
+        const Ls = Math.min(Lh, camLim), k = Ls / Lh; camPos.x = S.x + ex * k; camPos.z = S.z + ez * k; if (k < 1) camPos.y = tgt.y + (camPos.y - tgt.y) * k; }   // 沿視線等比收近（3D 徑向），視線方向不變
       camPos.y = Math.max(Math.min(camPos.y, world.ceilingY(camPos.x, camPos.z, S.y) - 0.15), S.yCam + 0.35); }
+    { const vp = dt > 0 ? Math.hypot(S.x - camPrevS.x, S.z - camPrevS.z) / dt : 0;       // 鏡頭速度上限：避免被遮擋/解除遮擋時單幀大跳（爬樓梯、進門的晃動來源）
+      if (camPrevInit) { const mx = camPos.x - camPrev.x, my = camPos.y - camPrev.y, mz = camPos.z - camPrev.z, L = Math.hypot(mx, my, mz), cap = (6 + 1.3 * Math.min(vp, 9)) * dt;
+        if (L > cap) camPos.set(camPrev.x + mx / L * cap, camPrev.y + my / L * cap, camPrev.z + mz / L * cap); }
+      camPrev.copy(camPos); camPrevS.x = S.x; camPrevS.z = S.z; camPrevInit = true; }
     const d = Math.hypot(camPos.x - S.x, camPos.z - S.z);
     camera.position.copy(camPos); camera.up.set(0, 1, 0); camera.lookAt(tgt); ch.group.visible = d > 0.95;
   } else if (S.mode === 'first') {

@@ -1,1 +1,1 @@
-{"version":2,"cleanUrls":true,"headers":[{"source":"/(.*)","headers":[{"key":"X-Content-Type-Options","value":"nosniff"}]}]}
+{"version":2,"cleanUrls":true,"rewrites":[{"source":"/","destination":"/dongxin.html"},{"source":"/slice","destination":"/index.html"}],"headers":[{"source":"/(.*)","headers":[{"key":"X-Content-Type-Options","value":"nosniff"}]}]}

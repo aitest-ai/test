@@ -28,7 +28,8 @@ export function createNav(lay, world) {
   return { route, floorOf };
 }
 // 路線跟隨：每步朝下一個航點前進，走到容許距離內換下一點。
-export function createWalker(world, route) {
+export function createWalker(world, route, opts = {}) {
+  const TOL = opts.tol ?? 0.35;
   let i = 1, stuck = 0;
   return {
     done: false,
@@ -37,7 +38,7 @@ export function createWalker(world, route) {
       const dx = x - p.x, dz = z - p.z; return Math.hypot(dx, dz) > 0.05 ? Math.atan2(dx, dz) : p.heading; },
     step(p, dt, speed = 4.8) {
       if (this.done) return;
-      while (i < route.pts.length && Math.hypot(route.pts[i].x - p.x, route.pts[i].z - p.z) < (i === route.pts.length - 1 ? 0.12 : 0.35)) i++;
+      while (i < route.pts.length && Math.hypot(route.pts[i].x - p.x, route.pts[i].z - p.z) < (i === route.pts.length - 1 ? 0.12 : TOL)) i++;
       if (i >= route.pts.length) { this.done = true; return; }
       const t = route.pts[i], dx = t.x - p.x, dz = t.z - p.z, d = Math.hypot(dx, dz), m = Math.min(d, speed * dt);
       const bx = p.x, bz = p.z; world.move(p, dx / d * m, dz / d * m);

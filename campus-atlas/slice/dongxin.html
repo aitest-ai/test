@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>東新國小 3D 校園導覽・東新版</title>
+<meta name="description" content="依設計圖推得的東新國小新校舍：教室、走廊、樓梯、B1、戶外地點，可步行、可導航。教室名稱暫定，非校方測繪。">
+<link rel="stylesheet" href="./src/ui/style.css">
+</head>
+<body>
+<canvas id="scene" tabindex="0"></canvas>
+<div id="loading"><div>正在生成校舍…</div></div>
+<header id="top">
+  <button id="pbtn" aria-label="搜尋與教室清單">☰</button>
+  <div class="ttl"><strong>東新國小 3D 校園</strong><small>東新版 · 新校舍設計圖（暫定教室名稱）</small></div>
+  <span class="badge" title="由使用者上傳的設計圖推得；教室名稱暫定、尺寸為近似值，未經校方測繪">圖面推得・名稱暫定・非校方測繪</span>
+  <span id="fps"></span>
+  <button id="helpbtn" aria-label="操作說明">?</button>
+</header>
+<aside id="panel">
+  <input id="q" type="search" placeholder="搜尋教室／地點，例如 圖書、301、3F" autocomplete="off">
+  <div id="list"></div>
+</aside>
+<div id="info" hidden><div><strong id="iname"></strong><small id="isub"></small></div>
+  <div class="btns"><button id="go" class="pri">帶我去</button><button id="tp">傳送到門口</button><button id="clr" aria-label="取消選取">✕</button></div></div>
+<div id="status" hidden><span id="stext"></span><button id="stop">結束導覽 ×</button></div>
+<div id="toast" hidden></div>
+<nav id="floors" aria-label="樓層"></nav>
+<div id="modes"><button data-m="third" class="on">第三人稱</button><button data-m="first">第一人稱</button><button data-m="bird">鳥瞰</button><button id="spd">速度 100%</button></div>
+<div id="where"></div>
+<canvas id="mini" width="300" height="300" aria-label="小地圖"></canvas>
+<div id="joy"><div id="joyknob"></div></div>
+<div id="help" hidden><div class="card"><h2>操作方式</h2>
+<p><b>W / S</b> 前進／後退　<b>A / D</b> 左／右轉彎（鏡頭跟著轉）　<b>Q / E</b> 橫移　<b>Shift</b> 跑步</p>
+<p><b>拖曳畫面</b> 轉視角　<b>滾輪</b> 縮放　<b>V</b> 切換視角　<b>Esc</b> 取消導覽</p>
+<p>左側清單選教室／地點 →「帶我去」自動沿黃色路線走過去（含樓梯與地下室）；右側可切樓層（含 B1），鳥瞰時可剖開樓層並點選教室。</p>
+<p class="note">本版房間位置由你上傳的<b>設計圖</b>推得（格網化、近似值），教室名稱為<b>暫定</b>，<b>未經校方測繪</b>；外觀語彙參照東新國小新校舍照片。右上小地圖會跟著視角旋轉。</p>
+<button id="helpclose" class="pri">開始</button></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script type="module" src="./src/main_dx.js"></script>
+</body>
+</html>
