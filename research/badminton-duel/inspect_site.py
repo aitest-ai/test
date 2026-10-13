@@ -135,6 +135,29 @@ async def main():
    except Exception as e:page_report["dom_error"]=str(e)[:200]
    try:await page.screenshot(path=str(OUT/"homepage.png"),timeout=16000)
    except Exception as e:errors.append({"type":"screenshot","message":str(e)[:180]})
+   # Inspect guest-only UI states, without logging in or joining public rooms.
+   page_report["offline_ui_stages"]=[]
+   try:
+    enter=page.get_by_role("button",name=re.compile("先進去"))
+    if await enter.count() and await enter.first.is_visible():
+     await enter.first.click(timeout=5000)
+     await page.wait_for_timeout(3500)
+     await page.screenshot(path=str(OUT/"main_menu.png"),timeout=18000)
+     page_report["offline_ui_stages"].append({"stage":"menu","visible_text":(await page.locator("body").inner_text())[:3500]})
+    buttons=page.get_by_role("button",name=re.compile("開打"))
+    for idx in range(min(await buttons.count(),8)):
+     btn=buttons.nth(idx)
+     if await btn.is_visible():
+      label=await btn.inner_text()
+      if "對 AI" in label:
+       await btn.click(timeout=5000)
+       await page.wait_for_timeout(5500)
+       await page.screenshot(path=str(OUT/"offline_match_setup.png"),timeout=18000)
+       page_report["offline_ui_stages"].append({"stage":"offline_start","clicked_button":label[:100],
+           "visible_text":(await page.locator("body").inner_text())[:3500]})
+       break
+   except Exception as ex:
+    page_report["offline_ui_error"]=str(ex)[:250]
    # Discover REA target IDs instead of assuming a Playwright target id.
    lst=await command("rea","list-browser-targets",ENDPOINT,"--json",timeout=42,env=env)
    write("rea_targets.json",lst)
