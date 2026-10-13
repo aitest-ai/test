@@ -5,7 +5,7 @@ import { Batch } from '../scene/batch.js';
 
 export function buildDongxinScene(m, MS, opts = {}) {
   const T = THREE, { D, SC, CELL, GW, GH, WX0, WZ0, FH, NF, NL, UP, DN, LY, RANK, ci, cj, BYFLOOR, STAIRS, NAV, RC, CORR, PLACES, STR_N, clampN } = m;
-  const clamp = clampN;
+  const clamp = clampN, RAMP = m.RAMP;
   const FONT = '"Noto Sans TC","PingFang TC","Microsoft JhengHei","Noto Sans CJK TC",sans-serif';
   const SLAB = 0.3, WALL_H = FH - SLAB, DOOR_H = 2.35, DOOR_HALF = CELL * 2;
   const ACC = { c: '#b07640', s: '#a56bcb', o: '#3fae6a', k: '#e4709b', w: '#8f9aa3', t: '#7d8a96', p: '#4a6a88' };
@@ -23,6 +23,10 @@ export function buildDongxinScene(m, MS, opts = {}) {
   const M = { wall: MS.plaster, slab: MS.concrete, slabTop: MS.concrete, floor: MS.tile, roof: MS.roof, glass: lam('#7c9fb4'), brick: MS.brick, conc: MS.concrete,
     band: MS.ceil, rail: MS.green, dark: MS.frame, fence: lam('#1f3f9a'), trunk: MS.trunk, step: MS.concrete, frame: MS.frame, glass2: MS.glass, wood: MS.wood, slat: MS.slat,
     garage: lam('#8d9196') };
+  // 東新三棟外牆語彙（官方簡報＋使用者照片）：集賢樓＝磚紅面磚；沐風苑＝清水混凝土灰；蒙萌園＝米黃面磚＋藍色屋簷
+  const brickYTex = canvasTex(256, 256, (g, w, h) => { g.fillStyle = '#d3bd86'; g.fillRect(0, 0, w, h); const r = rng(5);
+    for (let row = 0; row < 8; row++) { const off = (row % 2) * 16; for (let c = -1; c < 8; c++) { const x = c * 32 + off; g.fillStyle = `hsl(${42 + r() * 6},${42 + r() * 8}%,${64 + r() * 6}%)`; g.fillRect(x + 1.5, row * 32 + 1.5, 29, 29); } } }, true);
+  M.brickY = new T.MeshLambertMaterial({ map: brickYTex }); M.roofBlue = lam('#3f6f95');
   M.acc = {}; Object.keys(ACC).forEach(k => M.acc[k] = lam(ACC[k]));
   const GB = { x0: 1130 * SC, x1: 1360 * SC, z: 1022 * SC };            // 校門：警衛室東側的藍色伸縮門（平面圖粉紅線處）
   const GATE = PLACES.find(p => p.name === '校門');
@@ -70,7 +74,7 @@ function wallSegs(ib,r,y0,mat,accMat,door){
     {s:'W',ax:'z',a:r.Z0,b:r.Z1,fix:r.X0+T_/2},{s:'E',ax:'z',a:r.Z0,b:r.Z1,fix:r.X1-T_/2}];
   const OPP={N:'S',S:'N',W:'E',E:'W'};
   sides.forEach(sd=>{
-    const sm=(door&&sd.s===OPP[door.side]&&!r.stair)?M.brick:M.conc;
+    const sm=r.stair?M.conc:(r.bld==='K'?M.brickY:r.bld==='M'?M.conc:((door&&sd.s===OPP[door.side])?M.brick:M.conc));
     const IN={N:1,S:-1,W:1,E:-1}[sd.s];
     const put=(a,b,y,h,m,thick)=>{ if(b-a<0.02) return; const len=b-a, c=(a+b)/2;
       if(sd.ax==='x') ib.add(m,len,h,thick,c,y,sd.fix); else ib.add(m,thick,h,len,sd.fix,y,c);
@@ -174,12 +178,17 @@ function buildFloors(){
           const bx=o==='N'?r.cx:o==='S'?r.cx:(o==='W'?r.X0+t0:r.X1-t0), bz=o==='W'?r.cz:o==='E'?r.cz:(o==='N'?r.Z0+t0:r.Z1-t0);
           if(o==='N'||o==='S'){ ib.add(M.frame,bl+0.12,1.32,0.05,bx,y0+1.55,bz); ib.add(MS.board,bl,1.2,0.06,bx,y0+1.55,bz+(o==='N'?0.01:-0.01)); }
           else { ib.add(M.frame,0.05,1.32,bl+0.12,bx,y0+1.55,bz); ib.add(MS.board,0.06,1.2,bl,bx+(o==='W'?0.01:-0.01),y0+1.55,bz); } }
+        if(r.desks) r.desks.forEach(dk=>{ const cx=(dk.x0+dk.x1)/2, cz=(dk.z0+dk.z1)/2, w=dk.x1-dk.x0, d=dk.z1-dk.z0;
+          ib.add(MS.desk,w,0.04,d,cx,y0+0.72,cz);
+          [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>ib.add(M.frame,0.04,0.7,0.04,cx+a*(w/2-0.05),y0+0.37,cz+b*(d/2-0.05)));
+          dk.chairs.forEach(c=>{ const cd=dk.chairDir; ib.add(MS.chair,0.4,0.04,0.4,c.x,y0+0.44,c.z); ib.add(M.frame,0.06,0.42,0.06,c.x,y0+0.22,c.z);
+            if(cd.x) ib.add(MS.chair,0.04,0.4,0.4,c.x+cd.x*0.19,y0+0.66,c.z); else ib.add(MS.chair,0.4,0.4,0.04,c.x,y0+0.66,c.z+cd.z*0.19); }); });
         if(isSt) buildStairInterior(ib,g,r,f);
         doorSign(g,r,door,y0,isSt?'樓梯':r.name,ACC[tp]);
       }
       // 屋頂
       const top=isSt?(UP[f]<0||!r.fl.includes(UP[f])):(!hasAbove(r)&&!GARAGE);
-      if(top) ib.add(M.roof,r.w+0.2,SLAB,r.d+0.2,r.cx,y0+FH-SLAB/2,r.cz);
+      if(top) ib.add(r.bld==='J'?M.roof:M.roofBlue,r.w+0.2,SLAB,r.d+0.2,r.cx,y0+FH-SLAB/2,r.cz);
     });
     // 走廊樓板（上層）
     if(f>0){
@@ -247,6 +256,7 @@ function buildGround(){
   STAIRS.forEach(st=>{ if(!st.fl.includes(4)) return; const a=st.P(st.uA+0.02,0.0,0), b=st.P(st.uB,st.sh/2,0);
     const xa=Math.min(a.x,b.x), xb=Math.max(a.x,b.x), za=Math.min(a.z,b.z), zb=Math.max(a.z,b.z); const hp=new T.Path();
     hp.moveTo(xa,-za); hp.lineTo(xa,-zb); hp.lineTo(xb,-zb); hp.lineTo(xb,-za); hp.lineTo(xa,-za); shp.holes.push(hp); });
+  { const R=RAMP, hp=new T.Path(), xa=R.x0, xb=R.x1, za=R.z0+R.cover, zb=R.z1; hp.moveTo(xa,-za); hp.lineTo(xa,-zb); hp.lineTo(xb,-zb); hp.lineTo(xb,-za); hp.lineTo(xa,-za); shp.holes.push(hp); }
   const gg=new T.ShapeGeometry(shp); gg.rotateX(-Math.PI/2);
   { const pos=gg.attributes.position, uv=new Float32Array(pos.count*2); for(let i=0;i<pos.count;i++){ uv[i*2]=(pos.getX(i)-x0)/w; uv[i*2+1]=1-(pos.getZ(i)-z0)/h; } gg.setAttribute('uv',new T.BufferAttribute(uv,2)); }
   const m=new T.Mesh(gg,new T.MeshBasicMaterial({map:t,color:0xf2f2f2}));
@@ -313,6 +323,63 @@ function buildTrees(){
   [trunk,crown].forEach(o=>{ o.frustumCulled=false; world.add(o); });
   crown.instanceColor.needsUpdate=true;
 }
-  buildGround(); buildFloors(); buildFence(); buildDecor(); buildTrees();
+
+/* ---------- 停車場坡道入口（蒙萌園與集賢樓之間；依使用者照片：混凝土側牆＋藍色欄杆、跨坡道的出入口龍門架、紅白柵欄臂、紅色禁停線、地下鐵捲門） ---------- */
+function buildRamp(){
+  const R=RAMP, ib=IB(world), xa=R.x0, xb=R.x1, w=xb-xa, zc=R.z0+R.cover, zs=R.z1, drop=R.drop, L=zs-R.z0, cxr=(xa+xb)/2;
+  const ground=lam('#8d9096'), strip=canvasTex(64,128,(g,W,H)=>{ g.fillStyle='#8f9296'; g.fillRect(0,0,W,H); g.fillStyle='#7b7e83'; for(let i=0;i<8;i++) g.fillRect(0,i*16+11,W,3); },true);
+  // 坡面：南端(街側) y=0 → 北端 y=-drop
+  const gm=new T.BufferGeometry(); const v=new Float32Array([xa,0,zs, xb,0,zs, xb,-drop,R.z0, xa,-drop,R.z0]);
+  gm.setAttribute('position',new T.BufferAttribute(v,3)); gm.setAttribute('uv',new T.BufferAttribute(new Float32Array([0,0,1,0,1,L/1.5,0,L/1.5]),2)); gm.setIndex([0,2,1,0,3,2]); gm.computeVertexNormals();
+  strip.repeat.set(1,1); const rm=new T.Mesh(gm,new T.MeshLambertMaterial({map:strip,side:T.DoubleSide})); world.add(rm);
+  // 側牆（階梯近似斜面）＋ 欄杆
+  const N=12, dz=L/N;
+  for(let k=0;k<N;k++){ const z=zs-(k+0.5)*dz, dep=drop*(k+0.5)/N+0.1, h=dep+0.45, yc=(0.45-dep)/2;
+    [xa+0.15,xb-0.15].forEach(x=>ib.add(M.conc,0.3,h,dz+0.02,x,yc,z)); }
+  [xa+0.15,xb-0.15].forEach(x=>{ ib.add(M.fence,0.06,0.06,L-R.cover,x,1.3,(zs+zc)/2); ib.add(M.fence,0.06,0.06,L-R.cover,x,0.75,(zs+zc)/2);
+    for(let z=zc;z<=zs+0.01;z+=1.0) ib.add(M.fence,0.05,0.9,0.05,x,0.9,z); });
+  // 北端：擋土牆＋鐵捲門
+  ib.add(M.conc,w,drop+0.5,0.4,cxr,(0.45-drop-0.05)/2,R.z0+0.2);
+  const door=lam('#2c2d30'); ib.add(door,w-1.6,2.5,0.06,cxr,-drop+1.35,R.z0+0.43);
+  for(let q=0;q<10;q++) ib.add(lam('#3a3b3f'),w-1.6,0.04,0.08,cxr,-drop+0.2+q*0.25,R.z0+0.45);
+  // 龍門架（出口 EXIT｜P 圖示｜入口 ENTRANCE）
+  const zg=zs-1.2, W2=w+1.0, white=lam('#eceeef');
+  ib.add(white,0.18,3.4,0.18,xa-0.5,1.7,zg); ib.add(white,0.18,3.4,0.18,xb+0.5,1.7,zg); ib.add(white,W2,0.1,0.1,cxr,3.4,zg); ib.add(lam('#5c6670'),W2-0.3,0.78,0.1,cxr,2.95,zg);
+  const sg=canvasTex(1024,128,(g,W,H)=>{ g.fillStyle='#5c6670'; g.fillRect(0,0,W,H); g.fillStyle='#e8eaeb'; g.textBaseline='middle';
+    g.fillStyle='#c8322d'; g.beginPath(); g.arc(70,64,34,0,7); g.fill(); g.fillStyle='#fff'; g.fillRect(52,58,36,12);
+    g.fillStyle='#e8eaeb'; g.font='700 30px '+FONT; g.textAlign='left'; g.fillText('出口 EXIT',120,64); g.font='700 84px '+FONT; g.textAlign='center'; g.fillText('P',420,66);
+    g.font='600 30px '+FONT; g.fillText('無障礙・汽車・機車',620,64); g.textAlign='right'; g.font='700 30px '+FONT; g.fillText('入口 ENTRANCE',1000,64); });
+  sg.shared=false; const sp=new T.Mesh(new T.PlaneGeometry(W2-0.3,0.78),new T.MeshBasicMaterial({map:sg})); sp.position.set(cxr,2.95,zg+0.06); world.add(sp);
+  const spb=new T.Mesh(new T.PlaneGeometry(W2-0.3,0.78),new T.MeshBasicMaterial({color:0x5c6670})); spb.rotation.y=Math.PI; spb.position.set(cxr,2.95,zg-0.06); world.add(spb);
+  const bar=canvasTex(512,32,(g,W,H)=>{ for(let i=0;i<16;i++){ g.fillStyle=i%2?'#f4f4f4':'#d8352f'; g.fillRect(i*32,0,32,H); } }); bar.shared=false;
+  const bm=new T.Mesh(new T.PlaneGeometry(W2-0.5,0.14),new T.MeshBasicMaterial({map:bar,side:T.DoubleSide})); bm.position.set(cxr,2.15,zg+0.03); world.add(bm);
+  // 紅色禁停線：由坡道口向南張開
+  const red=new T.MeshBasicMaterial({color:0xd7261e,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+  [[xa-0.35,-1],[xb+0.35,1]].forEach(([x,sg_])=>{ const gq=new T.BufferGeometry(), x2=x+sg_*6.5, z2=zs+8, t=0.18;
+    gq.setAttribute('position',new T.BufferAttribute(new Float32Array([x-t,0.012,zs, x+t,0.012,zs, x2+t,0.012,z2, x2-t,0.012,z2]),3)); gq.setIndex([0,2,1,0,3,2]);
+    const mq=new T.Mesh(gq,red); mq.material.side=T.DoubleSide; world.add(mq); });
+  // 交通錐
+  const cone=lam('#ee6a1e'); [xa-0.9,xb+0.9].forEach(x=>{ const c=new T.Mesh(new T.CylinderGeometry(0.02,0.16,0.7,10),cone); c.position.set(x,0.35,zs+0.4); world.add(c); });
+  ib.flush();
+}
+/* ---------- 棟名標示（白色直排字，位置為示意）＋ 蒙萌園圓窗立面（示意） ---------- */
+function buildSigns(){
+  const BB={}; m.ROOMS.filter(r=>!r.solid&&r.f<4&&r.name!=='警衛室').concat(STAIRS).forEach(r=>{ const fmax=r.stair?Math.max(...r.fl.filter(f=>f<4)):r.f;
+    const b=BB[r.bld]||(BB[r.bld]={x0:1e9,x1:-1e9,z0:1e9,z1:-1e9,top:0,sr:null,er:null}); b.x0=Math.min(b.x0,r.X0); b.x1=Math.max(b.x1,r.X1); b.z0=Math.min(b.z0,r.Z0); b.z1=Math.max(b.z1,r.Z1); b.top=Math.max(b.top,fmax+1);
+    if(!b.sr||r.Z1>b.sr.Z1) b.sr=r; });
+  const mk=(txt)=>{ const t=canvasTex(128,128*txt.length*0.9|0,(g,W,H)=>{ g.clearRect(0,0,W,H); g.fillStyle='#f4f4f1'; g.strokeStyle='rgba(0,0,0,.35)'; g.lineWidth=4; g.textAlign='center'; g.textBaseline='middle'; g.font='700 92px '+FONT;
+      [...txt].forEach((ch,i)=>{ const y=(i+0.5)*H/txt.length; g.strokeText(ch,W/2,y); g.fillText(ch,W/2,y); }); }); t.shared=false; return new T.MeshBasicMaterial({map:t,transparent:true,side:T.DoubleSide,depthWrite:false}); };
+  const put=(txt,x,y,z,ry)=>{ const h=0.62*txt.length, p=new T.Mesh(new T.PlaneGeometry(0.62,h),mk(txt)); p.position.set(x,y,z); p.rotation.y=ry; world.add(p); };
+  const K=BB.K, Mm=BB.M, J=BB.J;
+  const colTop=(sr)=>{ let t=sr.f+1; m.ROOMS.forEach(r=>{ if(r.bld!==sr.bld||r.solid||r.f>=4) return; const ox=Math.min(r.X1,sr.X1)-Math.max(r.X0,sr.X0), oz=Math.min(r.Z1,sr.Z1)-Math.max(r.Z0,sr.Z0); if(ox>2&&oz>2) t=Math.max(t,r.f+1); }); return t; };
+  if(K) put('蒙萌園',K.sr.X1+0.06,colTop(K.sr)*FH-1.6,K.sr.cz,Math.PI/2);          // 面向坡道的東牆（使用者照片）
+  if(Mm) put('沐風苑',Mm.sr.cx,colTop(Mm.sr)*FH-1.6,Mm.sr.Z1+0.06,0);
+  if(J) put('集賢樓',J.sr.X1-1.2,colTop(J.sr)*FH-1.6,J.sr.Z1+0.06,0);
+  if(K){ // 蒙萌園：白色方盒立面上的大小圓窗（示意）
+    const cv=canvasTex(1024,448,(g,W,H)=>{ g.fillStyle='#e9eaea'; g.fillRect(0,0,W,H); const C=[[150,220,92,'#6fa3c6'],[300,150,64,'#f3c43a'],[440,230,98,'#7db3cf'],[600,140,56,'#8ab9d2'],[700,250,80,'#f3c43a'],[860,160,70,'#6fa3c6'],[930,300,50,'#8ab9d2']];
+      C.forEach(([x,y,r,c])=>{ g.fillStyle='#fff'; g.beginPath(); g.arc(x,y,r+10,0,7); g.fill(); g.strokeStyle='#9aa0a4'; g.lineWidth=4; g.stroke(); g.fillStyle=c; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); }); }); cv.shared=false;
+    const pw=Math.min(8,K.sr.w*0.95), pnl=new T.Mesh(new T.PlaneGeometry(pw,pw*448/1024),new T.MeshBasicMaterial({map:cv})); pnl.position.set(K.sr.cx,colTop(K.sr)*FH-1.9,K.sr.Z1+0.07); world.add(pnl); }
+}
+  buildGround(); buildFloors(); buildFence(); buildDecor(); buildTrees(); buildRamp(); buildSigns();
   return { root, FG, CAN, UNDER, PILLARS, get groundMesh() { return groundMesh; }, get groundBox() { return groundBox; }, GATE, ACC, GB };
 }

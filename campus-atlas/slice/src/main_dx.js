@@ -68,7 +68,7 @@ canvas.addEventListener('wheel', e => { e.preventDefault(); if (S.mode === 'bird
   el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end); })();
 
 // ---------- 導航 ----------
-const where = (r) => r.f === 4 ? 'B1' : (r.t === 'p' ? '戶外' : levelLabel(r.f));
+const where = (r) => (r.bldName ? r.bldName + ' ' : '') + (r.f === 4 ? 'B1' : (r.t === 'p' ? '戶外' : levelLabel(r.f)));
 function setDest(t) { S.selected = t; cancelRoute(true); $('#info').hidden = !t;
   if (!t) { selPlane.visible = pin.visible = false; return; }
   $('#iname').textContent = t.name; $('#isub').textContent = `${where(t)}・${t.t === 'p' ? '地點' : '名稱暫定（依設計圖）'}・非校方測繪`;
@@ -110,9 +110,9 @@ function toast(t) { const el = $('#toast'); el.textContent = t; el.hidden = fals
 const norm = (s) => (s || '').toLowerCase().replace(/\s+/g, '');
 function renderList() { const q = norm($('#q').value); const box = $('#list'); box.innerHTML = '';
   const groups = [['戶外・地點', TARGETS.filter(t => t.t === 'p')], ...lvlOrder.map(f => [levelLabel(f), TARGETS.filter(t => t.t !== 'p' && t.f === f)])];
-  for (const [title, arr] of groups) { const rs = arr.filter(r => !q || norm(r.name).includes(q) || norm(title).includes(q) || (q.endsWith('樓') && norm(title) === (q.slice(0, -1) + 'f')));
+  for (const [title, arr] of groups) { const rs = arr.filter(r => !q || norm(r.name).includes(q) || norm(title).includes(q) || (r.bldName && norm(r.bldName).includes(q)) || (q.endsWith('樓') && norm(title) === (q.slice(0, -1) + 'f')));
     if (!rs.length) continue; const h = document.createElement('div'); h.className = 'grp'; h.textContent = title; box.appendChild(h);
-    rs.forEach(r => { const b = document.createElement('button'); b.className = 'item' + (S.selected === r ? ' on' : ''); b.textContent = r.name; b.onclick = () => { setDest(r); if (innerWidth < 760) $('#panel').classList.remove('open'); }; box.appendChild(b); }); } }
+    rs.forEach(r => { const b = document.createElement('button'); b.className = 'item' + (S.selected === r ? ' on' : ''); b.textContent = r.name; if (r.bldName) { const sp = document.createElement('small'); sp.textContent = ' ' + r.bldName; sp.style.opacity = '.55'; b.appendChild(sp); } b.onclick = () => { setDest(r); if (innerWidth < 760) $('#panel').classList.remove('open'); }; box.appendChild(b); }); } }
 function updateFloorButtons() { const cur = curF(); document.querySelectorAll('#floors button').forEach(b => { const k = b.dataset.k; b.classList.toggle('on', k === 'all' ? (S.mode === 'bird' && S.viewFloor === null) : (S.mode === 'bird' ? S.viewFloor === +k : cur === +k)); }); }
 (function buildFloorButtons() { const box = $('#floors'); lvlOrder.forEach(f => { const b = document.createElement('button'); b.dataset.k = f; b.textContent = levelLabel(f); b.onclick = () => gotoFloor(f); box.appendChild(b); });
   const a = document.createElement('button'); a.dataset.k = 'all'; a.textContent = '全貌'; a.onclick = () => { if (S.mode !== 'bird') setMode('bird'); S.viewFloor = null; updateFloorButtons(); }; box.appendChild(a); })();
@@ -232,7 +232,7 @@ function update(dt) {
 }
 function updateWhere() {
   let name = '校園', fl = ''; const f = curF(), rid = world.roomAt(f, S.x, S.z);
-  if (rid >= 1000) { name = '樓梯'; fl = levelLabel(f); } else if (rid >= 0) { name = ROOMS[rid].name; fl = levelLabel(f); }
+  if (rid >= 1000) { name = '樓梯'; fl = (STAIRS[rid - 1000].bldName || '') + ' ' + levelLabel(f); } else if (rid >= 0) { name = ROOMS[rid].name; fl = ROOMS[rid].bldName + ' ' + levelLabel(f); }
   else if (f === 4) { name = '地下停車場'; fl = 'B1'; }
   else if (f > 0) { name = '走廊'; fl = levelLabel(f); }
   else { let bd = 1e9, bn = null; PLACES.forEach(p => { if (p.f !== 0) return; const d = Math.hypot(p.x - S.x, p.z - S.z); if (d < bd) { bd = d; bn = p; } }); if (bn && bd < 16) name = bn.name; fl = '1F'; }

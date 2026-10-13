@@ -88,6 +88,11 @@ for(let f=0;f<NL;f++){
   list.forEach(r=>{ const id=r.stair?1000+STAIRS.indexOf(r):r.idx; for(let j=r.j0;j<=r.j1;j++) for(let i=r.i0;i<=r.i1;i++) RC[f][j*GW+i]=id; });
 }
 
+/* ---------- 棟別（官方棟名：集賢樓＝行政及專科、沐風苑＝班級教室、蒙萌園＝幼兒園；依使用者說明與簡報；房間歸屬由位置推定） ---------- */
+const BLD={J:'集賢樓',M:'沐風苑',K:'蒙萌園'};
+function bldOf(t,px,py){ if(t==='k') return 'K'; if(px<800) return (py>900&&px<700)?'K':'M'; return 'J'; }
+ROOMS.forEach(r=>{ r.bld=bldOf(r.t,(r.x0+r.x1)/2/SC,(r.z0+r.z1)/2/SC); r.bldName=BLD[r.bld]; });
+STAIRS.forEach(s=>{ s.bld=bldOf('t',(s.x0+s.x1)/2/SC,(s.z0+s.z1)/2/SC); s.bldName=BLD[s.bld]; });
 /* ---------- 樓梯幾何（雙跑，入口平台在 A 端，轉折平台在 B 端） ---------- */
 const STR_A=1.8, STR_B=1.0, STR_N=11;
 function stairInit(s){
@@ -184,6 +189,31 @@ for(let f=0;f<NL;f++){
   BYFLOOR[f].forEach(r=>{ if(!r.solid) carveRect(f,r,r.door); });
   STAIRS.forEach(s=>{ if(s.fl.includes(f)){ carveRect(f,s,s.doors[f]); blockShaft(f,s); } });
 }
+/* ---------- 停車場坡道（蒙萌園與集賢樓之間，平面圖條紋區；使用者照片佐證）：坡道範圍不可走 ---------- */
+const RAMP={x0:703*SC,x1:790*SC,z0:935*SC,z1:1062*SC,cover:3.0,drop:3.2};
+{ const nav=NAV[0]; for(let j=0;j<GH;j++) for(let i=0;i<GW;i++){ const x=cxm(i), z=czm(j);
+    if(x>RAMP.x0-0.15&&x<RAMP.x1+0.15&&z>RAMP.z0+RAMP.cover-0.15&&z<RAMP.z1+0.15) nav[j*GW+i]=0; } }
+/* ---------- 教室桌椅（示意排列：面向黑板、保留走道；桌子所在格不可走） ---------- */
+function layoutDesks(r){
+  const d=r.door; if(!d||!(d.nx||d.nz)) return;
+  const alongX=d.nz!==0, T=0.45, DESK_U=1.4, DESK_V=0.7, PU=2.4, PV=1.7;
+  const uMin=(alongX?r.X0:r.Z0)+T+0.9, uMax=(alongX?r.X1:r.Z1)-T-0.9, Dv=alongX?r.d:r.w;
+  const toW=(u,v)=>alongX?{x:u,z:d.nz>0?r.Z0+v:r.Z1-v}:{z:u,x:d.nx>0?r.X0+v:r.X1-v};
+  const nc=Math.floor((uMax-uMin+(PU-DESK_U))/PU); if(nc<1) return;
+  const used=nc*PU-(PU-DESK_U), u00=(uMin+uMax)/2-used/2;
+  const out=[];
+  for(let v0=2.0;v0+DESK_V+0.6<=Dv-2.2;v0+=PV) for(let c=0;c<nc;c++){
+    const u0=u00+c*PU, a=toW(u0,v0), b=toW(u0+DESK_U,v0+DESK_V);
+    const dk={x0:Math.min(a.x,b.x),x1:Math.max(a.x,b.x),z0:Math.min(a.z,b.z),z1:Math.max(a.z,b.z),chairs:[]};
+    [0.4,1.1].forEach(du=>{ const q=toW(u0+du,v0+DESK_V+0.3); dk.chairs.push({x:q.x,z:q.z}); });
+    dk.chairDir={x:alongX?0:(d.nx>0?1:-1),z:alongX?(d.nz>0?1:-1):0};   // 椅背朝向（遠離黑板＝朝門）
+    out.push(dk);
+  }
+  r.desks=out;
+  const nav=NAV[r.f]; out.forEach(dk=>{ const i0=ci(dk.x0),i1=ci(dk.x1),j0=cj(dk.z0),j1=cj(dk.z1);
+    for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++) if(i>=0&&j>=0&&i<GW&&j<GH&&RC[r.f][j*GW+i]===r.idx) nav[j*GW+i]=0; });
+}
+for(let f=0;f<NL;f++) BYFLOOR[f].forEach(r=>{ if(r.t==='c'&&!r.solid&&r.w>4&&r.d>4) layoutDesks(r); });
 /* ---------- 連通性修復：把孤島（走廊斷開的一段、被切離的梯間入口）用最短的通道接回主走廊 ---------- */
 function repairConnectivity(f){
   const n=NAV[f], rc=RC[f], N=GW*GH;
@@ -302,6 +332,7 @@ D.places.forEach(p=>{
   const px=p[1]*SC, pz=p[2]*SC; const c=nearestCell(p[0].startsWith('地下')?4:0,px,pz,120);
   const bf=p[0].startsWith('地下'); PLACES.push({name:p[0],code:'',t:'p',f:bf?4:0,label:bf?'B1':'戶外',x:c>=0?cxm(c%GW):px,z:c>=0?czm((c/GW)|0):pz});
 });
-return { D,SC,CELL,GX0,GY0,GW,GH,WX0,WZ0,FH,NF,NL,UP,DN,LY,RANK,clampN,ci,cj,cxm,czm,TYPE_LABEL,levelLabel,
+{ const c=nearestCell(0,(RAMP.x0+RAMP.x1)/2,RAMP.z1+1.5,40); PLACES.push({name:'停車場入口',code:'',t:'p',f:0,label:'戶外',x:c>=0?cxm(c%GW):(RAMP.x0+RAMP.x1)/2,z:c>=0?czm((c/GW)|0):RAMP.z1+1.5}); }
+return { BLD,RAMP,D,SC,CELL,GX0,GY0,GW,GH,WX0,WZ0,FH,NF,NL,UP,DN,LY,RANK,clampN,ci,cj,cxm,czm,TYPE_LABEL,levelLabel,
   ROOMS,PLACES,STAIRS,BYFLOOR,CORR,WALK0,NAV,ERO,RC,STR_A,STR_B,STR_N,freeAt,roomAt,canStand,nearestCell,losOK,astar,planRoute,pickDoor };
 }
