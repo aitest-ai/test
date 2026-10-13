@@ -144,6 +144,16 @@ async def main():
      await page.wait_for_timeout(3500)
      await page.screenshot(path=str(OUT/"main_menu.png"),timeout=18000)
      page_report["offline_ui_stages"].append({"stage":"menu","visible_text":(await page.locator("body").inner_text())[:3500]})
+    # First-time tutorial is a modal that covers the offline start button.
+    for close_word in ("知道了，開打！","知道了"):
+     modal_button=page.get_by_role("button",name=re.compile(re.escape(close_word)))
+     if await modal_button.count() and await modal_button.first.is_visible():
+      await modal_button.first.click(timeout=5000)
+      await page.wait_for_timeout(1500)
+      await page.screenshot(path=str(OUT/"menu_after_tutorial.png"),timeout=17000)
+      page_report["offline_ui_stages"].append({"stage":"tutorial_closed",
+          "visible_text":(await page.locator("body").inner_text())[:2500]})
+      break
     buttons=page.get_by_role("button",name=re.compile("開打"))
     for idx in range(min(await buttons.count(),8)):
      btn=buttons.nth(idx)
