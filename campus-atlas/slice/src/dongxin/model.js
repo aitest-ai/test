@@ -41,9 +41,10 @@ function recomp(o){ o.X0=WX0+o.i0*CELL; o.X1=WX0+(o.i1+1)*CELL; o.Z0=WZ0+o.j0*CE
     if(r.i1-r.i0<3||r.j1-r.j0<3) console.log&&0; }
   BYFLOOR.forEach(l=>l.forEach(recomp));
 })();
+ROOMS.forEach(r=>{ if(['潛能教室','電腦教室','音樂教室'].includes(r.name)&&r.x0/SC>800){ r.keep=true; r.forceDoor='N'; } });
 (function trimToCorridor(){ // 房間不得吃進走廊：外緣整排大多是走廊格就往內縮（保持走廊連續）
   for(let f=0;f<4;f++){ const cm=CORR[f];
-    for(const r of BYFLOOR[f]){ if(r.solid) continue;
+    for(const r of BYFLOOR[f]){ if(r.solid||r.keep) continue;
       for(let it=0;it<14;it++){ let ch=false;
         const frac=(fn,len)=>{ let c=0,run=0,best=0; for(let t=0;t<len;t++){ if(fn(t)){ c++; run++; if(run>best) best=run; } else run=0; } return (c/len>0.6||best>=14)?1:0; };
         const w=r.i1-r.i0+1, h=r.j1-r.j0+1;
@@ -61,7 +62,7 @@ function recomp(o){ o.X0=WX0+o.i0*CELL; o.X1=WX0+(o.i1+1)*CELL; o.Z0=WZ0+o.j0*CE
       while(st.length){ const q=st.pop(); c++; const i=q%GW, j=(q/GW)|0; i0=Math.min(i0,i); i1=Math.max(i1,i); j0=Math.min(j0,j); j1=Math.max(j1,j); cnt[own[q]]=(cnt[own[q]]||0)+1;
         for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){ const nq=(j+dj)*GW+i+di; if(m[nq]&&!seen[nq]){ seen[nq]=1; st.push(nq); } } }
       if(c<60||i1-i0<4||j1-j0<4) continue;
-      let ro=-1,best=0; for(const key in cnt) if(cnt[key]>best){ best=cnt[key]; ro=+key; } const r=BYFLOOR[f][ro]; if(!r) continue;
+      let ro=-1,best=0; for(const key in cnt) if(cnt[key]>best){ best=cnt[key]; ro=+key; } const r=BYFLOOR[f][ro]; if(!r||r.keep) continue;
       const opts=[[i0-r.i0,'i1',i0-1],[r.i1-i1,'i0',i1+1],[j0-r.j0,'j1',j0-1],[r.j1-j1,'j0',j1+1]].sort((a,b)=>a[0]-b[0]); // 距離該邊最近的優先
       for(const [d,key,val] of opts){ const t={i0:r.i0,i1:r.i1,j0:r.j0,j1:r.j1}; t[key]=val; if(t.i1-t.i0>=7&&t.j1-t.j0>=7){ r[key]=val; break; } } } }
   BYFLOOR.forEach(l=>l.forEach(recomp));
@@ -183,7 +184,7 @@ function carveRect(f,r,door){
   door.x=x; door.z=z; door.nx=nx; door.nz=nz; door.half=half; door.out={x:x+nx*0.9,z:z+nz*0.9}; door.inn={x:x-nx*1.0,z:z-nz*1.0};
 }
 for(let f=0;f<NL;f++){
-  BYFLOOR[f].forEach(r=>{ if(r.solid){ carveRect(f,r,null); return; } r.door=pickDoor(f,r); });
+  BYFLOOR[f].forEach(r=>{ if(r.solid){ carveRect(f,r,null); return; } r.door=pickDoor(f,r,r.forceDoor); });
   STAIRS.forEach(s=>{ if(!s.fl.includes(f)) return; if(!s.A){ stairInit(s); }
     s.doors[f]=pickDoor(f,s,s.doorSide); });
   BYFLOOR[f].forEach(r=>{ if(!r.solid) carveRect(f,r,r.door); });
