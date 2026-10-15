@@ -1,7 +1,7 @@
-name: Baseball Duel Lab v0.1 QA
+name: Baseball Duel Lab v0.2 Physics QA
 on:
   push:
-    branches: [baseball-duel-lab-v01-20261015]
+    branches: [baseball-duel-physics-v02-20261015]
     paths:
       - baseball-duel-lab/**
       - .github/workflows/baseball-duel-lab-qa.yml
@@ -37,11 +37,11 @@ jobs:
           sleep 2
           curl -fsS http://127.0.0.1:8765/ >/dev/null
       - name: Test Three.js renderer, timing, pitch and mobile
-        run: python baseball-duel-lab/tests/browser_smoke.py
+        run: python baseball-duel-lab/tests/browser_v02.py
       - name: Save tested screenshots and report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: baseball-duel-lab-v01-qa
+          name: baseball-duel-v02-physics-qa
           path: qa-output/
           retention-days: 7
