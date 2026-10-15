@@ -24,22 +24,50 @@ async def main():
    await page.screenshot(path=str(OUT/"01_bat_rest.png"))
    await page.locator("#pitch-button").click()
    await page.evaluate("window.__baseballLab.debugAdvance(112)")
-   result=await page.evaluate("""async () => {
-    const lab=window.__baseballLab, mod=await import('./src/physics.js');
-    const p=mod.createPitch('fastball','rookie',()=>.5);
-    lab.state.phase='flight';lab.state.pitch=p;lab.state.swingCount=0;lab.state.swingTime=-1;lab.state.aim={x:-.4,y:.95};
-    let i=0;
-    while (p.elapsed < p.flightTime-.18 && i<240) {lab.debugAdvance(1);i++;}
-    lab.swing();lab.debugAdvance(28);
-    return {phase:lab.state.phase,elapsed:p.elapsed,swingTime:lab.state.swingTime,
-     impact:lab.state.batted?.impact,batPose:lab.getHealth().batPose,rendered:lab.getBatRenderEndpoints()};
-   }""")
-   # Run the next animation frame before comparing a physics state to rendered mesh transforms.\n   await page.wait_for_timeout(350)\n   result["rendered"]=await page.evaluate("window.__baseballLab.getBatRenderEndpoints()")\n   results["swing_phase"]=result["phase"]
-   results["swing_time"]=result["swingTime"]
-   results["swing_has_real_contact"]=bool(result["impact"])
-   results["bat_mesh_error_swing"]=max(separation([result["batPose"]["grip"][k] for k in ("x","y","z")],result["rendered"]["grip"]),separation([result["batPose"]["tip"][k] for k in ("x","y","z")],result["rendered"]["tip"]))
-   await page.wait_for_timeout(400)
+   # Confirm the actual rendered bat uses the very same endpoints as batPose during a swing.
+   await page.evaluate("() => {window.__baseballLab.state.swingTime=.2;window.__baseballLab.state.swingCount=1}")
+   await page.wait_for_timeout(800)
+   pose=await page.evaluate("window.__baseballLab.getHealth().batPose")
+   rendered=await page.evaluate("window.__baseballLab.getBatRenderEndpoints()")
+   results["bat_mesh_error_swing"]=max(
+    separation([pose["grip"][k] for k in ("x","y","z")],rendered["grip"]),
+    separation([pose["tip"][k] for k in ("x","y","z")],rendered["tip"]))
+   results["pose_debug"]={"grip":pose["grip"],"tip":pose["tip"],"rendered":rendered}
    await page.screenshot(path=str(OUT/"02_bat_swing.png"))
+   # Search for a deterministic, truly physical contact in the offline physics module.
+   candidate=await page.evaluate("""async () => {
+     const mod=await import('./src/physics.js');
+     for(let lead=.12;lead<=.34;lead+=.015)
+     for(let x=-.7;x<=.6;x+=.15)
+     for(let y=.7;y<=1.4;y+=.075){
+       const p=mod.createPitch('fastball','rookie',()=>.5);let t=0;
+       for(let i=0;i<240&&!p.crossing;i++){
+         mod.stepPitch(p,mod.FIXED_DT);t+=mod.FIXED_DT;
+         const u=(t-p.flightTime+lead)/.34;
+         if(u>=0&&u<=1){
+           const hit=mod.batContact(p,{x,y},u,Math.max(0,u-mod.FIXED_DT/.34),mod.FIXED_DT);
+           if(hit)return {lead,x,y,exitKmh:hit.exitKmh};
+         }
+       }
+     }
+     return null;
+   }""")
+   results["physics_candidate"]=candidate
+   if not candidate:raise RuntimeError("No physically possible baseball/bat contact")
+   # Replay identical coordinates through the FULL gameplay loop.
+   replay=await page.evaluate("""async candidate => {
+     const lab=window.__baseballLab,mod=await import('./src/physics.js');
+     const p=mod.createPitch('fastball','rookie',()=>.5);
+     lab.state.phase='flight';lab.state.pitch=p;lab.state.swingCount=0;lab.state.swingTime=-1;
+     lab.setAim(candidate.x,candidate.y);
+     let n=0;
+     while(p.elapsed<p.flightTime-candidate.lead && n<240){lab.debugAdvance(1);n++;}
+     lab.swing();lab.debugAdvance(42);
+     return {phase:lab.state.phase,hit:!!lab.state.batted,
+       exitKmh:lab.state.batted?.exitKmh||null,elapsed:p.elapsed};
+   }""",candidate)
+   results["gameplay_replay"]=replay
+   results["swing_has_real_contact"]=replay["hit"]
    await page.evaluate("window.__baseballLab.debugAdvance(1900)")
    results["post_flight_phase"]=await page.evaluate("window.__baseballLab.state.phase")
    await page.wait_for_timeout(250)
