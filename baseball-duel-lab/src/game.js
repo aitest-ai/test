@@ -6,6 +6,7 @@ import {
 
 const $=(id)=>document.getElementById(id);
 const canvas=$('game-canvas'),area=$('arena');
+const QA_MODE=new URLSearchParams(location.search).has('qa');
 const els={pitchButton:$('pitch-button'),pitchLabel:$('pitch-button-label'),swingButton:$('swing-button'),mobileSwing:$('mobile-swing'),soundButton:$('sound-button'),
   call:$('big-call'),callHead:$('call-head'),callDescription:$('call-description'),flightMain:$('flight-main'),flightSub:$('flight-sub'),
   actionHelp:$('action-help'),actionKicker:$('action-kicker'),aimFrame:$('aim-frame'),aimCross:$('aim-cross')};
@@ -221,7 +222,7 @@ function update(dt){
 }
 let accumulator=0,lastFrame=0;
 function frame(ms){requestAnimationFrame(frame);const elapsed=lastFrame?Math.min((ms-lastFrame)/1000,.35):.016;lastFrame=ms;
- accumulator+=elapsed;let steps=0;while(accumulator>=FIXED_DT&&steps<50){update(FIXED_DT);accumulator-=FIXED_DT;steps++;}
+ if(!QA_MODE){accumulator+=elapsed;let steps=0;while(accumulator>=FIXED_DT&&steps<50){update(FIXED_DT);accumulator-=FIXED_DT;steps++;}}
  updateAnimation(elapsed,ms*.001);
  if(state.phase==='batted'&&state.batted){const b=state.batted;
   const target=new THREE.Vector3(clamp(b.pos.x*.3,-25,25),Math.max(2,Math.min(12,b.pos.y*.25)),lerp(-18,b.pos.z,.25));
@@ -261,4 +262,4 @@ $('close-help').addEventListener('click',()=>$('help-dialog').close());
 setAim(0,1.06);updateNumbers();readyControls();
 try{initWorld();}catch(error){console.error('Baseball lab rendering failed',error);$('loading').hidden=true;$('scene-error').hidden=false;$('scene-error').textContent=`球場無法啟動：${error.message}`;}
 window.__baseballLab={state,getHealth:()=>({phase:state.phase,renderer:!!renderer,canvas:!!renderer?.domElement,webgl:renderer?.getContext()?.getParameter(renderer.getContext().VERSION),pitchType:state.pitchType,balls:state.balls,strikes:state.strikes,outs:state.outs,hits:state.hits}),
- startPitch,swing,setAim,debugAdvance:(n=1)=>{if(!new URLSearchParams(location.search).has('qa'))return false;for(let i=0;i<Math.min(n,3000);i++)update(FIXED_DT);return true;}};
+ startPitch,swing,setAim,debugAdvance:(n=1)=>{if(!QA_MODE)return false;for(let i=0;i<Math.min(n,3000);i++)update(FIXED_DT);return true;}};
