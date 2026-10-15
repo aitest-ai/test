@@ -120,7 +120,7 @@ function makeBall(){
 }
 function initWorld(){
  scene=new THREE.Scene();scene.background=new THREE.Color('#a7c5c8');scene.fog=new THREE.Fog('#bbccd1',115,270);
- camera=new THREE.PerspectiveCamera(54,1,.1,600);camera.position.set(9.5,6.8,20.5);camera.lookAt(0,2,-20);
+ camera=new THREE.PerspectiveCamera(54,1,.1,600);camera.position.set(5.4,9.1,27);camera.lookAt(0,.8,-5);
  renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.7));renderer.setSize(area.clientWidth,area.clientHeight,false);
  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.27;
@@ -229,7 +229,7 @@ function frame(ms){requestAnimationFrame(frame);const elapsed=lastFrame?Math.min
   camera.position.lerp(new THREE.Vector3(lerp(10,b.pos.x*.3,.15),Math.min(17,7+b.pos.y*.1),15),.018);
   const look=new THREE.Vector3(lerp(0,b.pos.x,.3),Math.max(.5,Math.min(8,b.pos.y*.4)),lerp(-19,b.pos.z,.22));
   camera.lookAt(look);
- }else{camera.position.lerp(new THREE.Vector3(9.5,6.8,20.5),.028);camera.lookAt(0,1.6,-19);}
+ }else{camera.position.lerp(new THREE.Vector3(5.4,9.1,27),.028);camera.lookAt(0,.8,-5);}
  renderer.render(scene,camera);
 }
 function setAim(x,y){state.aim.x=clamp(x,-1.15,1.15);state.aim.y=clamp(y,.5,1.8);
