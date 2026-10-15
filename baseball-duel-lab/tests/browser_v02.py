@@ -30,11 +30,11 @@ async def main():
     lab.state.phase='flight';lab.state.pitch=p;lab.state.swingCount=0;lab.state.swingTime=-1;lab.state.aim={x:-.4,y:.95};
     let i=0;
     while (p.elapsed < p.flightTime-.18 && i<240) {lab.debugAdvance(1);i++;}
-    lab.swing();lab.debugAdvance(15);
+    lab.swing();lab.debugAdvance(28);
     return {phase:lab.state.phase,elapsed:p.elapsed,swingTime:lab.state.swingTime,
      impact:lab.state.batted?.impact,batPose:lab.getHealth().batPose,rendered:lab.getBatRenderEndpoints()};
    }""")
-   results["swing_phase"]=result["phase"]
+   # Run the next animation frame before comparing a physics state to rendered mesh transforms.\n   await page.wait_for_timeout(350)\n   result["rendered"]=await page.evaluate("window.__baseballLab.getBatRenderEndpoints()")\n   results["swing_phase"]=result["phase"]
    results["swing_time"]=result["swingTime"]
    results["swing_has_real_contact"]=bool(result["impact"])
    results["bat_mesh_error_swing"]=max(separation([result["batPose"]["grip"][k] for k in ("x","y","z")],result["rendered"]["grip"]),separation([result["batPose"]["tip"][k] for k in ("x","y","z")],result["rendered"]["tip"]))
