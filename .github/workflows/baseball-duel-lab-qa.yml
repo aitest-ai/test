@@ -1,0 +1,47 @@
+name: Baseball Duel Lab v0.1 QA
+on:
+  push:
+    branches: [baseball-duel-lab-v01-20261015]
+    paths:
+      - baseball-duel-lab/**
+      - .github/workflows/baseball-duel-lab-qa.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test baseball flight, collisions, rules
+        run: cd baseball-duel-lab && npm test
+      - name: Install browser testing tools
+        run: |
+          python -m pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Launch test website
+        run: |
+          (cd baseball-duel-lab && python -m http.server 8765 --bind 127.0.0.1 > /tmp/baseball-server.log 2>&1) &
+          sleep 2
+          curl -fsS http://127.0.0.1:8765/ >/dev/null
+      - name: Test Three.js renderer, timing, pitch and mobile
+        run: python baseball-duel-lab/tests/browser_smoke.py
+      - name: Save tested screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseball-duel-lab-v01-qa
+          path: qa-output/
+          retention-days: 7
