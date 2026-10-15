@@ -1,0 +1,11 @@
+{
+  "name": "baseball-duel-lab",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Original Three.js baseball hitting lab - single player prototype",
+  "scripts": {
+    "test": "node --test tests/physics.test.mjs",
+    "serve": "python3 -m http.server 8765"
+  }
+}
