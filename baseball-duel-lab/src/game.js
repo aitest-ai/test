@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   HOME_Z,FIXED_DT,PITCHES,DIFFICULTY,clamp,lerp,createPitch,stepPitch,
-  insideZone,batContact,stepBattedBall,classifyBall,advanceBases,advanceWalk
+  insideZone,batPose,batContact,stepBattedBall,classifyBall,advanceBases,advanceWalk
 } from './physics.js';
 
 const $=(id)=>document.getElementById(id);
@@ -14,7 +14,8 @@ const state={phase:'ready',pitchType:'fastball',difficulty:'rookie',aim:{x:0,y:1
   windup:0,resultTime:0,balls:0,strikes:0,outs:0,runs:0,hits:0,homers:0,bestDistance:0,bases:[false,false,false],
   sound:true,trail:[],frameIndex:0,hitFlash:0};
 
-let renderer,scene,camera,clock,baseball,batter,pitcher,batPivot,bat,batOriginal,shadows,stadiumLights,trailLine,flightShadow,catcher;
+let renderer,scene,camera,clock,baseball,batter,pitcher,batPivot,bat,batGrip,shadows,stadiumLights,trailLine,flightShadow,catcher;
+const BAT_LENGTH=.90,BAT_RADIUS=.043,BAT_DURATION=.34;
 const FLIGHT_END=8;
 const mat=(hex,extra={})=>new THREE.MeshStandardMaterial({color:hex,roughness:.87,...extra});
 const mats={grass:mat('#568d5e'),dirt:mat('#b2764b'),chalk:new THREE.MeshBasicMaterial({color:'#fff9e2'}),white:mat('#fff8e9'),navy:mat('#173c4a'),dark:mat('#244b52'),brown:mat('#a47d50'),metal:mat('#a8c1bd',{metalness:.5,roughness:.4}),red:mat('#d8774e'),skin:mat('#d6a17c'),ball:mat('#f5f0df'),rim:mat('#dbc69e')};
@@ -95,23 +96,36 @@ function modelPerson(pos,uniform,trim,hat,scale=1){
 function makePlayers(){
  pitcher=modelPerson([0,.33,-17.5],'#fff2de','#164957','#184353',1.03);
  pitcher.person.rotation.y=Math.PI;
- batter=modelPerson([-1.6,.1,HOME_Z+1.25],'#f3ede0','#bf7145','#b76d4a',1.03);
- batter.person.rotation.y=-.3;
+ batter=modelPerson([-1.4,.05,HOME_Z+.83],'#f3ede0','#bf7145','#b76d4a',.83);
+ batter.person.rotation.y=-.12;
  catcher=modelPerson([0,-.1,HOME_Z+3.35],'#315c6c','#234959','#1f3945',.91);
  catcher.g.position.y=-.65;catcher.rightArm.rotation.x=.55;
- // bat from pivot near shoulder; rotates across the plate
- batPivot=new THREE.Group();batPivot.position.set(-1.13,1.82,HOME_Z+1.05);scene.add(batPivot);
- const batGeo=new THREE.CylinderGeometry(.055,.10,2.0,12);
- bat=new THREE.Mesh(batGeo,mat('#d6a06c'));bat.position.set(.62,.5,-.18);bat.rotation.z=1.00;batPivot.add(bat);
- const grip=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.5,10),mat('#243e3d'));grip.position.set(.05,-.25,0);grip.rotation.z=1.0;batPivot.add(grip);
- batOriginal=batPivot.rotation.y;
+ // Render the identical capsule centreline used by batContact; no more cosmetic fake bat rotation.
+ batPivot=new THREE.Group();scene.add(batPivot);
+ bat=new THREE.Mesh(new THREE.CylinderGeometry(BAT_RADIUS*.72,BAT_RADIUS,BAT_LENGTH,14),mat('#d6a06c'));
+ bat.castShadow=true;batPivot.add(bat);
+ batGrip=new THREE.Mesh(new THREE.CylinderGeometry(.027,.029,.24,12),mat('#243e3d'));
+ batPivot.add(batGrip);
+ for(const f of [.02,.12]){const glove=new THREE.Mesh(new THREE.SphereGeometry(.066,10,8),mat('#405157'));glove.userData.gripFraction=f;batPivot.add(glove);}
+ updateBatPose(-1);
+}
+const UP=new THREE.Vector3(0,1,0);
+function updateBatPose(progress){
+ const pose=batPose(progress,state.aim),unit=new THREE.Vector3(pose.direction.x,pose.direction.y,pose.direction.z);
+ batPivot.position.set(pose.grip.x,pose.grip.y,pose.grip.z);
+ bat.position.copy(unit).multiplyScalar(BAT_LENGTH/2);
+ bat.quaternion.setFromUnitVectors(UP,unit);
+ batGrip.position.copy(unit).multiplyScalar(.12);batGrip.quaternion.copy(bat.quaternion);
+ for(const glove of batPivot.children){if(glove.userData.gripFraction!==undefined)glove.position.copy(unit).multiplyScalar(glove.userData.gripFraction);}
+ if(batter){const u=progress<0?0:Math.min(1,progress);batter.g.rotation.y=u*.4;
+  batter.rightArm.rotation.x=-.37-u*.20;batter.leftArm.rotation.x=-.35-u*.12;}
 }
 function makeBall(){
  baseball=new THREE.Group();scene.add(baseball);
- const shell=new THREE.Mesh(new THREE.SphereGeometry(.118,20,15),mats.ball);shell.castShadow=true;baseball.add(shell);
+ const shell=new THREE.Mesh(new THREE.SphereGeometry(.060,20,15),mats.ball);shell.castShadow=true;baseball.add(shell);
  const seam=mat('#b44745');
  for(let i=0;i<2;i++){
-   const curve=[];for(let j=0;j<=22;j++){const t=j/22*Math.PI*2;curve.push(new THREE.Vector3(.117*Math.cos(t),.055*Math.sin(2*t)*(i?1:-1),.117*Math.sin(t)));}
+   const curve=[];for(let j=0;j<=22;j++){const t=j/22*Math.PI*2;curve.push(new THREE.Vector3(.059*Math.cos(t),.028*Math.sin(2*t)*(i?1:-1),.059*Math.sin(t)));}
    const ribbon=new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve),new THREE.LineBasicMaterial({color:'#b5524f'}));baseball.add(ribbon);
  }
  baseball.visible=false;
@@ -169,7 +183,7 @@ function addTrail(pos){state.frameIndex++;if(state.frameIndex%3)return;state.tra
 function positionBall(pos){baseball.visible=true;baseball.position.set(pos.x,pos.y,pos.z);baseball.rotation.x+=.13;baseball.rotation.y+=.08;flightShadow.visible=true;flightShadow.position.x=pos.x;flightShadow.position.z=pos.z;flightShadow.material.opacity=clamp(.43-pos.y*.014,.05,.4);flightShadow.scale.setScalar(clamp(1+pos.y*.1,1,4));}
 function finalizePitch(){const p=state.pitch;if(!p)return;
  if(state.swingCount){addStrike('揮棒落空','沒有在正確時機與位置碰到球。');return;}
- if(insideZone(p.pos)){addStrike('好球！','球通過好球帶，沒有揮棒。');}else{state.balls++;if(state.balls>=4){const adv=advanceWalk(state.bases);state.bases=adv.bases;state.runs+=adv.runs;setResult('四壞保送', '保送上一壘。',false);resetCount();}else setResult('壞球', '球沒有通過好球帶。',false);}
+ if(insideZone(p.crossing??p.pos)){addStrike('好球！','球通過好球帶，沒有揮棒。');}else{state.balls++;if(state.balls>=4){const adv=advanceWalk(state.bases);state.bases=adv.bases;state.runs+=adv.runs;setResult('四壞保送', '保送上一壘。',false);resetCount();}else setResult('壞球', '球沒有通過好球帶。',false);}
  updateNumbers();
 }
 function resetCount(){state.balls=0;state.strikes=0;}
@@ -193,9 +207,14 @@ function onLanded(){const b=state.batted;if(!b)return;const outcome=classifyBall
  }
  updateNumbers();sayFlight(`${metres} m`,outcome.name+' · '+'模擬飛行距離');
 }
-function updatePitch(dt){const p=state.pitch;if(!p)return;stepPitch(p,dt);positionBall(p.pos);addTrail(p.pos);
- if(state.swingCount&&state.swingTime>=0){const contact=batContact(p,state.aim,state.swingTime);if(contact){onContact(contact);return;}}
- if(p.pos.z>=HOME_Z+.06||p.pos.y<.08){finalizePitch();}
+function updatePitch(dt){const p=state.pitch;if(!p)return;
+ stepPitch(p,dt);positionBall(p.pos);addTrail(p.pos);
+ if(state.swingCount&&state.swingTime>=0&&state.swingTime<=BAT_DURATION){
+  const progress=clamp(state.swingTime/BAT_DURATION,0,1),previous=clamp((state.swingTime-dt)/BAT_DURATION,0,1);
+  const contact=batContact(p,state.aim,progress,previous,dt);
+  if(contact){onContact(contact);return;}
+ }
+ if(p.crossing||p.pos.y<.036)finalizePitch();
 }
 function updateBatted(dt){const b=state.batted;if(!b)return;stepBattedBall(b,dt);positionBall(b.pos);addTrail(b.pos);
  if(b.elapsed>.35)hideCall();
@@ -207,8 +226,7 @@ function updateAnimation(dt,t){
  pitcher.leftArm.rotation.x= pitchWindup?Math.sin(k*Math.PI)*-.75:flight?-.35:.03;
  pitcher.rightArm.rotation.x= pitchWindup?Math.sin(k*Math.PI)*1.45:flight?1.7:Math.sin(t*.55)*.03;
  pitcher.g.rotation.z=pitchWindup?Math.sin(k*3)*.13:0;
- batter.rightArm.rotation.x=state.swingTime>=0&&state.swingTime<.48?-.48:Math.sin(t*.45)*.012;
- if(state.swingTime>=0&&state.swingTime<.52){const u=clamp(state.swingTime/.36,0,1);const eased=1-Math.pow(1-u,3);batPivot.rotation.y=2.9*eased-.7;batPivot.rotation.z=-.15+Math.sin(u*Math.PI)*.11;}else{batPivot.rotation.y=-.7;batPivot.rotation.z=0;}
+ updateBatPose(state.swingTime>=0&&state.swingTime<=BAT_DURATION*.98?clamp(state.swingTime/BAT_DURATION,0,1):-1);
 }
 function update(dt){
  if(state.phase==='windup'){
@@ -261,5 +279,6 @@ $('help-button').addEventListener('click',()=>$('help-dialog').showModal());
 $('close-help').addEventListener('click',()=>$('help-dialog').close());
 setAim(0,1.06);updateNumbers();readyControls();
 try{initWorld();}catch(error){console.error('Baseball lab rendering failed',error);$('loading').hidden=true;$('scene-error').hidden=false;$('scene-error').textContent=`球場無法啟動：${error.message}`;}
-window.__baseballLab={state,getHealth:()=>({phase:state.phase,renderer:!!renderer,canvas:!!renderer?.domElement,webgl:renderer?.getContext()?.getParameter(renderer.getContext().VERSION),pitchType:state.pitchType,balls:state.balls,strikes:state.strikes,outs:state.outs,hits:state.hits}),
+window.__baseballLab={state,getHealth:()=>({phase:state.phase,renderer:!!renderer,canvas:!!renderer?.domElement,webgl:renderer?.getContext()?.getParameter(renderer.getContext().VERSION),pitchType:state.pitchType,batPose:batPose(state.swingTime<0?-1:clamp(state.swingTime/BAT_DURATION,0,1),state.aim),balls:state.balls,strikes:state.strikes,outs:state.outs,hits:state.hits}),
+ getBatRenderEndpoints:()=>{batPivot.updateMatrixWorld(true);return {grip:batPivot.localToWorld(new THREE.Vector3(0,0,0)).toArray(),tip:bat.localToWorld(new THREE.Vector3(0,BAT_LENGTH/2,0)).toArray()};},
  startPitch,swing,setAim,debugAdvance:(n=1)=>{if(!QA_MODE)return false;for(let i=0;i<Math.min(n,3000);i++)update(FIXED_DT);return true;}};
