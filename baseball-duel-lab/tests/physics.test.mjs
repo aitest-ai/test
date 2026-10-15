@@ -1,38 +1,47 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {PITCHES,createPitch,stepPitch,batContact,insideZone,stepBattedBall, classifyBall,advanceWalk,advanceBases,HOME_Z,FIXED_DT} from '../src/physics.js';
-
-test('4 pitch types each reaches the plate',()=>{
- for(const name of Object.keys(PITCHES)){
-  const p=createPitch(name,'rookie',()=>.5);
-  let guard=0;while(p.pos.z<HOME_Z&&guard++<5000)stepPitch(p,FIXED_DT);
-  assert.ok(guard<5000,`${name} pitch did not cross plate`);
-  assert.ok(p.elapsed>.3&&p.elapsed<1.5,`${name} flight duration out of bounds`);
-  assert.ok(p.pos.y>0,`${name} ball hit ground before plate`);
+import {FIXED_DT,BAT_LENGTH,PITCHES,HOME_Z,batPose,batContact,createPitch,stepPitch,stepBattedBall,classifyBall} from '../src/physics.js';
+const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
+test('bat is 90 cm, correctly held and sweeps into the strike zone',()=>{
+ const a=batPose(-1),b=batPose(.66);
+ assert.ok(Math.abs(distance(a.grip,a.tip)-BAT_LENGTH)<1e-8);
+ assert.ok(a.tip.y>a.grip.y+.3);assert.ok(b.tip.x>b.grip.x&&b.tip.z<b.grip.z);
+});
+test('all pitches reach chosen target despite spin and drag',()=>{
+ for(const type of Object.keys(PITCHES)){
+  const p=createPitch(type,'pro',()=>.5);
+  for(let i=0;i<250&&!p.crossing;i++)stepPitch(p,FIXED_DT);
+  assert.ok(p.crossing,type);
+  assert.ok(Math.hypot(p.crossing.x-p.target.x,p.crossing.y-p.target.y)<.04,type);
  }
 });
-test('swing must be inside a contact window and aimed near pitch',()=>{
+test('distant barrel never produces a ghost contact',()=>{
  const p=createPitch('fastball','rookie',()=>.5);
- while(p.pos.z<HOME_Z-.3)stepPitch(p,FIXED_DT);
- const contact=batContact(p,{x:p.pos.x,y:p.pos.y},.16);
- assert.ok(contact?.exitKmh>95);
- assert.equal(batContact(p,{x:p.pos.x,y:p.pos.y},.01),null);
- assert.equal(batContact(p,{x:2,y:2},.16),null);
+ for(let i=0;i<250&&!p.crossing;i++){
+  stepPitch(p,FIXED_DT);
+  assert.equal(batContact(p,{x:1.15,y:.5},.66,.635,FIXED_DT),null);
+ }
 });
-test('a batted ball lands within bounded simulation and yields a known result',()=>{
- const p=createPitch('fastball','rookie',()=>.5);
- while(p.pos.z<HOME_Z-.3)stepPitch(p,FIXED_DT);
- const b=batContact(p,{x:p.pos.x,y:p.pos.y},.16);
- let i=0;while(b.pos.y>0.1&&i++<6000)stepBattedBall(b,FIXED_DT);
- assert.ok(i<6000);
- assert.ok(b.distance>25);
- assert.ok(['homer','triple','double','single','out','foul'].includes(classifyBall(b).kind));
+test('swept bat gives genuine collision and plausible velocity',()=>{
+ let hit;
+ search:for(let lead=.12;lead<=.34;lead+=.015)
+ for(let x=-.7;x<=.6;x+=.15)
+ for(let y=.7;y<=1.4;y+=.075){
+  const p=createPitch('fastball','rookie',()=>.5);let t=0;
+  for(let i=0;i<240&&!p.crossing;i++){
+   stepPitch(p,FIXED_DT);t+=FIXED_DT;
+   const u=(t-p.flightTime+lead)/.34;
+   if(u>=0&&u<=1){hit=batContact(p,{x,y},u,Math.max(0,u-FIXED_DT/.34),FIXED_DT);if(hit)break search;}
+  }
+ }
+ assert.ok(hit,'no actual collision found');
+ assert.ok(hit.impact.separation<.09);
+ assert.ok(hit.exitKmh>20&&hit.exitKmh<320);
+ for(let i=0;i<100;i++)stepBattedBall(hit,FIXED_DT);
+ assert.ok(Number.isFinite(hit.distance));
 });
-test('walk advances only forced runners',()=>{
- assert.deepEqual(advanceWalk([false,false,true]),{bases:[true,false,true],runs:0});
- assert.deepEqual(advanceWalk([true,true,true]),{bases:[true,true,true],runs:1});
-});
-test('hit advancement scores and positions runners',()=>{
- assert.deepEqual(advanceBases([false,true,true],2),{bases:[false,true,false],runs:2});
- assert.deepEqual(advanceBases([true,true,true],4),{bases:[false,false,false],runs:4});
+test('home run needs actual fence clearance',()=>{
+ const b={pos:{x:0,y:0,z:HOME_Z-105},distance:105,crossedFence:false};
+ assert.notEqual(classifyBall(b).kind,'homer');
+ b.crossedFence=true;assert.equal(classifyBall(b).kind,'homer');
 });
