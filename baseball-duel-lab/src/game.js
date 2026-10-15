@@ -220,8 +220,8 @@ function update(dt){
  state.hitFlash=Math.max(0,state.hitFlash-dt);
 }
 let accumulator=0,lastFrame=0;
-function frame(ms){requestAnimationFrame(frame);const elapsed=lastFrame?Math.min((ms-lastFrame)/1000,.05):.016;lastFrame=ms;
- accumulator+=elapsed;let steps=0;while(accumulator>=FIXED_DT&&steps<7){update(FIXED_DT);accumulator-=FIXED_DT;steps++;}
+function frame(ms){requestAnimationFrame(frame);const elapsed=lastFrame?Math.min((ms-lastFrame)/1000,.35):.016;lastFrame=ms;
+ accumulator+=elapsed;let steps=0;while(accumulator>=FIXED_DT&&steps<50){update(FIXED_DT);accumulator-=FIXED_DT;steps++;}
  updateAnimation(elapsed,ms*.001);
  if(state.phase==='batted'&&state.batted){const b=state.batted;
   const target=new THREE.Vector3(clamp(b.pos.x*.3,-25,25),Math.max(2,Math.min(12,b.pos.y*.25)),lerp(-18,b.pos.z,.25));
@@ -261,4 +261,4 @@ $('close-help').addEventListener('click',()=>$('help-dialog').close());
 setAim(0,1.06);updateNumbers();readyControls();
 try{initWorld();}catch(error){console.error('Baseball lab rendering failed',error);$('loading').hidden=true;$('scene-error').hidden=false;$('scene-error').textContent=`球場無法啟動：${error.message}`;}
 window.__baseballLab={state,getHealth:()=>({phase:state.phase,renderer:!!renderer,canvas:!!renderer?.domElement,webgl:renderer?.getContext()?.getParameter(renderer.getContext().VERSION),pitchType:state.pitchType,balls:state.balls,strikes:state.strikes,outs:state.outs,hits:state.hits}),
- startPitch,swing,setAim};
+ startPitch,swing,setAim,debugAdvance:(n=1)=>{if(!new URLSearchParams(location.search).has('qa'))return false;for(let i=0;i<Math.min(n,3000);i++)update(FIXED_DT);return true;}};
