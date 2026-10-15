@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#101c22" />
+  <meta name="description" content="3D 棒球投打實驗室：四種球路、瞄準揮棒、擊球飛行與投打判定的原創網頁原型。" />
+  <title>第九局｜BASEBALL DUEL LAB</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" href="./src/style.css" />
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand"><div class="brand-icon"><span>9</span><small>TH</small></div><div><div class="brand-kicker">THE NINTH INNING <span class="live-dot"></span> FIELD EXPERIMENT 001</div><strong>第九局 <em>/</em> 棒球對決</strong></div></div>
+      <div class="top-tools"><span class="mode-badge"><span class="dot"></span> SOLO / AI PITCHER</span><button id="sound-button" class="tool-btn" aria-label="切換音效">♫ <span>音效開啟</span></button><button id="help-button" class="tool-btn" aria-label="操作說明">? <span>操作</span></button></div>
+    </header>
+
+    <main class="layout">
+      <section class="arena" id="arena" aria-label="3D 棒球球場">
+        <canvas id="game-canvas"></canvas>
+        <div class="scene-gradient"></div>
+        <div class="scene-top">
+          <div class="weather"><span class="sun">✳</span> 18:45 <span class="separator">/</span> STADIUM NO. 09 <span class="separator">/</span> CLEAR SKY</div>
+          <div class="view-mode"><span class="dot"></span> BATTER'S VIEW <span class="vline"></span> 3D LIVE</div>
+        </div>
+        <div class="flight-info" id="flight-info" aria-live="polite"><span class="flight-label">BALL TRAJECTORY</span><strong id="flight-main">等待投球</strong><span id="flight-sub">選擇球種，準備迎接第一顆球</span></div>
+        <div class="aim-hud" id="aim-hud" aria-label="瞄準打擊位置" tabindex="0">
+          <div class="aim-top">STRIKE ZONE <span>拖曳瞄準</span></div>
+          <div class="aim-frame" id="aim-frame"><div class="aim-line hl"></div><div class="aim-line hl lower"></div><div class="aim-line vl"></div><div class="aim-line vl right"></div><div class="aim-cross" id="aim-cross"><i></i></div></div>
+          <div class="aim-bottom">AIM · 左右上下調整擊球點</div>
+        </div>
+        <div class="big-call" id="big-call" aria-live="polite"><small>THE CALL</small><strong id="call-head">PLAY BALL!</strong><span id="call-description">點選「開始投球」進入第一個打席</span></div>
+        <div class="field-bottom"><span class="field-tag">HOME PLATE <b>09</b></span><div class="field-hint"><span>W A S D / 方向鍵</span> 調整瞄準 <span>SPACE</span> 揮棒</div></div>
+        <button class="mobile-swing" id="mobile-swing" aria-label="手機揮棒">揮棒 <small>SWING</small></button>
+        <div class="loading" id="loading"><span class="loader-ball">⚾</span><strong>球場建置中</strong><small>THREE.JS / WEBGL</small></div>
+        <div class="scene-error" id="scene-error" hidden>3D 場景無法啟動，請檢查網路與瀏覽器 WebGL 支援。</div>
+      </section>
+
+      <aside class="sidebar">
+        <div class="sidebar-inner">
+          <div class="score-card">
+            <div class="score-head"><span>01 / MATCH CENTER</span><span class="score-live"><i></i> LIVE PRACTICE</span></div>
+            <div class="score-main"><div class="team"><span class="team-symbol home">H</span><div><span>HOME TEAM</span><strong>打擊方</strong></div><b id="runs">0</b></div><div class="score-divider"></div><div class="team"><span class="team-symbol away">A</span><div><span>AWAY TEAM</span><strong>AI 投手</strong></div><b>0</b></div></div>
+            <div class="score-bottom"><div class="bases"><span id="base-2" class="base"></span><span id="base-3" class="base"></span><span id="base-1" class="base"></span></div><div class="count"><span>B <b id="balls">0</b></span><span>S <b id="strikes">0</b></span><span>O <b id="outs">0</b></span></div></div>
+          </div>
+
+          <div class="side-section"><div class="section-head"><span>02 / PITCH SELECTION</span><small>4 PITCH TYPES</small></div><h2>選擇這一球的球種</h2><p>練習時可以指定 AI 投手的球路。觀察每一球不同的速度與軌跡。</p>
+          <div class="pitch-grid" id="pitch-grid"><button class="pitch active" data-type="fastball"><b class="pitch-symbol">↗</b><span><strong>四縫線直球</strong><small>FASTBALL</small></span><em>142</em></button><button class="pitch" data-type="curve"><b class="pitch-symbol">↘</b><span><strong>曲球</strong><small>CURVEBALL</small></span><em>112</em></button><button class="pitch" data-type="slider"><b class="pitch-symbol">➚</b><span><strong>滑球</strong><small>SLIDER</small></span><em>128</em></button><button class="pitch" data-type="change"><b class="pitch-symbol">≋</b><span><strong>變速球</strong><small>CHANGEUP</small></span><em>106</em></button></div>
+          </div>
+
+          <div class="side-section"><div class="section-head"><span>03 / CHALLENGE SETTING</span><small>DIFFICULTY</small></div><div class="difficulty-row" id="difficulty-row"><button class="diff active" data-difficulty="rookie">練習 <small>ROOKIE</small></button><button class="diff" data-difficulty="pro">挑戰 <small>PRO</small></button><button class="diff" data-difficulty="hell">地獄 <small>HELL</small></button></div></div>
+          <div class="action-card"><div class="action-kicker" id="action-kicker">READY FOR YOUR FIRST PITCH</div><button id="pitch-button" class="pitch-button"><span id="pitch-button-label">開始投球</span><span class="btn-arrow">↗</span></button><button id="swing-button" class="swing-button" disabled><span>⚾ 揮 棒</span><kbd>SPACE</kbd></button><p id="action-help">投手準備就緒。打者請站上打擊區。</p></div>
+
+          <div class="stat-section"><div class="section-head"><span>04 / YOUR PERFORMANCE</span><small>THIS SESSION</small></div><div class="stats"><div><span>安打</span><strong id="hits">0</strong></div><div><span>全壘打</span><strong id="homers">0</strong></div><div><span>最佳飛行距離</span><strong><span id="best-distance">0</span><small>m</small></strong></div></div></div>
+          <div class="foot-note"><b>PROTOTYPE v0.1</b> · 單人離線打擊練習，非多人連線版本。投球空氣力學採遊戲化近似模型，數值不可當實際比賽物理測量。</div>
+        </div>
+      </aside>
+    </main>
+    <footer class="footer"><span>BUILT FOR THE LOVE OF BASEBALL</span><span>THREE.JS × ORIGINAL PHYSICS × REAL-TIME 3D</span><span>BASEBALL DUEL LAB · 2026</span></footer>
+  </div>
+  <dialog id="help-dialog"><div class="modal"><div class="modal-kicker">HOW TO PLAY / 玩法說明</div><h2>看清球路，抓住揮棒時機。</h2><p>這是一個可玩的 3D 棒球投打實驗室。投手會從投手丘投來四種球路；你要在棒球抵達本壘前抓準時間揮棒。</p><div class="modal-grid"><div><b>01</b><strong>選球種</strong><p>直球速度快，曲球下墜，滑球橫向移動，變速球較慢。</p></div><div><b>02</b><strong>調整瞄準</strong><p>拖曳畫面中的九宮格，或使用方向鍵 / WASD。</p></div><div><b>03</b><strong>抓準揮棒</strong><p>空白鍵、右方揮棒鈕或手機下方揮棒鈕皆可。</p></div><div><b>04</b><strong>觀察結果</strong><p>查看初速、仰角、落地距離及好壞球判定。</p></div></div><button id="close-help">開始打球 ↗</button></div></dialog>
+  <script type="module" src="./src/game.js"></script>
+</body>
+</html>
