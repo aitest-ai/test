@@ -39,7 +39,8 @@ jobs:
       - name: Record controlled singles doubles and owned private room
         env:
           SKIP_REA: '1' # Reuse previously verified REA static evidence.
-          FOCUS_MODES: '1' # Test doubles and self-owned room without re-running the verified single rally.
+          FOCUS_MODES: '1' # Reuse the previously verified singles rally.
+          FOCUS_ONLY: 'doubles' # Reach doubles setup through pause -> main menu.
         run: python research/tennis-rebuild/observe_v3.py
       - name: Save sanitized findings
         if: always()
