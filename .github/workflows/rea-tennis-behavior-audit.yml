@@ -1,4 +1,4 @@
-name: REA Tennis Reconstruction Behavior Evidence
+name: REA Tennis Rally and Private Room v3
 on:
   push:
     branches:
@@ -14,7 +14,7 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-24.04
-    timeout-minutes: 16
+    timeout-minutes: 19
     steps:
       - name: Checkout research branch
         uses: actions/checkout@v4
@@ -35,14 +35,14 @@ jobs:
           npm install --global rea-agents@6.4.0
           rea --version || true
       - name: Syntax validation
-        run: python -m py_compile research/tennis-rebuild/observe_matches.py
+        run: python -m py_compile research/tennis-rebuild/observe_v3.py
       - name: Record controlled singles doubles and owned private room
-        run: python research/tennis-rebuild/observe_matches.py
+        run: python research/tennis-rebuild/observe_v3.py
       - name: Save sanitized findings
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rea-tennis-match-observation
-          path: tennis-evidence/
+          name: rea-tennis-v3-evidence
+          path: tennis-v3-evidence/
           if-no-files-found: warn
           retention-days: 7
