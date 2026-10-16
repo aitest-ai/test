@@ -37,7 +37,7 @@ async def snapshot(page,name,shot=False,private=False):
             d["body"]="[PRIVATE ROOM CONTENT REDACTED]"
             d["elements"]=[x for x in d["elements"] if not re.search("room|code|join|invite|房間|邀請|代碼",x["label"],re.I)]
         REPORT["scenes"].append({"name":name,**d});save()
-        if shot and not private:await page.screenshot(path=str(OUT/(name+".png")),timeout=15000)
+        if shot and not private:await page.screenshot(path=str(OUT/(name+".png")),timeout=10000)
         return d
     except Exception as e:
         REPORT["errors"].append({"scene":name,"error":str(e)[:400]});return {}
@@ -188,11 +188,13 @@ async def main():
             if not browser:raise RuntimeError("CDP connection failed")
             main=browser.contexts[0].pages[0]
             log(main,"single")
-            await start(main,"single")
-            # Run REA once, before gameplay.
-            if os.environ.get("SKIP_REA")!="1":await run_rea()
-            try:await singles(main)
-            except Exception as e:REPORT["errors"].append({"section":"single","error":str(e)[:250]})
+            if os.environ.get("FOCUS_MODES")!="1":
+                await start(main,"single")
+                if os.environ.get("SKIP_REA")!="1":await run_rea()
+                try:await singles(main)
+                except Exception as e:REPORT["errors"].append({"section":"single","error":str(e)[:250]})
+            else:
+                REPORT["limits"].append("Focused modes-only continuation; singles already demonstrated score transition in previous evidence")
             c2=await browser.new_context(viewport={"width":1280,"height":820})
             doubles=await c2.new_page();log(doubles,"doubles")
             await start(doubles,"doubles")
