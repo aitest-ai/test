@@ -65,7 +65,13 @@ async def start(page,who):
     await page.wait_for_timeout(2800)
     await snapshot(page,who+"_before")
     await tap(page,who+"_enter",[r"Enter Now",r"先進去"],1100)
-    await tap(page,who+"_tutorial",[r"Got It.*Play",r"知道了.*開打",r"Got it"],1200)
+    await tap(page,who+"_tutorial",[r"Got It.*Play",r"知道了.*開打",r"Got it"],1800)
+    # First-run tutorial may automatically start a default singles AI match.
+    current=(await page.locator("body").inner_text())[:700]
+    if re.search(r"You\\s*\\d+\\s*:\\s*\\d+",current,re.I) or ("Opponent:" in current and "AI" in current):
+        await tap(page,who+"_pause_game",[r"❚❚",r"^Pause"],750)
+        await snapshot(page,who+"_pause_menu",shot=False,private=who in ("host","guest"))
+        await tap(page,who+"_back_to_menu",[r"Main Menu",r"Back to Menu",r"Exit Match",r"Return to Menu",r"^Home",r"Leave Match",r"回主選單",r"返回主選單"],1500)
     # Do not accidentally trigger ad/install prompts.
     await snapshot(page,who+"_home",shot=who in ("single","doubles"))
 async def run_rea():
@@ -195,18 +201,21 @@ async def main():
                 except Exception as e:REPORT["errors"].append({"section":"single","error":str(e)[:250]})
             else:
                 REPORT["limits"].append("Focused modes-only continuation; singles already demonstrated score transition in previous evidence")
-            c2=await browser.new_context(viewport={"width":1280,"height":820})
-            doubles=await c2.new_page();log(doubles,"doubles")
-            await start(doubles,"doubles")
-            try:await settings_doubles(doubles)
-            except Exception as e:REPORT["errors"].append({"section":"doubles","error":str(e)[:300]})
-            c3=await browser.new_context(viewport={"width":1280,"height":820})
-            c4=await browser.new_context(viewport={"width":1280,"height":820})
-            host=await c3.new_page();guest=await c4.new_page()
-            log(host,"host");log(guest,"guest")
-            await start(host,"host")
-            try:await online_private(host,guest)
-            except Exception as e:REPORT["errors"].append({"section":"private","error":str(e)[:300]})
+            selected=os.getenv("FOCUS_ONLY","both")
+            if selected in ("both","doubles"):
+                c2=await browser.new_context(viewport={"width":1280,"height":820})
+                doubles=await c2.new_page();log(doubles,"doubles")
+                await start(doubles,"doubles")
+                try:await settings_doubles(doubles)
+                except Exception as e:REPORT["errors"].append({"section":"doubles","error":str(e)[:300]})
+            if selected in ("both","private"):
+                c3=await browser.new_context(viewport={"width":1280,"height":820})
+                c4=await browser.new_context(viewport={"width":1280,"height":820})
+                host=await c3.new_page();guest=await c4.new_page()
+                log(host,"host");log(guest,"guest")
+                await start(host,"host")
+                try:await online_private(host,guest)
+                except Exception as e:REPORT["errors"].append({"section":"private","error":str(e)[:300]})
             await browser.close()
         finally:
             save()
