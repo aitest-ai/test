@@ -116,43 +116,48 @@ async def open_start(page,tag):
     except Exception as e:
         ERRORS.append({"stage":tag,"navigation":str(e)[:240]})
     await page.wait_for_timeout(3500)
-    await inspect(page,tag+"_landing")
-    await click(page,[r"先進去",r"開始探索",r"進入遊戲",r"進入"],tag+"_enter")
-    await inspect(page,tag+"_entered")
-    await click(page,[r"知道了.*開打",r"知道了",r"開始體驗",r"略過"],tag+"_tutorial")
+    await inspect(page,tag+"_landing",screenshot=False)
+    await click(page,[r"^Enter Now$",r"先進去",r"進入遊戲",r"進入"],tag+"_enter")
+    await inspect(page,tag+"_entered",screenshot=False)
+    await click(page,[r"Got It.*Play",r"知道了.*開打",r"知道了",r"開始體驗",r"略過"],tag+"_tutorial")
     await inspect(page,tag+"_menu")
 async def offline(page,tag,doubles=False):
-    # Select offline mode only, never queue for random network matchmaking.
+    # AI / offline only. The English UI uses "Play! vs AI · Singles..." at the root.
+    selected=await click(page,[r"^Play!",r"對 AI 開打",r"單打.*AI",r"AI.*單打"],tag+"_open_ai",2300)
+    await inspect(page,tag+"_setup",screenshot=False)
     if doubles:
-        selected=await click(page,[r"雙打.*AI",r"AI.*雙打",r"雙打",r"Doubles"],tag+"_choose_doubles",2000)
+        await click(page,[r"^Doubles$",r"雙打",r"2v2"],tag+"_doubles_toggle",1400)
     else:
-        selected=await click(page,[r"單打.*AI",r"AI.*單打",r"單打",r"Singles"],tag+"_choose_singles",2000)
-    await inspect(page,tag+"_mode")
-    # Start an offline match only if the UI explicitly says AI or practice.
-    state=STAGES[-1] if STAGES else {}
-    buttons=state.get("buttons",[])
-    safe=any(re.search(r'AI|練習|單機|對電腦|訓練',x.get("label",""),re.I) for x in buttons)
-    if safe or selected:
-        await click(page,[r"對 AI 開打",r"對 AI",r"開始對戰",r"開始比賽",r"開始遊戲",r"開打",r"開始"],tag+"_start",2500)
-    await inspect(page,tag+"_court")
-    # Non-destructive practice actions; no automated wins/ranking submissions.
-    await page.keyboard.press("Space")
-    await page.wait_for_timeout(1800)
+        await click(page,[r"^Singles$",r"單打",r"1v1"],tag+"_singles_toggle",800)
+    await inspect(page,tag+"_mode",screenshot=False)
+    # May be already in play. Do not press an Online or matchmaking button.
+    available=(await page.locator("body").inner_text())[:2500]
+    if re.search(r"vs AI|單機|對 AI|Practice|AI Match|訓練",available,re.I):
+        await click(page,[r"^Start Match",r"^Start Game",r"^Play Now",r"Play vs AI",r"開始比賽",r"開始遊戲",r"^Start$"],tag+"_start",2300)
+    scene=await inspect(page,tag+"_court")
+    for key in ["u","j","k","l"]:
+        try:
+            await page.keyboard.press(key)
+            await page.wait_for_timeout(450)
+        except:pass
     await inspect(page,tag+"_action")
-    return {"stage":tag,"requested_doubles":doubles,"canvas_count":len(STAGES[-1].get("canvases",[])),
-       "progressed_to_match":any("score" in x.get("bodyText","").lower() or "分" in x.get("bodyText","") for x in STAGES[-3:])}
+    text=(await page.locator("body").inner_text())[:2500]
+    return {"stage":tag,"requested_doubles":doubles,"canvas_count":len(scene.get("canvases",[])),
+        "match_ui_signals":list({m.group(0) for m in re.finditer(r'\b(?:serve|rally|score|love|game point|match point)\b|比分|回合|發球',text,re.I)})[:12],
+        "progressed_to_match":"court" if selected else "not_verified"}
+
 async def private_room(first,second):
     # This is strictly private self-testing. Never join strangers' listings.
     await inspect(first,"room_creator_before",screenshot=False,private=True)
-    clicked=await click(first,[r"線上對戰",r"線上房間",r"和朋友",r"自訂房間"],"room_online",1500)
+    clicked=await click(first,[r"^Online",r"線上對戰",r"線上房間",r"和朋友",r"自訂房間"],"room_online",1500)
     await inspect(first,"room_creator_mode",screenshot=False,private=True)
     available=(await first.locator("body").inner_text())[:2500]
-    if not clicked and not re.search(r'建立房間|私人房間|邀請碼',available):
+    if not clicked and not re.search(r'建立房間|私人房間|邀請碼|Create Room|Private Room|Invite|Room Code',available,re.I):
         return {"status":"blocked","reason":"No private-room entry found, no public matchmaking performed"}
     # Requires positive evidence this is a private/invite flow.
-    if not re.search(r'私人|邀請|建立房間|開房|好友房',available):
+    if not re.search(r'私人|邀請|建立房間|開房|好友房|Create Room|Private Room|Invite',available,re.I):
         return {"status":"blocked","reason":"Cannot verify private-room flow safely"}
-    created=await click(first,[r"建立私人房",r"建立房間",r"開房",r"建立.*房間"],"room_create",2200)
+    created=await click(first,[r"^Create Room",r"^Host Room",r"^Private Room",r"建立私人房",r"建立房間",r"開房"],"room_create",2200)
     if not created:return {"status":"blocked","reason":"Private room creation control unavailable"}
     await inspect(first,"room_creator_created",screenshot=False,private=True)
     raw=(await first.locator("body").inner_text())[:2400]
@@ -162,7 +167,7 @@ async def private_room(first,second):
         return {"status":"partial","reason":"Room created but own code not detected","sockets":len(SOCKETS)}
     code=hit.group(1)
     await open_start(second,"guest_B")
-    await click(second,[r"線上對戰",r"加入房間",r"和朋友"],"guest_B_online",1000)
+    await click(second,[r"^Online",r"^Join Room",r"線上對戰",r"加入房間",r"和朋友"],"guest_B_online",1000)
     await inspect(second,"guest_B_join_ui",screenshot=False,private=True)
     fields=second.locator("input")
     joined=False
@@ -173,7 +178,7 @@ async def private_room(first,second):
                 ph=(await fld.get_attribute("placeholder") or "")
                 if re.search(r'房間|代碼|邀請|code|room',ph,re.I) or await fields.count()==1:
                     await fld.fill(code)
-                    joined=await click(second,[r"加入房間",r"加入",r"確認"],"guest_B_join",2200)
+                    joined=await click(second,[r"^Join Room",r"^Join",r"加入房間",r"加入",r"確認"],"guest_B_join",2200)
                     break
         except Exception as e:ERRORS.append({"stage":"guest_B_join","reason":str(e)[:180]})
     await inspect(first,"room_creator_peer_joined",screenshot=False,private=True)
