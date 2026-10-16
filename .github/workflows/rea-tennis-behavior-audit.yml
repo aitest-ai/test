@@ -40,7 +40,7 @@ jobs:
         env:
           SKIP_REA: '1' # Reuse previously verified REA static evidence.
           FOCUS_MODES: '1' # Reuse the previously verified singles rally.
-          FOCUS_ONLY: 'doubles'
+          FOCUS_ONLY: 'private'
           DIRECT_HOME: '1' # Isolated UI discovery without auto-started tutorial
         run: python research/tennis-rebuild/observe_v3.py
       - name: Save sanitized findings
