@@ -167,14 +167,24 @@ async def online_private(host,guest):
     await snapshot(host,"online_menu",shot=True)
     text=(await host.locator("body").inner_text())[:3000]
     # Only self-created private rooms. Avoid public matchmaking and chat.
-    if not re.search(r"Create|Host|Private|建立房間|私人",text,re.I):
-        REPORT["private_verification"]={"status":"blocked","reason":"no private create flow observed"};return
-    await tap(host,"private_create",[r"^Create Room",r"^Host Room",r"^Create Private",r"建立房間",r"開房"],1300)
+    if not re.search(r"New Room|Create|Host|Private|建立房間|私人",text,re.I):
+        REPORT["private_verification"]={"status":"blocked","reason":"no self-created room flow observed"};return
+    # The original UI warns that direct P2P may reveal IP addresses; disable it if offered.
+    if re.search("Turn Off Direct Connection",text,re.I):
+        await tap(host,"p2p_off_for_test",[r"Turn Off Direct Connection"],650)
+    await tap(host,"p2p_notice_ok",[r"^OK$"],400)
+    room_clicked=await tap(host,"private_create",[r"^New Room",r"^Create Room",r"^Host Room",r"^Create Private",r"建立房間",r"開房"],1300)
+    if not room_clicked:
+        REPORT["private_verification"]={"status":"blocked","reason":"New Room control was not clickable"};return
     await snapshot(host,"created_room_private",private=True)
     raw=(await host.locator("body").inner_text())[:2800]
     code_match=re.search(r"(?:Room Code|Invite Code|房間碼|邀請碼)\s*[:：]?\s*([A-Z0-9]{4,10})",raw,re.I)
     if not code_match:
-        REPORT["private_verification"]={"status":"partial","reason":"own room opened, code unavailable"};return
+        REPORT["private_verification"]={"status":"partial","reason":"New Room clicked; own invite code not detected",
+            "ui_state_flags":{"has_room_word":bool(re.search(r"Room|房間",raw,re.I)),
+                              "has_wait_word":bool(re.search(r"Waiting|等待",raw,re.I)),
+                              "has_start_word":bool(re.search(r"Start|開始",raw,re.I))},
+            "websocket_count":len(REPORT["websocket"])};return
     code=code_match.group(1)
     # Invite code is never persisted. The guest is another user-owned test context.
     await start(guest,"guest")
