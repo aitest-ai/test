@@ -146,7 +146,9 @@ async def settings_doubles(page):
     # Verify the current settings text, not only the clicked button.
     setting_text=selected.get("body","")
     active=bool(re.search(r"Current settings\s*Doubles",setting_text,re.I))
-    await tap(page,"confirm_match_play",[r"^Play!$",r"開始比賽",r"Start Match"],3500)
+    await tap(page,"confirm_match_play",[r"^Play!$",r"開始比賽",r"Start Match"],1300)
+    await snapshot(page,"doubles_intro_choice",shot=False)
+    await tap(page,"skip_optional_tutorial",[r"^Just Play$",r"直接開始",r"跳過"],2400)
     court=await snapshot(page,"doubles_court",shot=True)
     await page.wait_for_timeout(4000)
     await snapshot(page,"doubles_playing",shot=True)
