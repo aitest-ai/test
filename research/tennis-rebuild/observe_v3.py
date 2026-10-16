@@ -36,7 +36,7 @@ async def snapshot(page,name,shot=False,private=False):
         if private:
             d["body"]="[PRIVATE ROOM CONTENT REDACTED]"
             d["elements"]=[x for x in d["elements"] if not re.search("room|code|join|invite|房間|邀請|代碼",x["label"],re.I)]
-        REPORT["scenes"].append({"name":name,**d})
+        REPORT["scenes"].append({"name":name,**d});save()
         if shot and not private:await page.screenshot(path=str(OUT/(name+".png")),timeout=15000)
         return d
     except Exception as e:
@@ -54,7 +54,7 @@ async def tap(page,name,patterns,wait=900):
        }
        return {matched:false,available:bs.map(n=>(n.innerText||'').trim().slice(0,45)).slice(0,24)}
     }""",patterns)
-    REPORT["actions"].append({"step":name,**result})
+    REPORT["actions"].append({"step":name,**result});save()
     await page.wait_for_timeout(wait)
     return result["matched"]
 async def start(page,who):
@@ -62,7 +62,7 @@ async def start(page,who):
         resp=await page.goto(SITE,wait_until="domcontentloaded",timeout=48000)
         REPORT["actions"].append({"step":who+"_visit","http":resp.status if resp else None})
     except Exception as e:REPORT["errors"].append({"step":who+"_visit","error":str(e)[:250]})
-    await page.wait_for_timeout(4600)
+    await page.wait_for_timeout(2800)
     await snapshot(page,who+"_before")
     await tap(page,who+"_enter",[r"Enter Now",r"先進去"],1100)
     await tap(page,who+"_tutorial",[r"Got It.*Play",r"知道了.*開打",r"Got it"],1200)
@@ -190,7 +190,7 @@ async def main():
             log(main,"single")
             await start(main,"single")
             # Run REA once, before gameplay.
-            await run_rea()
+            if os.environ.get("SKIP_REA")!="1":await run_rea()
             try:await singles(main)
             except Exception as e:REPORT["errors"].append({"section":"single","error":str(e)[:250]})
             c2=await browser.new_context(viewport={"width":1280,"height":820})
@@ -211,4 +211,6 @@ async def main():
             try:proc.terminate();await asyncio.wait_for(proc.wait(),timeout=4)
             except:proc.kill()
     print(json.dumps({k:v for k,v in REPORT.items() if k not in ("scenes","actions")},ensure_ascii=False,indent=2))
-if __name__=="__main__":asyncio.run(main())
+if __name__=="__main__":
+    try:asyncio.run(asyncio.wait_for(main(),timeout=165))
+    except asyncio.TimeoutError:print("AUDIT TIMED OUT: partial evidence saved; no equivalence claim",flush=True)
