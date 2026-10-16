@@ -14,7 +14,7 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-24.04
-    timeout-minutes: 19
+    timeout-minutes: 9
     steps:
       - name: Checkout research branch
         uses: actions/checkout@v4
@@ -37,6 +37,8 @@ jobs:
       - name: Syntax validation
         run: python -m py_compile research/tennis-rebuild/observe_v3.py
       - name: Record controlled singles doubles and owned private room
+        env:
+          SKIP_REA: '1' # This is the behavior-only continuation of the already completed REA captures.
         run: python research/tennis-rebuild/observe_v3.py
       - name: Save sanitized findings
         if: always()
