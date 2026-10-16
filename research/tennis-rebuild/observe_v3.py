@@ -137,19 +137,29 @@ async def singles(page):
             "found_score":scores[0] is not None}
     REPORT["single_verification"]=result
 async def settings_doubles(page):
-    await tap(page,"settings_open",[r"^Settings",r"設定"],1500)
-    await snapshot(page,"doubles_settings",shot=False)
-    # The actual location of the doubles toggle is discovered here.
-    await tap(page,"settings_doubles",[r"^Doubles$",r"雙打",r"2v2"],800)
-    await snapshot(page,"doubles_settings_after")
-    await tap(page,"settings_save",[r"^Save",r"Apply",r"Done",r"Close",r"Return",r"Back",r"返回",r"確定"],850)
-    await snapshot(page,"doubles_home")
-    await tap(page,"doubles_play",[r"^Play!",r"vs AI"],3500)
-    await snapshot(page,"doubles_court",shot=False)
-    txt=await page.locator("body").inner_text()
-    REPORT["doubles_verification"]={"explicit_doubles_label":bool(re.search(r"Doubles|雙打|2v2",txt,re.I)),
-        "scoreboard_found":bool(re.search(r"You\s*\d+\s*:\s*\d+",txt,re.I)),
-        "note":"Scoreboard alone does NOT establish doubles; verify four players separately"}
+    # Verified UI: Play! opens Match Settings; the ordinary "Settings" is NOT where Singles/Doubles lives.
+    await tap(page,"match_config_open",[r"^Play!",r"vs AI"],1050)
+    cfg=await snapshot(page,"match_config",shot=False)
+    has_doubles="Doubles (you + AI partner)" in cfg.get("body","")
+    chosen=await tap(page,"select_doubles",[r"^Doubles \(you \+ AI partner\)",r"^Doubles"],700)
+    selected=await snapshot(page,"match_config_after_doubles",shot=False)
+    # Verify the current settings text, not only the clicked button.
+    setting_text=selected.get("body","")
+    active=bool(re.search(r"Current settings\s*Doubles",setting_text,re.I))
+    await tap(page,"confirm_match_play",[r"^Play!$",r"開始比賽",r"Start Match"],3500)
+    court=await snapshot(page,"doubles_court",shot=True)
+    await page.wait_for_timeout(4000)
+    await snapshot(page,"doubles_playing",shot=True)
+    body=(await page.locator("body").inner_text())[:1500]
+    REPORT["doubles_verification"]={
+        "double_option_visible":has_doubles,
+        "double_selected_click":chosen,
+        "current_settings_confirm_doubles":active,
+        "scoreboard_found":bool(re.search(r"You\s*\d+\s*:\s*\d+",body,re.I)),
+        "court_canvas_count":len(court.get("canvas",[])),
+        "cannot_assert_four_players_without_scene_analysis":True
+    }
+
 async def online_private(host,guest):
     await tap(host,"online_open",[r"^Online",r"線上對戰"],1200)
     await snapshot(host,"online_menu",shot=True)
