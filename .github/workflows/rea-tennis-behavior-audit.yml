@@ -1,0 +1,48 @@
+name: REA Tennis Reconstruction Behavior Evidence
+on:
+  push:
+    branches:
+      - rea-tennis-behavior-audit-20261016
+    paths:
+      - research/tennis-rebuild/**
+      - .github/workflows/rea-tennis-behavior-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - name: Checkout research branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline browser and REA
+        run: |
+          python -m pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+          npm install --global rea-agents@6.4.0
+          rea --version || true
+      - name: Syntax validation
+        run: python -m py_compile research/tennis-rebuild/observe_matches.py
+      - name: Record controlled singles doubles and owned private room
+        run: python research/tennis-rebuild/observe_matches.py
+      - name: Save sanitized findings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rea-tennis-match-observation
+          path: tennis-evidence/
+          if-no-files-found: warn
+          retention-days: 7
