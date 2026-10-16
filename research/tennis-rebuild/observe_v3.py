@@ -64,6 +64,9 @@ async def start(page,who):
     except Exception as e:REPORT["errors"].append({"step":who+"_visit","error":str(e)[:250]})
     await page.wait_for_timeout(2800)
     await snapshot(page,who+"_before")
+    if os.environ.get("DIRECT_HOME")=="1" and who in ("doubles","host","guest"):
+        REPORT["limits"].append("Direct programmatic DOM click from initial page, without completing ordinary welcome/tutorial interaction; validates exposed UI state only")
+        return
     await tap(page,who+"_enter",[r"Enter Now",r"先進去"],1100)
     await tap(page,who+"_tutorial",[r"Got It.*Play",r"知道了.*開打",r"Got it"],1800)
     # First-run tutorial may automatically start a default singles AI match.
@@ -135,14 +138,14 @@ async def singles(page):
     REPORT["single_verification"]=result
 async def settings_doubles(page):
     await tap(page,"settings_open",[r"^Settings",r"設定"],1500)
-    await snapshot(page,"doubles_settings",shot=True)
+    await snapshot(page,"doubles_settings",shot=False)
     # The actual location of the doubles toggle is discovered here.
     await tap(page,"settings_doubles",[r"^Doubles$",r"雙打",r"2v2"],800)
     await snapshot(page,"doubles_settings_after")
     await tap(page,"settings_save",[r"^Save",r"Apply",r"Done",r"Close",r"Return",r"Back",r"返回",r"確定"],850)
     await snapshot(page,"doubles_home")
     await tap(page,"doubles_play",[r"^Play!",r"vs AI"],3500)
-    await snapshot(page,"doubles_court",shot=True)
+    await snapshot(page,"doubles_court",shot=False)
     txt=await page.locator("body").inner_text()
     REPORT["doubles_verification"]={"explicit_doubles_label":bool(re.search(r"Doubles|雙打|2v2",txt,re.I)),
         "scoreboard_found":bool(re.search(r"You\s*\d+\s*:\s*\d+",txt,re.I)),
