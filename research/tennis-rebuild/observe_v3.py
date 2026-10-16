@@ -68,7 +68,7 @@ async def start(page,who):
     await tap(page,who+"_tutorial",[r"Got It.*Play",r"知道了.*開打",r"Got it"],1800)
     # First-run tutorial may automatically start a default singles AI match.
     current=(await page.locator("body").inner_text())[:700]
-    if re.search(r"You\\s*\\d+\\s*:\\s*\\d+",current,re.I) or ("Opponent:" in current and "AI" in current):
+    if re.search(r"You\s*\d+\s*:\s*\d+",current,re.I) or ("Opponent:" in current and "AI" in current):
         await tap(page,who+"_pause_game",[r"❚❚",r"^Pause"],750)
         await snapshot(page,who+"_pause_menu",shot=False,private=who in ("host","guest"))
         await tap(page,who+"_back_to_menu",[r"Main Menu",r"Back to Menu",r"Exit Match",r"Return to Menu",r"^Home",r"Leave Match",r"回主選單",r"返回主選單"],1500)
