@@ -1,5 +1,5 @@
 # 畫面一致性：固定視角截圖（隱藏 UI），可與另一組截圖做像素差比對。
-# 拍攝：python3 tests/parity.py shoot OUT [--src]   （預設服務 dist/；--src 服務原始碼資料夾，只適用 CDN 版的舊提交）
+# 拍攝：python3 tests/parity.py shoot OUT [--src] [--query '?skin=demo-alt']   （預設服務 dist/；--src 服務原始碼資料夾，只適用 CDN 版的舊提交）
 # 比對：python3 tests/parity.py diff A_DIR B_DIR   → 每張的平均絕對差（0–255）與差異像素比例（需要 numpy、pillow）
 import asyncio, os, sys, json, threading, http.server, socketserver, functools
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -17,7 +17,8 @@ async def shoot(out, dist):
         def log_message(self, *x): pass
     srv = socketserver.TCPServer(('127.0.0.1', 0), functools.partial(Q, directory=os.path.join(ROOT, 'dist') if dist else ROOT))
     threading.Thread(target=srv.serve_forever, daemon=True).start()
-    url = f'http://127.0.0.1:{srv.server_address[1]}/dongxin.html'
+    q = sys.argv[sys.argv.index('--query') + 1] if '--query' in sys.argv else ''
+    url = f'http://127.0.0.1:{srv.server_address[1]}/dongxin.html' + q
     os.makedirs(out, exist_ok=True)
     async with async_playwright() as p:
         b = await p.chromium.launch(args=['--no-sandbox', '--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=gl'])

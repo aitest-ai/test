@@ -33,7 +33,7 @@
 - [x] 角色與相機狀態機（鳥瞰 / 第三人稱 / 導覽中），切換不跳動。
 
 ## 階段 3：模型與材質品質
-- [ ] 建立統一材質庫（紅磚、清水混凝土、鋁窗、玻璃、地磚…），資料驅動，方便各校「換膜」。
+- [x] 建立統一材質庫（紅磚、清水混凝土、鋁窗、玻璃、地磚…），資料驅動，方便各校「換膜」。
 - [ ] 安裝 gltf-transform / gltfpack / toktx，建立資產壓縮腳本；若導入 glb，貼圖用 KTX2。
 - [ ] Blender 無頭腳本：批次整理模型（法線、UV）、烘焙 AO，輸出 glb。裝不起來或不相容 aarch64 就記錄原因。
 - [ ] 燈光與陰影：統一曝光、柔和陰影，驗收以 FPS 不低於階段 0 的八成為準。
@@ -44,6 +44,13 @@
 - [ ] 更新 README：本輪「實際改動」與「仍為示意 / 已證實」清單。
 
 ## 執行紀錄（GX10 填寫，最新在最上面）
+
+### 2026-10-17 階段 3-1：資料驅動材質庫（換膜）
+- 新增 `slice/data/materials.dongxin.json`（東新的膜）：9 張程式化紋理（紅磚面磚、仿清水混凝土、白色粉刷、室內地磚、木門、戶外鋪面、草地、金屬百葉、米黃面磚）＋ 30 個材質（含鋁窗框、透明玻璃、立面玻璃、綠色欄杆、藍色屋簷、車庫門、課桌椅、角色…）＋ 30 個「場景角色 → 材質」對照（`wall`、`slab`、`rail`、`facade.J／J.side／M／K／stair／ribbon`、`roof.J／M／K`…）＋ 房間類型色帶。每份 JSON 都附 `evidence` 說明證據等級（紋理為示意，非照片貼圖、非實測色票）。
+- 新增 `src/materials/generators.js`（8 種參數化 Canvas 產生器）與 `src/materials/library.js`（`buildMaterials(spec)`、`validateSpec`）；`scene/materials.js` 只剩入口。`dongxin/scene.js` 改為只認角色（各棟立面、屋頂、校門伸縮門不再寫死顏色）。
+- 換膜：`data/materials.*.json` 全部打包，網址 `?skin=<id>` 選用。附示範膜 `materials.demo-alt.json`（虛構：白色二丁掛＋深灰框＋黃欄杆＋紅屋簷）。
+- 驗證：預設膜與改前 5 視角**逐像素相同**（亂數序列順序保持一致）；示範膜畫面差異明顯（平均差 1.2–17.5、差異像素 2.5–31.7%），對照圖 `docs/stage3/skin_compare.png`；新增 `tests/materials.test.mjs`（每份 JSON 結構正確、角色與色帶和東新預設完全一致），併入 `npm test`；`dx.browser.py`、`browser.py`（示意切片也改用材質庫）全過。
+- 尚未納入材質庫：招牌、時鐘、停車場龍門架等「標示類」貼圖與少數道具顏色（仍在 `scene.js`），它們屬於內容而非外牆材質。
 
 ### 2026-10-17 階段 2-4：鏡頭／角色狀態機（切換不跳動）
 - `slice/src/dongxin/app/camera.js` 改為明確狀態機：`third`（第三人稱）／`guide`（導覽中＝第三人稱＋player.js 自動轉向）／`first`／`bird`。狀態由「模式＋是否有 walker」推得，`__dx.info().camState` 可讀。

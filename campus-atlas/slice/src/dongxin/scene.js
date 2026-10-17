@@ -9,7 +9,7 @@ export function buildDongxinScene(m, MS, opts = {}) {
   const clamp = clampN, RAMP = m.RAMP;
   const FONT = '"Noto Sans TC","PingFang TC","Microsoft JhengHei","Noto Sans CJK TC",sans-serif';
   const SLAB = 0.3, WALL_H = FH - SLAB, DOOR_H = 2.35, DOOR_HALF = CELL * 2;
-  const ACC = { c: '#b07640', s: '#a56bcb', o: '#3fae6a', k: '#e4709b', w: '#8f9aa3', t: '#7d8a96', p: '#4a6a88' };
+  const ACC = MS.accentHex;   // 房間類型色帶（材質 JSON 的 accents）
   const rng = (seed) => { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; };
   const lam = (c, o) => new T.MeshLambertMaterial(Object.assign({ color: new T.Color(c) }, o || {}));
   const canvasTex = (w, h, draw, repeat) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
@@ -20,15 +20,9 @@ export function buildDongxinScene(m, MS, opts = {}) {
     g.fillStyle = color; roundRect(g, 2, 2, w - 4, h - 4, 16); g.fill(); g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 3; roundRect(g, 8, 8, w - 16, h - 16, 11); g.stroke();
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'; fit(g, name, w - 36, 52, '700'); g.fillText(name, w / 2, h / 2 + 2); });
 
-  // 舊程式用的材質名 → slice 材質
-  const M = { wall: MS.plaster, slab: MS.concrete, slabTop: MS.concrete, floor: MS.tile, roof: MS.roof, glass: lam('#7c9fb4'), brick: MS.brick, conc: MS.concrete,
-    band: MS.ceil, rail: MS.green, dark: MS.frame, fence: lam('#1f3f9a'), trunk: MS.trunk, step: MS.concrete, frame: MS.frame, glass2: MS.glass, wood: MS.wood, slat: MS.slat,
-    garage: lam('#8d9196') };
-  // 東新三棟外牆語彙（官方簡報＋使用者照片）：集賢樓＝磚紅面磚；沐風苑＝清水混凝土灰；蒙萌園＝米黃面磚＋藍色屋簷
-  const brickYTex = canvasTex(256, 256, (g, w, h) => { g.fillStyle = '#d3bd86'; g.fillRect(0, 0, w, h); const r = rng(5);
-    for (let row = 0; row < 8; row++) { const off = (row % 2) * 16; for (let c = -1; c < 8; c++) { const x = c * 32 + off; g.fillStyle = `hsl(${42 + r() * 6},${42 + r() * 8}%,${64 + r() * 6}%)`; g.fillRect(x + 1.5, row * 32 + 1.5, 29, 29); } } }, true);
-  M.brickY = new T.MeshLambertMaterial({ map: brickYTex }); M.roofBlue = lam('#3f6f95');
-  M.acc = {}; Object.keys(ACC).forEach(k => M.acc[k] = lam(ACC[k]));
+  // 場景角色 → 材質：全部來自材質 JSON 的 roles（換校＝換 JSON）。facade.* / roof.* 為各棟立面與屋頂。
+  const M = Object.assign({}, MS.roles), R = (k) => MS.role(k);
+  M.acc = MS.acc;
   const GB = { x0: 1130 * SC, x1: 1360 * SC, z: 1022 * SC };            // 校門：警衛室東側的藍色伸縮門（平面圖粉紅線處）
   const GATE = PLACES.find(p => p.name === '校門');
   const UNIT = new T.BoxGeometry(1, 1, 1), CYL = new T.CylinderGeometry(0.5, 0.5, 1, 12);
@@ -75,7 +69,7 @@ function wallSegs(ib,r,y0,mat,accMat,door){
     {s:'W',ax:'z',a:r.Z0,b:r.Z1,fix:r.X0+T_/2},{s:'E',ax:'z',a:r.Z0,b:r.Z1,fix:r.X1-T_/2}];
   const OPP={N:'S',S:'N',W:'E',E:'W'};
   sides.forEach(sd=>{
-    const sm=r.stair?M.conc:(r.ribbon?M.brick:r.bld==='K'?M.brickY:r.bld==='M'?M.conc:((door&&sd.s===OPP[door.side])?M.brick:M.conc));
+    const sm=r.stair?R('facade.stair'):(r.ribbon?R('facade.ribbon'):r.bld==='K'?R('facade.K'):r.bld==='M'?R('facade.M'):((door&&sd.s===OPP[door.side])?R('facade.J'):R('facade.J.side')));
     const IN={N:1,S:-1,W:1,E:-1}[sd.s];
     const put=(a,b,y,h,m,thick)=>{ if(b-a<0.02) return; const len=b-a, c=(a+b)/2;
       if(sd.ax==='x') ib.add(m,len,h,thick,c,y,sd.fix); else ib.add(m,thick,h,len,sd.fix,y,c);
@@ -195,7 +189,7 @@ function buildFloors(){
       }
       // 屋頂
       const top=isSt?(UP[f]<0||!r.fl.includes(UP[f])):(!hasAbove(r)&&!GARAGE);
-      if(top) ib.add(r.bld==='J'?M.roof:M.roofBlue,r.w+0.2,SLAB,r.d+0.2,r.cx,y0+FH-SLAB/2,r.cz);
+      if(top) ib.add(R('roof.'+r.bld)||M.roof,r.w+0.2,SLAB,r.d+0.2,r.cx,y0+FH-SLAB/2,r.cz);
     });
     // 走廊樓板（上層）
     if(f>0){
@@ -322,7 +316,7 @@ function buildFence(){
       ib.add(M.rail,len,0.05,0.05,(x0+x1)/2,1.0,(z0+z1)/2,ang); });
   }
   { // 藍色伸縮校門（警衛室東側）+ 灰色校名牆：門扇關上東側 60%，西側留出入口
-    const gz=GB.z, B=lam('#1f3f9a'), xa=GB.x0+(GB.x1-GB.x0)*0.4, xb=GB.x1, gw=xb-xa, gx=(xa+xb)/2;
+    const gz=GB.z, B=M.fence, xa=GB.x0+(GB.x1-GB.x0)*0.4, xb=GB.x1, gw=xb-xa, gx=(xa+xb)/2;
     ib.add(B,gw,0.1,0.1,gx,0.25,gz); ib.add(B,gw,0.1,0.1,gx,1.9,gz); ib.add(B,gw,0.08,0.08,gx,1.0,gz);
     for(let q=0;q<=Math.round(gw/0.25);q++) ib.add(B,0.05,1.7,0.05,xa+q*0.25,1.05,gz);
     ib.add(M.conc,6,2.4,0.5,GB.x1+3.2,1.2,gz-0.3);

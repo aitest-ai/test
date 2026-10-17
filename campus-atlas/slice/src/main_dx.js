@@ -21,13 +21,16 @@ import { createPanel } from './dongxin/ui/panel.js';
 import { createMinimap } from './dongxin/ui/minimap.js';
 import D from '../data/dongxin_geo.json';
 
+// 換膜：data/materials.<id>.json 全部打包；網址 ?skin=<id> 選用（預設 dongxin）
+const SKINS = Object.fromEntries(Object.entries(import.meta.glob('../data/materials.*.json', { eager: true, import: 'default' })).map(([k, v]) => [v.id, v]));
+const SKIN = SKINS[new URLSearchParams(location.search).get('skin')] || SKINS.dongxin;
 const PLAN_SOFT = new URL('../assets/dongxin_plan_soft.jpg', import.meta.url).href, PLAN = new URL('../assets/dongxin_plan.jpg', import.meta.url).href;
 const $ = (s) => document.querySelector(s);
 
 const m = buildModel(D), world = createDxWorld(m), nav = createDxNav(m, world);
 const { STAIRS, ROOMS, PLACES } = m;
 const canvas = $('#scene');
-const stage = createStage(canvas, m, world, { planSoft: PLAN_SOFT });
+const stage = createStage(canvas, m, world, { planSoft: PLAN_SOFT, skin: SKIN });
 const { camera, dx } = stage;
 
 // ---------- 狀態 ----------
@@ -72,6 +75,7 @@ window.__dx = { S, m, world, nav, setDest: guide.setDest, startRoute: guide.star
   advance(sec, dt = 1 / 30) { for (let t = 0; t < sec; t += dt) update(dt); stage.render(); },
   cam() { const d = new THREE.Vector3(); camera.getWorldDirection(d); return { p: camera.position.toArray(), d: d.toArray() }; },
   info() { return { x: S.x, z: S.z, y: S.y, floor: player.curF(), mode: S.mode, camState: cam.state, blending: cam.blending, walker: !!S.walker, done: S.walker ? S.walker.done : null }; },
+  skins: Object.keys(SKINS), skin: SKIN.id,
   renderInfo() { const r = stage.renderer.info.render; return { calls: r.calls, triangles: r.triangles }; } };
 try { if (!localStorage.getItem('dx.help1')) { $('#help').hidden = false; localStorage.setItem('dx.help1', '1'); } } catch (e) { }
 ui.renderList(); ui.setMode('third'); ui.updateFloorButtons();

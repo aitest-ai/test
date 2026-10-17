@@ -4,7 +4,7 @@ import { buildDongxinScene } from '../scene.js';
 import { makeMaterials } from '../../scene/materials.js';
 import { makeCharacter } from '../../scene/character.js';
 
-export function createStage(canvas, m, world, { planSoft }) {
+export function createStage(canvas, m, world, { planSoft, skin }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   // 維持 r128 時代的色彩管線（不做 sRGB 轉換），升級 three 後畫面不變色
@@ -14,7 +14,7 @@ export function createStage(canvas, m, world, { planSoft }) {
   const LK = Math.PI;   // r155 起移除舊式光照單位：強度 ×π 等同 r128 的亮度
   scene.add(new THREE.AmbientLight(0xffffff, 0.32 * LK)); scene.add(new THREE.HemisphereLight(0xe4f2ff, 0xb7a98d, 0.6 * LK));
   const sun = new THREE.DirectionalLight(0xfff0d8, 0.5 * LK); sun.position.set(-30, 60, 40); scene.add(sun);
-  const M = makeMaterials();
+  const M = makeMaterials(skin);   // skin＝材質 JSON（換膜）；未給則用東新預設
   const dx = buildDongxinScene(m, M, { planUrl: planSoft }); scene.add(dx.root);
   world.setPillars(dx.PILLARS);
 
