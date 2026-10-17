@@ -18,7 +18,7 @@
 - 已知弱點：碰撞為基本阻擋、建築為直線量體、尋路為格網 BFS、單一大檔 app.js。
 
 ## 階段 0：盤點（GX10）
-- [ ] 回報：`nvidia-smi`、`node -v`、`python3 -V`、blender / ollama / docker 是否已安裝。
+- [x] 回報：`nvidia-smi`、`node -v`、`python3 -V`、blender / ollama / docker 是否已安裝。
 - [ ] 在 campus-atlas 下 `python3 -m http.server` 實際跑一次，截圖並記錄 FPS 與 console 錯誤，寫入執行紀錄。
 
 ## 階段 1：工程基礎（GX10 實作，Claude 審查）
@@ -44,4 +44,16 @@
 - [ ] 更新 README：本輪「實際改動」與「仍為示意 / 已證實」清單。
 
 ## 執行紀錄（GX10 填寫，最新在最上面）
-（尚無）
+
+### 2026-10-17 階段 0-1：環境盤點
+| 項目 | 結果 |
+|---|---|
+| 架構 | aarch64（Linux 6.17.0-1014-nvidia），RAM 121 GiB |
+| `nvidia-smi` | NVIDIA GB10，Driver 580.142，CUDA 13.0（統一記憶體，顯存欄顯示 Not Supported） |
+| `node -v` | v22.22.2（npm 10.9.7） |
+| `python3 -V` | Python 3.12.3 |
+| blender | **未安裝**（階段 3 需要；安裝前會先詢問） |
+| ollama | 已安裝，0.23.2 |
+| docker | 已安裝，29.2.1 |
+| Playwright | 系統 Python 無 `playwright` 模組；`~/.cache/ms-playwright` 已有 chromium-1217 / headless_shell。本輪在暫存 venv 安裝 playwright 1.64.0（未動系統環境） |
+| Chromium | `/snap/bin/chromium`、`/usr/bin/chromium-browser` |
