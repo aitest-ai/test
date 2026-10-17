@@ -23,7 +23,7 @@
 
 ## 階段 1：工程基礎（GX10 實作，Claude 審查）
 - [x] 導入 Vite + TypeScript（或先維持純 JS 但改 ES module + 本地 three 依賴，取代 CDN r128）。
-- [ ] 把 `app.js` 拆成：scene / player / collision / navigation / ui / data，行為不變，先確保 demo 仍可玩。
+- [x] 把 `app.js` 拆成：scene / player / collision / navigation / ui / data，行為不變，先確保 demo 仍可玩。
 - [ ] 加 Playwright 腳本：開頁、截圖、收 console 錯誤、量平均 FPS，輸出到 `tests/`。
 
 ## 階段 2：碰撞與導航（核心）
@@ -44,6 +44,21 @@
 - [ ] 更新 README：本輪「實際改動」與「仍為示意 / 已證實」清單。
 
 ## 執行紀錄（GX10 填寫，最新在最上面）
+
+### 2026-10-17 階段 1-2：拆分 main_dx.js（行為不變）
+東新版的 collision（`dongxin/world.js`）、navigation（`dongxin/nav.js`＋`model.js` A*）、data（`dongxin/model.js`＋`data/dongxin_geo.json`）原本就獨立；真正的單一大檔是 `src/main_dx.js`（25 KB）。拆成：
+
+| 模組 | 內容 |
+|---|---|
+| `dongxin/app/stage.js`（scene） | 渲染器、燈光、校舍、選取面／圖釘／路線點、角色、樓層顯示 |
+| `dongxin/app/player.js`（player） | 手動移動＋梯口導引、walker 推進、走路動畫 |
+| `dongxin/app/camera.js` | 第三人稱（平滑／遮擋收近／角速度與速度上限）、第一人稱、鳥瞰 |
+| `dongxin/app/input.js` | 鍵盤、拖曳、滾輪、搖桿 |
+| `dongxin/app/guide.js`（navigation 介面） | 選目的地、規劃／畫路線、walker、傳送、切樓層 |
+| `dongxin/ui/panel.js`、`ui/minimap.js`（ui） | 清單／搜尋／按鈕／提示／位置／FPS、小地圖 |
+| `main_dx.js` | 只剩組裝＋主迴圈＋`window.__dx` 測試掛鉤（3.9 KB；新增 `renderInfo()` 供效能腳本讀 draw calls） |
+
+驗證（行為不變）：`parity.py` 拆分前後 5 視角**逐像素相同**（差 0.00）；`dx.browser.py` 21/21；`dx.cam_metrics.py` 5 條路線的鏡頭最大單幀位移 0.221 m、角速度峰值 3.8／3.2／5.4／4.6 rad/s，與 `docs/DONGXIN_ACCEPTANCE.md` 記載一致；`npm test` 通過。示意切片 `src/main.js` 未拆（非本輪目標）。
 
 ### 2026-10-17 階段 1-1：Vite＋本地 three（取代 CDN r128）
 - `slice/` 改用 **Vite 8 + three 0.186（npm 本地依賴）**，純 JS ES module（暫不上 TypeScript：先保證行為不變，型別之後可用 JSDoc / `checkJs` 漸進導入）。
