@@ -58,7 +58,7 @@ function update(dt) {
   player.update(dt);
   const f = player.curF(), inRoom = world.roomAt(f, S.x, S.z) >= 0;
   stage.applyFloorVisibility(S, f, inRoom);
-  guide.animatePin(dt);
+  guide.animatePin(dt); guide.update(dt);
   cam.update(dt, inRoom);
   stage.sun.position.set(S.x - 30, 60, S.z + 40);
   ui.tickFps(dt);

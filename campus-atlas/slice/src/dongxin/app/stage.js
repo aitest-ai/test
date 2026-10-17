@@ -1,4 +1,4 @@
-// 場景層：渲染器、相機、燈光、東新校舍、標記（選取面、圖釘、路線點）與角色；以及「依樓層顯示/隱藏」。
+// 場景層：渲染器、相機、燈光、東新校舍、標記（選取面、圖釘）與角色；以及「依樓層顯示/隱藏」。路線導引帶在 routeline.js。
 import * as THREE from 'three';
 import { buildDongxinScene } from '../scene.js';
 import { makeMaterials } from '../../scene/materials.js';
@@ -20,7 +20,6 @@ export function createStage(canvas, m, world, { planSoft }) {
 
   const selPlane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xffc928, transparent: true, opacity: 0.32, depthWrite: false })); selPlane.rotation.x = -Math.PI / 2; selPlane.visible = false; scene.add(selPlane);
   const pin = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.8, 12), M.pin); pin.rotation.x = Math.PI; pin.visible = false; scene.add(pin);
-  const dots = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.17, 0.17, 0.02, 12), M.route, 1600); dots.count = 0; dots.frustumCulled = false; scene.add(dots);
   const ch = makeCharacter(M); scene.add(ch.group);
 
   function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
@@ -38,5 +37,5 @@ export function createStage(canvas, m, world, { planSoft }) {
     if (dx.groundMesh) dx.groundMesh.visible = !(bird && showB1);
   }
 
-  return { renderer, scene, camera, sun, M, dx, selPlane, pin, dots, ch, resize, applyFloorVisibility, render() { renderer.render(scene, camera); } };
+  return { renderer, scene, camera, sun, M, dx, selPlane, pin, ch, resize, applyFloorVisibility, render() { renderer.render(scene, camera); } };
 }

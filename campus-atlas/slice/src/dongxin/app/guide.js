@@ -1,11 +1,12 @@
 // 導覽層：選取目的地、規劃/顯示路線、啟動 walker、傳送、切換樓層。路徑規劃本身在 nav.js / model.js。
-import * as THREE from 'three';
 import { createWalker } from '../../nav/navgraph.js';
+import { createRouteLine } from './routeline.js';
 const $ = (s) => document.querySelector(s);
 
 // ui: { renderList(), updateFloorButtons(), toast(msg) }；cam: { reset() }
 export function createGuide({ S, m, world, nav, stage, cam, ui }) {
-  const { LY, STAIRS, levelLabel } = m, { selPlane, pin, dots } = stage;
+  const { LY, STAIRS, levelLabel } = m, { selPlane, pin } = stage;
+  const line = createRouteLine(stage.scene, world);
   const curF = () => world.floorOfY(S.y + 0.1);
   const where = (r) => (r.bldName ? r.bldName + ' ' : '') + (r.f === 4 ? 'B1' : (r.t === 'p' ? '戶外' : levelLabel(r.f)));
 
@@ -14,14 +15,10 @@ export function createGuide({ S, m, world, nav, stage, cam, ui }) {
     $('#iname').textContent = t.name; $('#isub').textContent = `${where(t)}・${t.t === 'p' ? '地點' : '名稱暫定（依設計圖）'}・非校方測繪`;
     if (t.X0 !== undefined) { selPlane.visible = true; selPlane.scale.set(t.w - 0.3, t.d - 0.3, 1); selPlane.position.set(t.cx, LY(t.f) + 0.05, t.cz); } else selPlane.visible = false;
     pin.visible = true; pin.position.set(t.x, LY(t.f) + 2.8, t.z); ui.renderList(); }
-  function cancelRoute() { S.walker = null; S.route = null; dots.count = 0; $('#status').hidden = true; }
+  function cancelRoute() { S.walker = null; S.route = null; line.clear(); $('#status').hidden = true; }
   function startRoute(auto = true) { const t = S.selected; if (!t) return; const rt = nav.route(S, t); if (!rt) { ui.toast('找不到路線'); return; }
-    S.route = rt; drawRoute(rt); if (auto) S.walker = createWalker(world, rt, { tol: 0.12 }); $('#status').hidden = false; $('#stext').textContent = `前往 ${t.name}（約 ${Math.round(rt.length)} 公尺）`; }
-  function drawRoute(rt) { const mm = new THREE.Matrix4(); let n = 0, carry = 0;
-    for (let i = 1; i < rt.pts.length && n < 1600; i++) { const a = rt.pts[i - 1], b = rt.pts[i], len = Math.hypot(b.x - a.x, b.z - a.z); let d = carry;
-      for (; d < len && n < 1600; d += 0.9) { const k = len ? d / len : 0, x = a.x + (b.x - a.x) * k, z = a.z + (b.z - a.z) * k, yy = a.y + (b.y - a.y) * k, sy = world.surfaceY(x, z, yy + 0.2);
-        mm.setPosition(x, (sy ?? yy) + 0.06, z); dots.setMatrixAt(n++, mm); } carry = d - len; }
-    dots.count = n; dots.instanceMatrix.needsUpdate = true; }
+    S.route = rt; drawRoute(rt); if (auto) S.walker = createWalker(world, rt, { tol: 0.12 }); $('#status').hidden = false; lastRemain = -1; $('#stext').textContent = `前往 ${t.name}（約 ${Math.round(rt.total)} 公尺）`; }
+  function drawRoute(rt) { line.set(rt); }
   function teleportTo(t) { cancelRoute();                      // 教室：站到門外走廊、面向教室門；其他：就地
     const d = t.door; let x = t.x, z = t.z;
     if (d && d.out && world.standOk(d.out.x, d.out.z, LY(t.f))) { x = d.out.x; z = d.out.z; S.yaw = S.heading = Math.atan2(-d.nx, -d.nz); }
@@ -44,6 +41,12 @@ export function createGuide({ S, m, world, nav, stage, cam, ui }) {
     ui.toast('已到 ' + levelLabel(f) + (far > 6 ? '（最近的可走位置）' : ''));
     if (S.selected) startRoute(false);
   }
+  // 每幀：導引帶進度（小地圖讀同一份 S.route.prog）；導覽中狀態列顯示剩餘距離
+  let lastRemain = -1;
+  function update(dt) {
+    if (!S.route) return; line.update(S, dt);
+    const r = Math.ceil(S.route.remain); if (S.walker && r !== lastRemain && S.selected) { lastRemain = r; $('#stext').textContent = `前往 ${S.selected.name}・剩 ${r} 公尺`; }
+  }
   function animatePin(dt) { pin.rotation.y += dt * 2; if (pin.visible && S.selected) pin.position.y = LY(S.selected.f) + 2.8 + Math.sin(performance.now() / 300) * 0.1; }
-  return { setDest, cancelRoute, startRoute, drawRoute, teleportTo, gotoFloor, animatePin };
+  return { setDest, cancelRoute, startRoute, drawRoute, teleportTo, gotoFloor, animatePin, update };
 }

@@ -1,4 +1,4 @@
-// 小地圖：1F 用設計圖底圖、其他層用可走格著色；跟著視角旋轉；畫目前樓層的路線段與目的地。
+// 小地圖：1F 用設計圖底圖、其他層用可走格著色；跟著視角旋轉；畫目前樓層的路線（與 3D 導引帶同步進度）、換樓層梯口與目的地。
 const FONT = '"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
 
 export function createMinimap(mini, { S, m, world, groundBox, planUrl }) {
@@ -15,8 +15,18 @@ export function createMinimap(mini, { S, m, world, groundBox, planUrl }) {
     mg.save(); mg.translate(w / 2, h / 2); mg.rotate(rot); mg.scale(ppm, ppm); mg.translate(-S.x, -S.z);
     if (f === 0) { if (planImg && groundBox) mg.drawImage(planImg, groundBox.x, groundBox.z, groundBox.w, groundBox.h); mg.fillStyle = 'rgba(255,255,255,.30)'; m.BYFLOOR[0].forEach(r => mg.fillRect(r.X0, r.Z0, r.w, r.d)); }
     else if (miniFloor[f]) { mg.imageSmoothingEnabled = false; mg.drawImage(miniFloor[f], m.WX0, m.WZ0, m.GW * m.CELL, m.GH * m.CELL); }
-    const rt = S.route; if (rt) { mg.strokeStyle = '#ff7a00'; mg.lineWidth = 0.9; mg.lineJoin = 'round'; mg.lineCap = 'round'; mg.setLineDash([1.4, 1.2]); mg.beginPath(); let pen = false;
-      rt.pts.forEach(p => { if (world.floorOfY(p.y + 0.1) !== f || p.stair) { pen = false; return; } if (!pen) { mg.moveTo(p.x, p.z); pen = true; } else mg.lineTo(p.x, p.z); }); mg.stroke(); mg.setLineDash([]);
+    const rt = S.route; if (rt && rt.samples) {                // 與 3D 導引帶同一份取樣與進度：走過＝灰、剩下＝橘；只畫目前樓層
+      const sm = rt.samples, fl = (q) => world.floorOfY(q.y - 0.07 + 0.1);
+      mg.lineJoin = 'round'; mg.lineCap = 'round';
+      const stroke = (i0, i1, color, w) => { mg.strokeStyle = color; mg.lineWidth = w; mg.beginPath(); let pen = false;
+        for (let i = i0; i <= i1 && i < sm.length; i++) { const q = sm[i]; if (fl(q) !== f || q.stair) { pen = false; continue; } if (!pen) { mg.moveTo(q.x, q.z); pen = true; } else mg.lineTo(q.x, q.z); } mg.stroke(); };
+      stroke(0, rt.prog, 'rgba(160,160,160,.75)', 0.7);
+      mg.setLineDash([1.4, 1.0]); stroke(rt.prog, sm.length - 1, '#ff7a00', 1.0); mg.setLineDash([]);
+      // 換樓層：在本層梯口標「↑3F」「↓B1」
+      for (let i = Math.max(1, rt.prog); i < sm.length; i++) { const a0 = sm[i - 1], b0 = sm[i]; if (fl(a0) === f && b0.stair && !a0.stair) {
+          let j = i; while (j < sm.length - 1 && sm[j].stair) j++; const nf = fl(sm[j]); if (nf === f) continue;
+          mg.save(); mg.translate(a0.x, a0.z); mg.rotate(-rot); mg.fillStyle = '#ff7a00'; mg.beginPath(); mg.arc(0, 0, 2.1, 0, 7); mg.fill();
+          mg.fillStyle = '#fff'; mg.font = '700 2.2px ' + FONT; mg.textAlign = 'center'; mg.textBaseline = 'middle'; mg.fillText((m.RANK(nf) > m.RANK(f) ? '↑' : '↓') + levelLabel(nf), 0, 0.1); mg.restore(); break; } }
       const t = S.selected; if (t && t.f === f) { mg.fillStyle = '#ff4d3d'; mg.beginPath(); mg.arc(t.x, t.z, 1.7, 0, 7); mg.fill(); mg.strokeStyle = '#fff'; mg.lineWidth = 0.4; mg.stroke(); } }
     mg.restore();
     const a = Math.atan2(Math.cos(S.heading), Math.sin(S.heading)) + rot;
