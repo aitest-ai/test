@@ -45,6 +45,23 @@
 
 ## 執行紀錄（GX10 填寫，最新在最上面）
 
+### 2026-10-17 階段 0-3：補量東新版基準＋目標修正
+**目標修正**：上方「現況」依頂層 v2 README 撰寫，但 v3～v7 的實際開發都在 `slice/`（東新版 `dongxin.html` / `src/main_dx.js`）：已有資料／物理／導航模組分離、格網碰撞、跨樓層樓梯導航與測試。v2（`src/app.js`）已停止開發。因此**之後各階段一律以 `slice/` 東新版為對象**；v2 原地保留不動。
+
+既有測試基準（未改程式前）：`node tests/dx.sim.test.mjs` 149/149；`node tests/sim.test.mjs` ALL PASS；`tests/dx.browser.py`（Chromium）21/21，無 pageerror / console error。
+
+新增 `slice/tests/perf.py`（之後各階段共用）：5 個情境（出生點第三人稱、按住 W 行走、鳥瞰、導航 校門→301、2F 走廊），1440×900，每情境 5 秒 rAF 計數。
+
+| 模式 | 出生 | 行走 | 鳥瞰 | 導航中 | 2F 走廊 | 載入 |
+|---|---|---|---|---|---|---|
+| GPU（vsync） | 60.0 | 60.2 | 60.0 | 60.1 | 60.0 | 1.4 s |
+| GPU 解除 vsync（`--uncap`） | 1558 | 1528 | 1404 | 1536 | 1378 | — |
+| SwiftShader | 10.6 | 12.0 | 13.1 | 11.4 | 10.2 | 4.4 s |
+
+- console / pageerror：**0**。three r128（CDN）。
+- **階段 3 FPS 驗收基準**：GPU vsync 60 → 下限 48；為了看得出差異，另以 `--uncap` 最低情境 1378 的八成（≈1100）與 SwiftShader 最低 10.2 的八成（≈8.2）作輔助指標。
+- 數據與截圖：`docs/stage0/dongxin_*.json|png`。
+
 ### 2026-10-17 階段 0-2：本地實測（`python3 -m http.server 8765`）
 探測腳本：`tests/stage0_probe.py`（Playwright，1440×900 視窗，畫布 1122×828；FPS 以 5 秒 rAF 計數）。截圖在 `docs/stage0/`。
 

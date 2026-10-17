@@ -1,0 +1,83 @@
+{
+ "label": "gpu",
+ "url": "http://127.0.0.1:33915/dongxin.html",
+ "when": "2026-10-17 15:00:15",
+ "errors": [],
+ "scenes": {
+  "spawn_third": {
+   "fps": 60.0,
+   "worstMs": 16.8,
+   "info": {
+    "x": 94.1976,
+    "z": 80.89200000000001,
+    "y": 0,
+    "floor": 0,
+    "mode": "third",
+    "walker": false,
+    "done": null
+   },
+   "calls": null
+  },
+  "walk_third": {
+   "fps": 60.2,
+   "worstMs": 16.8,
+   "info": {
+    "x": 76.70722574772971,
+    "z": 65.02000027113552,
+    "y": 0,
+    "floor": 0,
+    "mode": "third",
+    "walker": false,
+    "done": null
+   },
+   "calls": null
+  },
+  "bird": {
+   "fps": 60.0,
+   "worstMs": 16.8,
+   "info": {
+    "x": 76.70722574772971,
+    "z": 65.02000027113552,
+    "y": 0,
+    "floor": 0,
+    "mode": "bird",
+    "walker": false,
+    "done": null
+   },
+   "calls": null
+  },
+  "guide_301": {
+   "fps": 60.1,
+   "worstMs": 16.8,
+   "info": {
+    "x": 66.34826669435492,
+    "z": 65.4891226543372,
+    "y": 0,
+    "floor": 0,
+    "mode": "third",
+    "walker": true,
+    "done": false
+   },
+   "calls": null
+  },
+  "corridor_2f": {
+   "fps": 60.0,
+   "worstMs": 16.8,
+   "info": {
+    "x": 45.3672,
+    "z": 52.0128,
+    "y": 3.9,
+    "floor": 1,
+    "mode": "third",
+    "walker": false,
+    "done": null
+   },
+   "calls": null
+  }
+ },
+ "loadSec": 1.44,
+ "renderer": "ANGLE (NVIDIA Corporation, NVIDIA GB10/PCIe, OpenGL 4.5.0)",
+ "three": "128",
+ "fpsMin": 60.0,
+ "fpsAvg": 60.1
+}
