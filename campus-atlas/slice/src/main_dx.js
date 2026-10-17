@@ -1,7 +1,7 @@
 // 東新國小版主程式：只負責「組裝＋主迴圈＋測試掛鉤」。
 //   資料    dongxin/model.js   設計圖格網 → 房間／走廊／樓梯／門／可走格（無 three 依賴）
 //   碰撞    dongxin/world.js   物理層：可走格＋解析式梯面
-//   導航    dongxin/nav.js     路徑規劃（格網 A*＋樓梯路段）；app/guide.js 負責選取、畫線、walker
+//   導航    dongxin/pathgrid.js 路徑網格（淨空成本＋樓梯入口圖）；dongxin/nav.js 組成含樓梯航點的路線；app/guide.js 選取、畫線、walker
 //   場景    app/stage.js       渲染器、燈光、校舍、標記、角色、樓層顯示
 //   角色    app/player.js      手動移動、自動導覽推進、走路動畫
 //   鏡頭    app/camera.js      第三人稱／第一人稱／鳥瞰
@@ -77,3 +77,4 @@ try { if (!localStorage.getItem('dx.help1')) { $('#help').hidden = false; localS
 ui.renderList(); ui.setMode('third'); ui.updateFloorButtons();
 $('#loading').classList.add('done'); setTimeout(() => $('#loading').style.display = 'none', 500);
 loop();
+setTimeout(() => nav.grid && nav.grid.warmAsync(), 600);   // 背景預熱樓梯入口的路徑網格

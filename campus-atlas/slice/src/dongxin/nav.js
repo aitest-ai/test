@@ -1,7 +1,9 @@
 // 東新版導航層：格網 A*（走廊/室外）+ 明確的樓梯路段（waypoint），輸出與 slice 相同的 route 格式 { pts:[{x,z,y,stair?}], length, room }。
 // 路徑的 y 是「意圖高度」；實際高度由 world.move() 依梯面決定，所以手動與自動走路完全一致。
-export function createDxNav(m, world) {
-  const { STAIRS, UP, DN, LY, FH, planRoute, STR_N } = m;
+import { createPathGrid } from './pathgrid.js';
+// opts.planRoute：路徑規劃器（預設 pathgrid.js；傳 m.planRoute 可退回舊版「最近 3 座樓梯 × A*」做對照）
+export function createDxNav(m, world, opts = {}) {
+  const { STAIRS, UP, DN, LY, FH, STR_N } = m, grid = opts.planRoute ? null : createPathGrid(m), planRoute = opts.planRoute || grid.planRoute;
   const floorOf = (y) => world.floorOfY(y);
   // 梯段 waypoint：由 lo 層走到 lo 的上一層（dir>0）或反向
   function stairPts(s, lo, dir) {
@@ -54,5 +56,5 @@ export function createDxNav(m, world) {
     const pts = out.filter((p, i) => i === 0 || Math.hypot(p.x - out[i - 1].x, p.z - out[i - 1].z) > 0.02 || Math.abs(p.y - out[i - 1].y) > 0.02);
     return { pts, room: target, length: pts.reduce((s, p, i) => i ? s + Math.hypot(p.x - pts[i - 1].x, p.z - pts[i - 1].z) : 0, 0) };
   }
-  return { route, floorOf, stairPts };
+  return { route, floorOf, stairPts, grid };
 }
