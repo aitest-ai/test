@@ -1,0 +1,59 @@
+{
+ "input": "assets-src/dongxin_raw.glb",
+ "inputKB": 8849,
+ "steps": [
+  {
+   "step": "原始",
+   "meshes": 298,
+   "primitives": 298,
+   "triangles": 92452,
+   "materials": 141,
+   "textures": 110,
+   "textureKB": 2148
+  },
+  {
+   "step": "去重＋刪除未用",
+   "meshes": 188,
+   "primitives": 188,
+   "triangles": 92194,
+   "materials": 115,
+   "textures": 93,
+   "textureKB": 2056
+  },
+  {
+   "step": "合併同材質網格",
+   "meshes": 119,
+   "primitives": 119,
+   "triangles": 92476,
+   "materials": 115,
+   "textures": 93,
+   "textureKB": 2056
+  },
+  {
+   "step": "焊接＋量化",
+   "meshes": 119,
+   "primitives": 119,
+   "triangles": 92476,
+   "materials": 115,
+   "textures": 93,
+   "textureKB": 2056
+  },
+  {
+   "step": "貼圖轉 KTX2",
+   "meshes": 119,
+   "primitives": 119,
+   "triangles": 92476,
+   "materials": 115,
+   "textures": 93,
+   "textureKB": 575
+  }
+ ],
+ "ktx2": {
+  "textures": 93,
+  "beforeKB": 2056,
+  "afterKB": 575,
+  "mode": "ETC1S"
+ },
+ "outputKB": 1708,
+ "ratio": 0.193
+}

@@ -34,7 +34,7 @@
 
 ## 階段 3：模型與材質品質
 - [x] 建立統一材質庫（紅磚、清水混凝土、鋁窗、玻璃、地磚…），資料驅動，方便各校「換膜」。
-- [ ] 安裝 gltf-transform / gltfpack / toktx，建立資產壓縮腳本；若導入 glb，貼圖用 KTX2。
+- [x] 安裝 gltf-transform / gltfpack / toktx，建立資產壓縮腳本；若導入 glb，貼圖用 KTX2。
 - [ ] Blender 無頭腳本：批次整理模型（法線、UV）、烘焙 AO，輸出 glb。裝不起來或不相容 aarch64 就記錄原因。
 - [ ] 燈光與陰影：統一曝光、柔和陰影，驗收以 FPS 不低於階段 0 的八成為準。
 - [ ] 可選（先確認 aarch64 CUDA 可用）：ComfyUI 生成牆面/地面材質候選，僅作原創素材。
@@ -44,6 +44,22 @@
 - [ ] 更新 README：本輪「實際改動」與「仍為示意 / 已證實」清單。
 
 ## 執行紀錄（GX10 填寫，最新在最上面）
+
+### 2026-10-17 階段 3-2：資產壓縮工具鏈（gltf-transform／gltfpack／toktx，KTX2）
+- **安裝**（皆不需 sudo）：toktx = KTX-Software 4.4.2 官方 Linux **arm64** 版，核對 SHA1 後解到 `~/.local/opt/ktx`（`slice/scripts/install_ktx.sh` 可重現）；gltfpack 1.3（npm，WASM）；gltf-transform 4.5.1 改用程式庫（core／functions／extensions）＋ meshoptimizer 1.3。沒有裝 `@gltf-transform/cli`：它的相依 braces 有 high 漏洞；目前 `npm audit` 0 漏洞。
+- **匯出**：`__dx.exportGLB()`（按需載入 three 的 GLTFExporter，獨立 chunk 37 KB）＋ `scripts/export_glb.py` → `assets-src/dongxin_raw.glb`（`npm run assets:export`）。
+- **壓縮**：`scripts/compress_assets.mjs`（`npm run assets:compress`）：去重／刪除未用 → 合併同材質網格 → 焊接＋量化（位置 14 bit）→ 貼圖用 toktx 轉 KTX2（Basis ETC1S、mipmap；`--uastc` 可改高品質）→ EXT_meshopt_compression。報告 `docs/stage3/compress_report.json`：
+
+| 步驟 | 網格 | 材質 | 貼圖 | 貼圖大小 |
+|---|---|---|---|---|
+| 原始匯出 | 298 | 141 | 110 | 2,148 KB |
+| 去重＋刪除未用 | 188 | 115 | 93 | 2,056 KB |
+| 合併同材質網格 | 119 | 115 | 93 | 2,056 KB |
+| 貼圖轉 KTX2 | 119 | 115 | 93 | **575 KB** |
+
+  檔案總大小 **8,849 KB → 1,708 KB（19.3%）**，10 秒完成。對照：`gltfpack -cc`（無貼圖壓縮）2,927 KB，且警告位置量化誤差 12%。
+- **驗證**：新增 `glb-viewer.html`（第三個 Vite 入口；KTX2Loader＋MeshoptDecoder，Basis 轉碼器由 `scripts/copy_basis.mjs` 在建置時複製）與 `tests/glb_viewer.py`：123 網格、15.1 萬三角形、93/93 貼圖為 KTX2、載入 242 ms、無錯誤 → PASS。截圖 `docs/stage3/glb_ktx2_gate.png`（ETC1S 讓紅磚略偏暗，屬有損壓縮的預期差異）。
+- 執行期仍用程式化建模（glb 為資產管線輸出，未取代即時場景）；`assets-src/`、`assets-out/` 不入版控。
 
 ### 2026-10-17 階段 3-1：資料驅動材質庫（換膜）
 - 新增 `slice/data/materials.dongxin.json`（東新的膜）：9 張程式化紋理（紅磚面磚、仿清水混凝土、白色粉刷、室內地磚、木門、戶外鋪面、草地、金屬百葉、米黃面磚）＋ 30 個材質（含鋁窗框、透明玻璃、立面玻璃、綠色欄杆、藍色屋簷、車庫門、課桌椅、角色…）＋ 30 個「場景角色 → 材質」對照（`wall`、`slab`、`rail`、`facade.J／J.side／M／K／stair／ribbon`、`roof.J／M／K`…）＋ 房間類型色帶。每份 JSON 都附 `evidence` 說明證據等級（紋理為示意，非照片貼圖、非實測色票）。

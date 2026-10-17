@@ -76,6 +76,9 @@ window.__dx = { S, m, world, nav, setDest: guide.setDest, startRoute: guide.star
   cam() { const d = new THREE.Vector3(); camera.getWorldDirection(d); return { p: camera.position.toArray(), d: d.toArray() }; },
   info() { return { x: S.x, z: S.z, y: S.y, floor: player.curF(), mode: S.mode, camState: cam.state, blending: cam.blending, walker: !!S.walker, done: S.walker ? S.walker.done : null }; },
   skins: Object.keys(SKINS), skin: SKIN.id,
+  // 匯出校舍為 glb（資產管線用；按需載入 GLTFExporter，不影響一般載入）。回傳 ArrayBuffer。
+  async exportGLB() { const { GLTFExporter } = await import('three/examples/jsm/exporters/GLTFExporter.js');
+    return new GLTFExporter().parseAsync(dx.root, { binary: true, onlyVisible: false, maxTextureSize: 1024 }); },
   renderInfo() { const r = stage.renderer.info.render; return { calls: r.calls, triangles: r.triangles }; } };
 try { if (!localStorage.getItem('dx.help1')) { $('#help').hidden = false; localStorage.setItem('dx.help1', '1'); } } catch (e) { }
 ui.renderList(); ui.setMode('third'); ui.updateFloorButtons();

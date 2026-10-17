@@ -4,17 +4,24 @@
  "type": "module",
  "scripts": {
   "dev": "vite",
-  "build": "vite build",
+  "build": "node scripts/copy_basis.mjs && vite build",
   "preview": "vite preview",
   "test": "node tests/sim.test.mjs && node tests/dx.sim.test.mjs && node tests/dx.collision.test.mjs && node tests/dx.nav.test.mjs && node tests/materials.test.mjs",
   "test:browser": "npm run build && python3 tests/dx.browser.py",
   "perf": "npm run build && python3 tests/perf.py --dist",
-  "build:single": "vite build --mode single && node scripts/singlefile.mjs"
+  "build:single": "vite build --mode single && node scripts/singlefile.mjs",
+  "assets:export": "npm run build && python3 scripts/export_glb.py",
+  "assets:compress": "node scripts/compress_assets.mjs assets-src/dongxin_raw.glb assets-out/dongxin.glb"
  },
  "dependencies": {
   "three": "^0.186.1"
  },
  "devDependencies": {
+  "@gltf-transform/core": "^4.5.1",
+  "@gltf-transform/extensions": "^4.5.1",
+  "@gltf-transform/functions": "^4.5.1",
+  "gltfpack": "^1.3.0",
+  "meshoptimizer": "^1.3.0",
   "vite": "^8.3.4"
  }
 }

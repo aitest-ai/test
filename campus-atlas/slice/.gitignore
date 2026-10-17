@@ -5,3 +5,6 @@ tests/perf-out/
 dist/
 dist-single/
 dongxin_single.html
+public/basis/
+assets-src/
+assets-out/
