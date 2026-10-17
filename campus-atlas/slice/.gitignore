@@ -2,3 +2,6 @@ node_modules/
 vendor/
 shots/
 tests/perf-out/
+dist/
+dist-single/
+dongxin_single.html

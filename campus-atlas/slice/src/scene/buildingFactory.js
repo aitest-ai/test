@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { Batch } from './batch.js';
 import { STAIR } from '../model/layout.js';
 

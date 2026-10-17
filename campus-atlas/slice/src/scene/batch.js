@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 // 軸對齊方塊批次合併：同材質的所有方塊合成一個 Mesh，降低 draw call。
 // UV 以世界公尺換算（u,v = 座標 / tile），所以磚縫、板縫跨方塊也連續。
 export class Batch {

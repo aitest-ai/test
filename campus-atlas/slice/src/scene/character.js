@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 // 原創低面數學生角色（圓柱＋方塊組成，無外部模型）。
 export function makeCharacter(M) {
   const g = new THREE.Group(), limbs = {};

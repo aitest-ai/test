@@ -1,12 +1,11 @@
 import asyncio, json, sys, threading, http.server, socketserver, functools, os
 from playwright.async_api import async_playwright
 ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-H=functools.partial(http.server.SimpleHTTPRequestHandler, directory=ROOT)
+H=functools.partial(http.server.SimpleHTTPRequestHandler, directory=os.path.join(ROOT,'dist'))
 class Q(H.func):
     def log_message(self,*a): pass
-srv=socketserver.TCPServer(('127.0.0.1',0),functools.partial(Q,directory=ROOT)); PORT=srv.server_address[1]
+srv=socketserver.TCPServer(('127.0.0.1',0),functools.partial(Q,directory=os.path.join(ROOT,'dist'))); PORT=srv.server_address[1]
 threading.Thread(target=srv.serve_forever,daemon=True).start()
-THREE=open(os.path.join(ROOT,'vendor/three.min.js'),'rb').read()
 SH=os.path.join(ROOT,'shots'); os.makedirs(SH,exist_ok=True)
 log={'console':[],'pageerrors':[],'checks':[]}
 def chk(name,ok,detail=''):
@@ -18,7 +17,6 @@ async def main():
         pg=await ctx.new_page()
         pg.on('console',lambda m: log['console'].append(f'{m.type}: {m.text}') if m.type in('error','warning') else None)
         pg.on('pageerror',lambda e: log['pageerrors'].append(str(e)))
-        await pg.route('https://cdnjs.cloudflare.com/**',lambda r: r.fulfill(body=THREE,content_type='application/javascript'))
         await pg.goto(f'http://127.0.0.1:{PORT}/index.html'); await pg.wait_for_function('window.__slice',timeout=20000)
         await pg.click('#helpclose') if await pg.is_visible('#helpclose') else None
         async def shot(n): await pg.screenshot(path=f'{SH}/{n}.png')

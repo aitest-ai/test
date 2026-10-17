@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 // 材質：全部由 Canvas 程式生成（原創紋理，無外部圖檔）。顏色取自照片語彙：紅磚、仿清水混凝土、灰框玻璃、綠色欄杆、木門。
 const cv = (w, h, f) => { const c = document.createElement('canvas'); c.width = w; c.height = h; f(c.getContext('2d'), w, h); return c; };
 const rnd = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();

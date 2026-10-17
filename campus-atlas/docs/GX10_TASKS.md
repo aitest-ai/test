@@ -22,7 +22,7 @@
 - [x] 在 campus-atlas 下 `python3 -m http.server` 實際跑一次，截圖並記錄 FPS 與 console 錯誤，寫入執行紀錄。
 
 ## 階段 1：工程基礎（GX10 實作，Claude 審查）
-- [ ] 導入 Vite + TypeScript（或先維持純 JS 但改 ES module + 本地 three 依賴，取代 CDN r128）。
+- [x] 導入 Vite + TypeScript（或先維持純 JS 但改 ES module + 本地 three 依賴，取代 CDN r128）。
 - [ ] 把 `app.js` 拆成：scene / player / collision / navigation / ui / data，行為不變，先確保 demo 仍可玩。
 - [ ] 加 Playwright 腳本：開頁、截圖、收 console 錯誤、量平均 FPS，輸出到 `tests/`。
 
@@ -44,6 +44,15 @@
 - [ ] 更新 README：本輪「實際改動」與「仍為示意 / 已證實」清單。
 
 ## 執行紀錄（GX10 填寫，最新在最上面）
+
+### 2026-10-17 階段 1-1：Vite＋本地 three（取代 CDN r128）
+- `slice/` 改用 **Vite 8 + three 0.186（npm 本地依賴）**，純 JS ES module（暫不上 TypeScript：先保證行為不變，型別之後可用 JSDoc / `checkJs` 漸進導入）。
+- 所有模組 `import * as THREE from 'three'`；HTML 移除 cdnjs `<script>`；`dongxin_geo.json` 改為 import（少一次 fetch）、底圖用 `new URL(..., import.meta.url)`。
+- **畫面一致性**：r155 起光照單位改變、色彩管理預設開啟。處理方式：`ColorManagement.enabled=false`、`outputColorSpace=Linear`、燈光強度 ×π。新增 `tests/parity.py` 固定 5 視角比對 r128 與新版：平均差 0.00–0.71（0–255），差異 >24 的像素 **0%**（r128 自身重拍差異為 0）。`THREE.Clock` 改 `THREE.Timer`（避免棄用警告）。
+- 指令：`npm run dev / build / preview / build:single`。`build:single` 取代舊 `tests/bundle_dx.py`，產生可 `file://` 開啟的單檔（3.1 MB，實測 84 目標載入、無錯誤）。沒用 vite-plugin-singlefile（其相依 braces 有 high 漏洞），改自寫 `scripts/singlefile.mjs`；`npm audit` 0 漏洞。
+- Python 瀏覽器測試改服務 `dist/`、不再攔截 CDN（`vendor/three.min.js` 不再需要）。`vercel.json` 改為 Vite 建置（`npm ci` → `npm run build` → `dist/`）。
+- 驗證：`npm test`（sim ALL PASS、dx.sim 149/149）；`dx.browser.py` 21/21；`browser.py`（示意切片）全過；console 0 錯誤 0 警告。
+- 環境：Python Playwright 1.64 需要 chromium-1248，已下載（約 120 MB，放在 `~/.cache/ms-playwright`）。
 
 ### 2026-10-17 階段 0-3：補量東新版基準＋目標修正
 **目標修正**：上方「現況」依頂層 v2 README 撰寫，但 v3～v7 的實際開發都在 `slice/`（東新版 `dongxin.html` / `src/main_dx.js`）：已有資料／物理／導航模組分離、格網碰撞、跨樓層樓梯導航與測試。v2（`src/app.js`）已停止開發。因此**之後各階段一律以 `slice/` 東新版為對象**；v2 原地保留不動。

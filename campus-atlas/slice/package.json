@@ -3,6 +3,18 @@
  "private": true,
  "type": "module",
  "scripts": {
-  "test": "node tests/sim.test.mjs && node tests/dx.sim.test.mjs"
+  "dev": "vite",
+  "build": "vite build",
+  "preview": "vite preview",
+  "test": "node tests/sim.test.mjs && node tests/dx.sim.test.mjs",
+  "test:browser": "npm run build && python3 tests/dx.browser.py",
+  "perf": "npm run build && python3 tests/perf.py --dist",
+  "build:single": "vite build --mode single && node scripts/singlefile.mjs"
+ },
+ "dependencies": {
+  "three": "^0.186.1"
+ },
+ "devDependencies": {
+  "vite": "^8.3.4"
  }
 }

@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 // 場地：草地、鋪面前庭、樹、路燈。純示意，不代表東新國小實際場地。
 export function buildEnvironment(lay, M) {
   const g = new THREE.Group(); const { L, D } = lay;

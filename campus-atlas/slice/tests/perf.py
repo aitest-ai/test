@@ -1,13 +1,13 @@
 # 效能與健康探測（Playwright）：開頁 → 收 console / pageerror → 各情境截圖 → 量平均 FPS。
-# 用法：python3 tests/perf.py [--url URL] [--gpu|--soft] [--out tests/perf-out] [--label NAME]
-#   未給 --url 時會自己起一個靜態伺服器服務本資料夾（或 dist/，若加 --dist）。
+# 用法：python3 tests/perf.py [--url URL] [--soft] [--uncap] [--out tests/perf-out] [--label NAME]
+#   未給 --url 時會自己起一個靜態伺服器服務 dist/（請先 npm run build）。
 # 結果：<out>/<label>.json 與截圖 <out>/<label>_*.png。
 import argparse, asyncio, json, os, threading, http.server, socketserver, functools, time
 from playwright.async_api import async_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ap = argparse.ArgumentParser()
-ap.add_argument('--url'); ap.add_argument('--dist', action='store_true')
+ap.add_argument('--url'); ap.add_argument('--dist', action='store_true', help='（相容用，預設即服務 dist/）')
 ap.add_argument('--soft', action='store_true', help='SwiftShader 軟體渲染（預設用 GPU）')
 ap.add_argument('--out', default=os.path.join(ROOT, 'tests', 'perf-out')); ap.add_argument('--label')
 ap.add_argument('--uncap', action='store_true', help='解除 vsync，量 GPU 真實上限')
@@ -20,9 +20,9 @@ url = a.url
 if not url:
     class Q(http.server.SimpleHTTPRequestHandler):
         def log_message(self, *x): pass
-    srv = socketserver.TCPServer(('127.0.0.1', 0), functools.partial(Q, directory=os.path.join(ROOT, 'dist') if a.dist else ROOT))
+    srv = socketserver.TCPServer(('127.0.0.1', 0), functools.partial(Q, directory=os.path.join(ROOT, 'dist')))
     threading.Thread(target=srv.serve_forever, daemon=True).start()
-    url = f'http://127.0.0.1:{srv.server_address[1]}/' + ('' if a.dist else 'dongxin.html')
+    url = f'http://127.0.0.1:{srv.server_address[1]}/dongxin.html'
 
 ARGS = ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] if a.soft else \
        ['--no-sandbox', '--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=gl'] + (['--disable-gpu-vsync', '--disable-frame-rate-limit'] if a.uncap else [])

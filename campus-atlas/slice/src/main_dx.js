@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+THREE.ColorManagement.enabled = false;
 // 東新國小版：用 slice 的相機／輸入／UI／測試掛鉤，載入由設計圖推得的真實平面資料。
 import { buildModel } from './dongxin/model.js';
 import { createDxWorld } from './dongxin/world.js';
@@ -6,13 +8,15 @@ import { buildDongxinScene } from './dongxin/scene.js';
 import { createWalker } from './nav/navgraph.js';
 import { makeMaterials } from './scene/materials.js';
 import { makeCharacter } from './scene/character.js';
+import D from '../data/dongxin_geo.json';
+
+const PLAN_SOFT = new URL('../assets/dongxin_plan_soft.jpg', import.meta.url).href, PLAN = new URL('../assets/dongxin_plan.jpg', import.meta.url).href;
 
 const $ = (s) => document.querySelector(s);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const angDiff = (a, b) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; };
 const FONT = '"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
 
-const D = await (await fetch('./data/dongxin_geo.json')).json();
 const m = buildModel(D), world = createDxWorld(m), nav = createDxNav(m, world);
 const { FH, LY, NL, NF, UP, STAIRS, ROOMS, PLACES, levelLabel, RANK } = m;
 
@@ -20,12 +24,15 @@ const { FH, LY, NL, NF, UP, STAIRS, ROOMS, PLACES, levelLabel, RANK } = m;
 const canvas = $('#scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+// 維持 r128 時代的色彩管線（不做 sRGB 轉換），升級 three 後畫面不變色
+renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0xbcd9ee); scene.fog = new THREE.Fog(0xbcd9ee, 110, 420);
 const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 900);
-scene.add(new THREE.AmbientLight(0xffffff, 0.32)); scene.add(new THREE.HemisphereLight(0xe4f2ff, 0xb7a98d, 0.6));
-const sun = new THREE.DirectionalLight(0xfff0d8, 0.5); sun.position.set(-30, 60, 40); scene.add(sun);
+const LK = Math.PI;   // r155 起移除舊式光照單位：強度 ×π 等同 r128 的亮度
+scene.add(new THREE.AmbientLight(0xffffff, 0.32 * LK)); scene.add(new THREE.HemisphereLight(0xe4f2ff, 0xb7a98d, 0.6 * LK));
+const sun = new THREE.DirectionalLight(0xfff0d8, 0.5 * LK); sun.position.set(-30, 60, 40); scene.add(sun);
 const M = makeMaterials();
-const dx = buildDongxinScene(m, M, { planUrl: './assets/dongxin_plan_soft.jpg' }); scene.add(dx.root);
+const dx = buildDongxinScene(m, M, { planUrl: PLAN_SOFT }); scene.add(dx.root);
 world.setPillars(dx.PILLARS);
 const FG = dx.FG, CAN = dx.CAN;
 
@@ -134,7 +141,7 @@ function pickRoom(e) { const r = canvas.getBoundingClientRect(), v = new THREE.V
 
 // ---------- 小地圖 ----------
 const mini = $('#mini'), mg = mini.getContext('2d'); const miniFloor = []; let planImg = null;
-{ const im = new Image(); im.onload = () => { planImg = im; }; im.src = './assets/dongxin_plan.jpg'; }
+{ const im = new Image(); im.onload = () => { planImg = im; }; im.src = PLAN; }
 for (let f = 1; f < NL; f++) { const c = document.createElement('canvas'); c.width = m.GW; c.height = m.GH; const g = c.getContext('2d'), id = g.createImageData(m.GW, m.GH), n = m.NAV[f], rc = m.RC[f];
   for (let k = 0; k < m.GW * m.GH; k++) { let r = 0, gg = 0, b = 0, a = 0; if (n[k] && rc[k] < 0) { r = 216; gg = 212; b = 202; a = 255; } else if (rc[k] >= 0) { r = 244; gg = 240; b = 230; a = 255; if (!n[k]) { r = 70; gg = 76; b = 84; } }
     id.data[k * 4] = r; id.data[k * 4 + 1] = gg; id.data[k * 4 + 2] = b; id.data[k * 4 + 3] = a; } g.putImageData(id, 0, 0); miniFloor[f] = c; }
@@ -238,8 +245,8 @@ function updateWhere() {
   else { let bd = 1e9, bn = null; PLACES.forEach(p => { if (p.f !== 0) return; const d = Math.hypot(p.x - S.x, p.z - S.z); if (d < bd) { bd = d; bn = p; } }); if (bn && bd < 16) name = bn.name; fl = '1F'; }
   const key = name + fl; if (key === whereKey) return; whereKey = key; $('#where').textContent = `${fl ? fl + ' · ' : ''}${name}`;
 }
-const clock = new THREE.Clock();
-function loop() { update(Math.min(clock.getDelta(), 0.05)); renderer.render(scene, camera); requestAnimationFrame(loop); }
+const timer = new THREE.Timer();
+function loop(ts) { timer.update(ts); update(Math.min(timer.getDelta(), 0.05)); renderer.render(scene, camera); requestAnimationFrame(loop); }
 
 window.__dx = { S, m, world, nav, setDest, startRoute, gotoFloor, setMode, teleportTo, cancelRoute, keys, THREE, TARGETS,
   tick(dt) { update(dt); },

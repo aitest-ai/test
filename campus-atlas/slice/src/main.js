@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+THREE.ColorManagement.enabled = false;
 import { WING } from './data/wing.js';
 import { buildLayout } from './model/layout.js';
 import { createWorld } from './physics/collision.js';
@@ -16,11 +18,13 @@ const { FH, F } = lay;
 // ---------- 渲染器與場景 ----------
 const canvas = $('#scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.outputColorSpace = THREE.LinearSRGBColorSpace;   // 維持 r128 色彩管線
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0xcfe3ee); scene.fog = new THREE.Fog(0xcfe3ee, 70, 190);
 const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 400);
-scene.add(new THREE.AmbientLight(0xffffff, 0.3)); scene.add(new THREE.HemisphereLight(0xf4f8ff, 0x8d9a8d, 0.58));
-const sun = new THREE.DirectionalLight(0xfff0d8, 0.5); sun.position.set(-30, 60, 40); scene.add(sun);
+const LK = Math.PI;   // r155 起移除舊式光照單位：強度 ×π 等同 r128 的亮度
+scene.add(new THREE.AmbientLight(0xffffff, 0.3 * LK)); scene.add(new THREE.HemisphereLight(0xf4f8ff, 0x8d9a8d, 0.58 * LK));
+const sun = new THREE.DirectionalLight(0xfff0d8, 0.5 * LK); sun.position.set(-30, 60, 40); scene.add(sun);
 const M = makeMaterials();
 const bld = buildBuilding(lay, M); scene.add(bld.root);
 scene.add(buildEnvironment(lay, M));
@@ -174,8 +178,8 @@ function update(dt) {
   fpsN++; fpsT += dt; if (fpsT > 1) { $('#fps').textContent = Math.round(fpsN / fpsT) + ' fps'; fpsN = 0; fpsT = 0; }
   hudT += dt; if (hudT > 0.15) { hudT = 0; updateFloorButtons(); const k = nav.floorOf(S.y); $('#where').textContent = `${floorLabel(k)} · ${S.x < 5 || S.x > WING.L - 5 ? '梯間' : (S.z > lay.CD && S.z < WING.D ? '走廊' : (S.z < lay.CD && S.y >= 0 && S.x > 0 && S.x < WING.L && S.z > 0 ? '教室' : '戶外'))}`; }
 }
-const clock = new THREE.Clock();
-function loop() { update(Math.min(clock.getDelta(), 0.05)); renderer.render(scene, camera); requestAnimationFrame(loop); }
+const timer = new THREE.Timer();
+function loop(ts) { timer.update(ts); update(Math.min(timer.getDelta(), 0.05)); renderer.render(scene, camera); requestAnimationFrame(loop); }
 
 // 測試／除錯用：確定性前進
 window.__slice = { S, lay, world, nav, setDest, startRoute, gotoFloor, setMode, teleportToSill, cancelRoute, keys, THREE,

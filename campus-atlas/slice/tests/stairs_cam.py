@@ -3,14 +3,12 @@ from playwright.async_api import async_playwright
 ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 class Q(http.server.SimpleHTTPRequestHandler):
     def log_message(self,*a): pass
-srv=socketserver.TCPServer(('127.0.0.1',0),functools.partial(Q,directory=ROOT)); PORT=srv.server_address[1]
+srv=socketserver.TCPServer(('127.0.0.1',0),functools.partial(Q,directory=os.path.join(ROOT,'dist'))); PORT=srv.server_address[1]
 threading.Thread(target=srv.serve_forever,daemon=True).start()
-THREE=open(os.path.join(ROOT,'vendor/three.min.js'),'rb').read(); SH=os.path.join(ROOT,'shots')
 async def main():
     async with async_playwright() as p:
         b=await p.chromium.launch(args=['--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--no-sandbox'])
         pg=await b.new_page(viewport={'width':1100,'height':700})
-        await pg.route('https://cdnjs.cloudflare.com/**',lambda r: r.fulfill(body=THREE,content_type='application/javascript'))
         await pg.goto(f'http://127.0.0.1:{PORT}/index.html'); await pg.wait_for_function('window.__slice')
         await pg.evaluate('document.querySelector("#helpclose")&&0'); await pg.evaluate('document.querySelector("#panel").style.display="none"')
         await pg.evaluate('(()=>{const s=__slice;s.S.x=1.3;s.S.z=8.8;s.S.y=0;s.S.yaw=s.S.heading=Math.PI;s.setDest(s.lay.rooms.find(r=>r.id==="r3-1"));s.startRoute(true)})()')
