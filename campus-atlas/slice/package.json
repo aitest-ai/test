@@ -11,7 +11,8 @@
   "perf": "npm run build && python3 tests/perf.py --dist",
   "build:single": "vite build --mode single && node scripts/singlefile.mjs",
   "assets:export": "npm run build && python3 scripts/export_glb.py",
-  "assets:compress": "node scripts/compress_assets.mjs assets-src/dongxin_raw.glb assets-out/dongxin.glb"
+  "assets:compress": "node scripts/compress_assets.mjs assets-src/dongxin_raw.glb assets-out/dongxin.glb",
+  "assets:blender": "docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp -v \"$PWD\":/work campus-blender:4.0 --python scripts/blender/process.py -- assets-src/dongxin_raw.glb assets-src/dongxin_ao.glb --res 4096 --samples 16 && node scripts/compress_assets.mjs assets-src/dongxin_ao.glb assets-out/dongxin_ao.glb"
  },
  "dependencies": {
   "three": "^0.186.1"

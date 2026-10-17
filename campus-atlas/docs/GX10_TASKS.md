@@ -35,7 +35,7 @@
 ## 階段 3：模型與材質品質
 - [x] 建立統一材質庫（紅磚、清水混凝土、鋁窗、玻璃、地磚…），資料驅動，方便各校「換膜」。
 - [x] 安裝 gltf-transform / gltfpack / toktx，建立資產壓縮腳本；若導入 glb，貼圖用 KTX2。
-- [ ] Blender 無頭腳本：批次整理模型（法線、UV）、烘焙 AO，輸出 glb。裝不起來或不相容 aarch64 就記錄原因。
+- [x] Blender 無頭腳本：批次整理模型（法線、UV）、烘焙 AO，輸出 glb。裝不起來或不相容 aarch64 就記錄原因。
 - [ ] 燈光與陰影：統一曝光、柔和陰影，驗收以 FPS 不低於階段 0 的八成為準。
 - [ ] 可選（先確認 aarch64 CUDA 可用）：ComfyUI 生成牆面/地面材質候選，僅作原創素材。
 
@@ -44,6 +44,18 @@
 - [ ] 更新 README：本輪「實際改動」與「仍為示意 / 已證實」清單。
 
 ## 執行紀錄（GX10 填寫，最新在最上面）
+
+### 2026-10-17 階段 3-3：Blender 無頭批次（法線、UV、AO 烘焙 → glb）
+**安裝**：Blender 官方 Linux 版到 5.2.2 都只有 x64，**沒有 aarch64**；apt 版需要 sudo。改用 Docker：`slice/tools/blender/Dockerfile`（Ubuntu 24.04 arm64＋套件庫的 Blender **4.0.2**），映像 `campus-blender:4.0`（971 MB，建置 83 秒）。
+**相容性問題與處理**（都記在腳本註解）：
+1. 這個 arm64 版沒編入 OpenImageDenoise：Cycles 預設開降噪 → 算圖直接報錯、**烘焙不報錯但輸出全黑**。關閉 `cycles.use_denoising` 後正常（最小場景 AO 平均 0.93）。
+2. `uv.lightmap_pack` 是純 Python，15 萬面跑 10 分鐘以上沒結束 → 改用 C 實作的 `unwrap`＋`pack_islands`（1.6 秒）。
+3. 1,400 m 見方的底色平面與上百公尺的細長牆面讓 UV 打包只用到 6–15% → 排除最大邊 > 300 m 的平面、長邊先細分到 ≤ 6 m、所有邊設縫線逐面展開 → 覆蓋率 57%。
+
+**流程**（`slice/scripts/blender/process.py`；`npm run assets:blender`）：匯入 glb → 實例化網格轉獨立 → 去除重複頂點（217,213 個）、統一面法線朝外（翻轉 1,758 面）、清自訂法線、30° 自動平滑 → 合併成單一物件（保留 115 個材質槽）→ 新增 lightmap UV「AO」→ Cycles CPU 烘焙 AO（4096²、16 取樣、距離 6 m）→ 接到 glTF `occlusionTexture`（texCoord 1）→ 匯出 glb → 再經階段 3-2 壓縮（KTX2）。
+**數據**：全程 **60 秒**（其中烘焙 35 秒）；三角形 151,044 → 199,508（長邊細分）；glb 36.8 MB → 壓縮後 **8.8 MB**（AO 貼圖也轉 KTX2）。報告 `docs/stage3/blender_report.json`、`compress_ao_report.json`。
+**驗證**：`tests/glb_viewer.py` PASS（93/93 KTX2、28 個受光材質帶 aoMap、載入 299 ms）；`glb-viewer.html?ao=0` 可 A/B 比較，對照圖 `docs/stage3/blender_ao_compare.png`（左無 AO、右有 AO：窗框凹處、牆角與接地處有遮蔽）。
+**已知問題（誠實記錄）**：部分邊緣有黑縫（逐面展開＋2 px 邊距不足）；屋頂與天花板盒重疊處 AO 斑駁；Blender 4.0 匯入不支援 glTF 逐實例顏色，樹冠變白；看板等 unlit 材質沒有 AO。此 glb 屬資產管線產出，**未取代**即時場景。
 
 ### 2026-10-17 階段 3-2：資產壓縮工具鏈（gltf-transform／gltfpack／toktx，KTX2）
 - **安裝**（皆不需 sudo）：toktx = KTX-Software 4.4.2 官方 Linux **arm64** 版，核對 SHA1 後解到 `~/.local/opt/ktx`（`slice/scripts/install_ktx.sh` 可重現）；gltfpack 1.3（npm，WASM）；gltf-transform 4.5.1 改用程式庫（core／functions／extensions）＋ meshoptimizer 1.3。沒有裝 `@gltf-transform/cli`：它的相依 braces 有 high 漏洞；目前 `npm audit` 0 漏洞。

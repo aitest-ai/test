@@ -1,11 +1,12 @@
 // 資產管線檢視頁：載入壓縮後的 glb（EXT_meshopt_compression＋KHR_texture_basisu），回報統計並提供 window.__glb 給測試。
+// 參數：?src=<glb 路徑>、?ao=0 關閉 AO 貼圖（A/B 比較烘焙效果）
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 THREE.ColorManagement.enabled = false;
-const src = new URLSearchParams(location.search).get('src') || 'models/dongxin.glb', info = document.querySelector('#info');
+const qs = new URLSearchParams(location.search), src = qs.get('src') || 'models/dongxin.glb', noAO = qs.get('ao') === '0', info = document.querySelector('#info');
 const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#c'), antialias: true }); renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0xbcd9ee);
@@ -21,7 +22,7 @@ window.__glb = { ready: false };
 loader.load(src, (g) => {
   scene.add(g.scene); let meshes = 0, tris = 0, ktx = 0; const tex = new Set();
   g.scene.traverse(o => { if (!o.isMesh) return; meshes++; const gm = o.geometry; tris += (gm.index ? gm.index.count : gm.attributes.position.count) / 3 * (o.isInstancedMesh ? o.count : 1);
-    const m = o.material; if (m.map) { tex.add(m.map); if (m.map.isCompressedTexture) ktx++; } });
+    const m = o.material; if (noAO && m.aoMap) { m.aoMap = null; m.needsUpdate = true; } if (m.aoMap) window.__glb.aoMaps = (window.__glb.aoMaps || 0) + 1; if (m.map) { tex.add(m.map); if (m.map.isCompressedTexture) ktx++; } });
   const st = { ms: Math.round(performance.now() - t0), meshes, triangles: Math.round(tris), textures: tex.size, compressedTextures: [...tex].filter(t => t.isCompressedTexture).length, extensions: g.parser.json.extensionsUsed || [] };
   Object.assign(window.__glb, st, { ready: true }); info.textContent = `${src}：${st.meshes} 網格、${st.triangles} 三角形、貼圖 ${st.textures}（KTX2 ${st.compressedTextures}）、${st.ms} ms｜${st.extensions.join(', ')}`;
 }, undefined, (e) => { window.__glb.error = String(e); info.textContent = '載入失敗：' + e; });

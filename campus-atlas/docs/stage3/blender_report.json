@@ -1,0 +1,26 @@
+{
+ "input": "assets-src/dongxin_raw.glb",
+ "blender": "4.0.2",
+ "res": 4096,
+ "samples": 16,
+ "sec": {
+  "import": 0.4,
+  "normals": 19.5,
+  "join": 19.9,
+  "uv": 21.5,
+  "bake": 56.3,
+  "hook": 56.4,
+  "export": 59.5
+ },
+ "objectsImported": 1647,
+ "verticesMerged": 217213,
+ "facesFlipped": 1758,
+ "triangles": 151044,
+ "excludedHuge": [
+  "Mesh_250"
+ ],
+ "objectsAfterJoin": 1,
+ "trianglesAfterSubdiv": 199508,
+ "aoMean": 0.349,
+ "outputKB": 36789
+}
