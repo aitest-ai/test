@@ -17,7 +17,7 @@ export function createPanel(ctx) {
       if (!rs.length) continue; const h = document.createElement('div'); h.className = 'grp'; h.textContent = title; box.appendChild(h);
       rs.forEach(r => { const b = document.createElement('button'); b.className = 'item' + (S.selected === r ? ' on' : ''); b.textContent = r.name; if (r.bldName) { const sp = document.createElement('small'); sp.textContent = ' ' + r.bldName; sp.style.opacity = '.55'; b.appendChild(sp); } b.onclick = () => { ctx.guide.setDest(r); if (innerWidth < 760) $('#panel').classList.remove('open'); }; box.appendChild(b); }); } }
   function updateFloorButtons() { const cur = curF(); document.querySelectorAll('#floors button').forEach(b => { const k = b.dataset.k; b.classList.toggle('on', k === 'all' ? (S.mode === 'bird' && S.viewFloor === null) : (S.mode === 'bird' ? S.viewFloor === +k : cur === +k)); }); }
-  function setMode(mo) { S.mode = mo; ctx.cam.reset(); document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.m === mo)); updateFloorButtons(); }
+  function setMode(mo) { S.mode = mo; document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.m === mo)); updateFloorButtons(); }
   function cycleMode() { setMode(MODES[(MODES.indexOf(S.mode) + 1) % 3]); }
   function pickRoom(e) { const r = ctx.canvas.getBoundingClientRect(), v = new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
     const rc = new THREE.Raycaster(); rc.setFromCamera(v, camera);

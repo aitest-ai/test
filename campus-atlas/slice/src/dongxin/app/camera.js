@@ -1,4 +1,6 @@
-// 鏡頭層：第三人稱（指數平滑＋遮擋收近＋方位角速度上限＋鏡頭速度上限）、第一人稱、鳥瞰。
+// 鏡頭層（狀態機）：third 第三人稱（指數平滑＋遮擋收近＋方位角速度上限＋鏡頭速度上限）／guide 導覽中（同 third，
+// 另由 player.js 自動轉向）／first 第一人稱／bird 鳥瞰。每個狀態只算「理想姿態」；狀態改變時從切換當下的鏡頭姿態
+// 以 smoothstep 位置插值＋四元數球面插值過渡 BLEND 秒，不會一幀跳過去。瞬移（傳送、切樓層）用 reset() 直接到位。
 // 遮擋與天花板查詢走物理層的 world.ray / world.ceilingY，不讀 three 網格。
 import * as THREE from 'three';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -33,15 +35,30 @@ export function createCameraRig({ S, m, world, camera, ch }) {
     camera.position.copy(camPos); camera.up.set(0, 1, 0); camera.lookAt(tgt); ch.group.visible = d > 0.95;
   }
 
+  const BLEND = 0.8, from = { p: new THREE.Vector3(), q: new THREE.Quaternion(), chVis: true }, toQ = new THREE.Quaternion();
+  let state = null, blendT = BLEND;
+  const stateOf = () => S.mode === 'third' && S.walker ? 'guide' : S.mode;
   function update(dt, inRoom) {
+    const next = stateOf();
+    if (next !== state) {
+      const fromThirdish = state === 'third' || state === 'guide', toThirdish = next === 'third' || next === 'guide';
+      if (state !== null && !(fromThirdish && toThirdish)) { from.p.copy(camera.position); from.q.copy(camera.quaternion); from.chVis = ch.group.visible; blendT = 0; }
+      if (toThirdish && !fromThirdish) camInit = false;   // 第三人稱的平滑狀態從新姿態起算；畫面連續由過渡負責
+      state = next;
+    }
     const tgt = new THREE.Vector3(S.x, S.yCam + 1.35, S.z);
-    if (S.mode === 'third') updateThird(dt, tgt, inRoom);
-    else if (S.mode === 'first') {
+    if (state === 'third' || state === 'guide') updateThird(dt, tgt, inRoom);
+    else if (state === 'first') {
       camera.position.set(S.x, S.yCam + 1.5, S.z); camera.up.set(0, 1, 0); const p = -(S.pitch - 0.1);
       camera.lookAt(S.x + Math.sin(S.yaw) * Math.cos(p) * 5, S.yCam + 1.5 + Math.sin(p) * 5, S.z + Math.cos(S.yaw) * Math.cos(p) * 5); ch.group.visible = false;
     } else { const base = S.viewFloor === null ? S.y : LY(S.viewFloor); camera.position.set(S.x, base + S.birdH, S.z + 0.01); camera.up.set(Math.sin(S.byaw), 0, Math.cos(S.byaw)); camera.lookAt(S.x, base, S.z); ch.group.visible = true; }
+    if (blendT < BLEND) {                                   // 過渡：從切換當下的姿態滑到新狀態的理想姿態
+      blendT = Math.min(BLEND, blendT + dt); const u = blendT / BLEND, e = u * u * (3 - 2 * u);
+      camera.position.lerpVectors(from.p, camera.position, e); toQ.copy(camera.quaternion); camera.quaternion.slerpQuaternions(from.q, toQ, e);   // 目標須先複製：slerpQuaternions 會先把輸出設成起點
+      if (e < 0.5) ch.group.visible = from.chVis;
+    }
   }
-  // 瞬移／換模式後：下一幀直接放到理想位置（不從舊位置滑過去）
-  function reset() { camInit = false; camLim = Infinity; }
-  return { update, reset };
+  // 瞬移／切樓層：下一幀直接放到理想位置（不從舊位置滑過去，也取消進行中的過渡）
+  function reset() { camInit = false; camLim = Infinity; blendT = BLEND; }
+  return { update, reset, get state() { return state; }, get blending() { return blendT < BLEND; } };
 }

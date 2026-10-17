@@ -4,7 +4,7 @@
 //   導航    dongxin/pathgrid.js 路徑網格（淨空成本＋樓梯入口圖）；dongxin/nav.js 組成含樓梯航點的路線；app/guide.js 選取、畫線、walker
 //   場景    app/stage.js       渲染器、燈光、校舍、標記、角色、樓層顯示
 //   角色    app/player.js      手動移動、自動導覽推進、走路動畫
-//   鏡頭    app/camera.js      第三人稱／第一人稱／鳥瞰
+//   鏡頭    app/camera.js      狀態機：third／guide／first／bird，切換時平滑過渡
 //   輸入    app/input.js       鍵盤、拖曳、滾輪、搖桿
 //   UI      ui/panel.js、ui/minimap.js
 import * as THREE from 'three';
@@ -71,7 +71,7 @@ window.__dx = { S, m, world, nav, setDest: guide.setDest, startRoute: guide.star
   tick(dt) { update(dt); },
   advance(sec, dt = 1 / 30) { for (let t = 0; t < sec; t += dt) update(dt); stage.render(); },
   cam() { const d = new THREE.Vector3(); camera.getWorldDirection(d); return { p: camera.position.toArray(), d: d.toArray() }; },
-  info() { return { x: S.x, z: S.z, y: S.y, floor: player.curF(), mode: S.mode, walker: !!S.walker, done: S.walker ? S.walker.done : null }; },
+  info() { return { x: S.x, z: S.z, y: S.y, floor: player.curF(), mode: S.mode, camState: cam.state, blending: cam.blending, walker: !!S.walker, done: S.walker ? S.walker.done : null }; },
   renderInfo() { const r = stage.renderer.info.render; return { calls: r.calls, triangles: r.triangles }; } };
 try { if (!localStorage.getItem('dx.help1')) { $('#help').hidden = false; localStorage.setItem('dx.help1', '1'); } } catch (e) { }
 ui.renderList(); ui.setMode('third'); ui.updateFloorButtons();
