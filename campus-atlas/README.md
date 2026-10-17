@@ -1,5 +1,8 @@
 # 東新國小新校舍外觀參照 / Campus Atlas prototype 02
 
+> **目前的主要版本在 [`slice/`](slice/README.md)（東新版 `slice/dongxin.html`）**：Vite＋three 0.186、膠囊碰撞、路徑網格導航、地面導引帶、鏡頭狀態機、資料驅動材質庫、柔和陰影、資產壓縮與 Blender／ComfyUI 管線。本輪（2026-10-17）的改動、驗收數據與「仍為示意／已證實」清單見 `slice/README.md` 與 `docs/GX10_TASKS.md`。
+> 本頁以下描述的是 v2 原型（`index.html`＋`src/app.js`），已停止開發、原樣保留。
+
 依據已分析的 3DTYPSMap 技術方向，**重新獨立撰寫**的 Three.js 3D 校園原型，不包含原網站的專有模型、貼圖或原始碼。
 
 ## 第一版功能

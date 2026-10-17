@@ -40,10 +40,15 @@
 - [x] 可選（先確認 aarch64 CUDA 可用）：ComfyUI 生成牆面/地面材質候選，僅作原創素材。
 
 ## 階段 4：預覽與交付
-- [ ] Vercel 預覽網址寫入執行紀錄。
-- [ ] 更新 README：本輪「實際改動」與「仍為示意 / 已證實」清單。
+- [ ] Vercel 預覽網址寫入執行紀錄。（**待使用者處理**：新部署被 Claude Code 自動模式擋下，見執行紀錄「Vercel 預覽」）
+- [x] 更新 README：本輪「實際改動」與「仍為示意 / 已證實」清單。
 
 ## 執行紀錄（GX10 填寫，最新在最上面）
+
+### 2026-10-17 階段 4：交付
+- **README**：`slice/README.md` 重寫——執行／網址參數／操作／架構／測試／資產管線，加上「本輪實際改動」8 項（附關鍵數據）與「仍為示意／已證實」對照表（圖面推得 A 級、已證實語彙、推論 B 級、示意、已驗證（對模型而言）、未測、待處理）。頂層 `README.md` 開頭加註：主要版本在 `slice/`，v2 停止開發、原樣保留。
+- **Vercel 預覽**：**未完成**。唯一存在的預覽是階段 1 時 CLI 意外建立的專案 `dist` 的部署 `https://dist-three-pied-90.vercel.app`（階段 1 的程式，不含階段 2、3 的改動；之後的驗證請求也被自動模式擋下，目前狀態未確認）。要更新預覽需要使用者允許部署（見上方「Vercel 預覽」段落的選項）。每一輪的 demo 目前都可在本機以 `npm run dev` 或 `npm run build && npm run preview` 開啟。
+- **最終回歸**（本段 commit 時，`npm run build` 後）：`npm test` 全過（sim ALL PASS、dx.sim 149/149、COLLISION／NAV／MATERIALS PASS）；`dx.browser.py` 21/21、`dx.route.py`、`dx.camstate.py`、`browser.py`、`glb_viewer.py` 全過；`perf.py --min-fps 48`（GPU）PASS：最低 60.0、平均 60.1 FPS，console 0 錯誤。
 
 ### 2026-10-17 階段 3-5（選做）：aarch64 CUDA 確認＋ComfyUI 材質候選
 - **CUDA**：Docker 沒有註冊 NVIDIA runtime、現有映像也沒有 PyTorch；改在主機獨立 venv（`~/.local/opt/comfyui/venv`）裝 PyTorch 官方 aarch64 版 **2.14.1+cu130** → `cuda.is_available()=True`、NVIDIA GB10，4096² fp16 矩陣乘約 17 TFLOPS。
