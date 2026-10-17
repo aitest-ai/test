@@ -30,7 +30,7 @@ const $ = (s) => document.querySelector(s);
 const m = buildModel(D), world = createDxWorld(m), nav = createDxNav(m, world);
 const { STAIRS, ROOMS, PLACES } = m;
 const canvas = $('#scene');
-const stage = createStage(canvas, m, world, { planSoft: PLAN_SOFT, skin: SKIN });
+const stage = createStage(canvas, m, world, { planSoft: PLAN_SOFT, skin: SKIN, shadows: new URLSearchParams(location.search).get('shadows') !== '0' });
 const { camera, dx } = stage;
 
 // ---------- 狀態 ----------
@@ -63,12 +63,13 @@ function update(dt) {
   stage.applyFloorVisibility(S, f, inRoom);
   guide.animatePin(dt); guide.update(dt);
   cam.update(dt, inRoom);
-  stage.sun.position.set(S.x - 30, 60, S.z + 40);
+  stage.lighting.update(S, S.mode === 'bird');
   ui.tickFps(dt);
   hudT += dt; if (hudT > 0.15) { hudT = 0; ui.updateFloorButtons(); mini.draw(); ui.updateWhere(); }
 }
 const timer = new THREE.Timer();
-function loop(ts) { timer.update(ts); update(Math.min(timer.getDelta(), 0.05)); stage.render(); requestAnimationFrame(loop); }
+const AUTO_DEGRADE = new URLSearchParams(location.search).get('degrade') !== '0';   // ?degrade=0：不自動關陰影（量測用）
+function loop(ts) { timer.update(ts); const raw = timer.getDelta(); if (AUTO_DEGRADE) stage.lighting.watch(raw); update(Math.min(raw, 0.05)); stage.render(); requestAnimationFrame(loop); }
 
 window.__dx = { S, m, world, nav, setDest: guide.setDest, startRoute: guide.startRoute, gotoFloor: guide.gotoFloor, setMode: ui.setMode, teleportTo: guide.teleportTo, cancelRoute: guide.cancelRoute, keys: input.keys, THREE, TARGETS,
   tick(dt) { update(dt); },
@@ -79,7 +80,8 @@ window.__dx = { S, m, world, nav, setDest: guide.setDest, startRoute: guide.star
   // 匯出校舍為 glb（資產管線用；按需載入 GLTFExporter，不影響一般載入）。回傳 ArrayBuffer。
   async exportGLB() { const { GLTFExporter } = await import('three/examples/jsm/exporters/GLTFExporter.js');
     return new GLTFExporter().parseAsync(dx.root, { binary: true, onlyVisible: false, maxTextureSize: 1024 }); },
-  renderInfo() { const r = stage.renderer.info.render; return { calls: r.calls, triangles: r.triangles }; } };
+  renderInfo() { const r = stage.renderer.info.render; return { calls: r.calls, triangles: r.triangles, shadows: stage.lighting.shadows, degraded: stage.lighting.degraded }; },
+  setShadows: (v) => stage.lighting.setShadows(v) };
 try { if (!localStorage.getItem('dx.help1')) { $('#help').hidden = false; localStorage.setItem('dx.help1', '1'); } } catch (e) { }
 ui.renderList(); ui.setMode('third'); ui.updateFloorButtons();
 $('#loading').classList.add('done'); setTimeout(() => $('#loading').style.display = 'none', 500);

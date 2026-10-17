@@ -3,24 +3,24 @@ import * as THREE from 'three';
 import { buildDongxinScene } from '../scene.js';
 import { makeMaterials } from '../../scene/materials.js';
 import { makeCharacter } from '../../scene/character.js';
+import { createLighting } from './lighting.js';
 
-export function createStage(canvas, m, world, { planSoft, skin }) {
+export function createStage(canvas, m, world, { planSoft, skin, shadows = true }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   // 維持 r128 時代的色彩管線（不做 sRGB 轉換），升級 three 後畫面不變色
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0xbcd9ee); scene.fog = new THREE.Fog(0xbcd9ee, 110, 420);
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 900);
-  const LK = Math.PI;   // r155 起移除舊式光照單位：強度 ×π 等同 r128 的亮度
-  scene.add(new THREE.AmbientLight(0xffffff, 0.32 * LK)); scene.add(new THREE.HemisphereLight(0xe4f2ff, 0xb7a98d, 0.6 * LK));
-  const sun = new THREE.DirectionalLight(0xfff0d8, 0.5 * LK); sun.position.set(-30, 60, 40); scene.add(sun);
+  const lighting = createLighting(renderer, scene, skin && skin.lighting, { shadows });   // 曝光、太陽、柔和陰影（lighting.js）
   const M = makeMaterials(skin);   // skin＝材質 JSON（換膜）；未給則用東新預設
   const dx = buildDongxinScene(m, M, { planUrl: planSoft }); scene.add(dx.root);
   world.setPillars(dx.PILLARS);
+  lighting.setupCasters(dx.root);
 
   const selPlane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xffc928, transparent: true, opacity: 0.32, depthWrite: false })); selPlane.rotation.x = -Math.PI / 2; selPlane.visible = false; scene.add(selPlane);
   const pin = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.8, 12), M.pin); pin.rotation.x = Math.PI; pin.visible = false; scene.add(pin);
-  const ch = makeCharacter(M); scene.add(ch.group);
+  const ch = makeCharacter(M); scene.add(ch.group); lighting.setupCasters(ch.group);
 
   function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
   addEventListener('resize', resize); resize();
@@ -37,5 +37,5 @@ export function createStage(canvas, m, world, { planSoft, skin }) {
     if (dx.groundMesh) dx.groundMesh.visible = !(bird && showB1);
   }
 
-  return { renderer, scene, camera, sun, M, dx, selPlane, pin, ch, resize, applyFloorVisibility, render() { renderer.render(scene, camera); } };
+  return { renderer, scene, camera, sun: lighting.sun, lighting, M, dx, selPlane, pin, ch, resize, applyFloorVisibility, render() { renderer.render(scene, camera); } };
 }
