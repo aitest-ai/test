@@ -45,6 +45,13 @@
 
 ## 執行紀錄（GX10 填寫，最新在最上面）
 
+### 2026-10-17 Vercel 預覽（待使用者處理）
+- Vercel MCP 對團隊 `tests-projects-abe7fd9e` 的部署 API 回 403；本機 CLI 原本未登入。
+- 嘗試 `vercel deploy --temporary`（免登入）時，CLI 改走裝置登入，完成後以帳號 `aitest-2822` 登入，並**自動建立專案 `dist`、連上 GitHub repo `aitest-ai/test`**，部署了階段 1 的 `dist/`：`https://dist-three-pied-90.vercel.app`（部署當下回 200；之後未再驗證）。
+- 該專案根目錄是 repo 根，若保持 Git 連線，之後每次 push 都可能把整個 repo 當靜態站部署 → **已執行 `vercel git disconnect` 切斷**。
+- 之後要改部署到新專案 `campus-quality-pass` 時被 Claude Code 自動模式擋下（判定為正式環境部署），**未再部署、也未刪除 `dist` 專案**。後續各輪的 demo 目前只能本機執行（`npm run dev` / `npm run preview`）。
+- 待使用者決定：(1) 是否保留／刪除 Vercel 專案 `dist`；(2) 是否允許部署（例如把 `slice/` 連到既有的 `campus-atlas-dongxin-preview`，其 Root Directory 已是 `campus-atlas/slice`，`vercel.json` 已改為 Vite 建置）；(3) 本機 CLI 目前保持登入，不需要可 `npx vercel logout`。
+
 ### 2026-10-17 階段 1-3：Playwright 效能／健康腳本
 - `slice/tests/perf.py`：開頁 → 收 pageerror／console error／請求失敗 → 5 情境（出生、行走、鳥瞰、導航中、2F 走廊）各截圖＋量 5 秒平均 FPS 與最差幀、draw calls、三角形數 → `tests/perf-out/<label>.json|png`。`--soft`（SwiftShader）、`--uncap`（解除 vsync）、`--min-fps N`；有錯誤或低於門檻時退出碼 1。`tests/parity.py`：固定視角像素比對。依賴列在 `tests/requirements.txt`。
 - 階段 1 結束時數據（three 0.186、拆分後）：
