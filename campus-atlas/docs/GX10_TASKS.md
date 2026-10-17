@@ -37,13 +37,21 @@
 - [x] 安裝 gltf-transform / gltfpack / toktx，建立資產壓縮腳本；若導入 glb，貼圖用 KTX2。
 - [x] Blender 無頭腳本：批次整理模型（法線、UV）、烘焙 AO，輸出 glb。裝不起來或不相容 aarch64 就記錄原因。
 - [x] 燈光與陰影：統一曝光、柔和陰影，驗收以 FPS 不低於階段 0 的八成為準。
-- [ ] 可選（先確認 aarch64 CUDA 可用）：ComfyUI 生成牆面/地面材質候選，僅作原創素材。
+- [x] 可選（先確認 aarch64 CUDA 可用）：ComfyUI 生成牆面/地面材質候選，僅作原創素材。
 
 ## 階段 4：預覽與交付
 - [ ] Vercel 預覽網址寫入執行紀錄。
 - [ ] 更新 README：本輪「實際改動」與「仍為示意 / 已證實」清單。
 
 ## 執行紀錄（GX10 填寫，最新在最上面）
+
+### 2026-10-17 階段 3-5（選做）：aarch64 CUDA 確認＋ComfyUI 材質候選
+- **CUDA**：Docker 沒有註冊 NVIDIA runtime、現有映像也沒有 PyTorch；改在主機獨立 venv（`~/.local/opt/comfyui/venv`）裝 PyTorch 官方 aarch64 版 **2.14.1+cu130** → `cuda.is_available()=True`、NVIDIA GB10，4096² fp16 矩陣乘約 17 TFLOPS。
+- **ComfyUI**：官方 repo（commit `ce1e922`，0.41.0）裝在 `~/.local/opt/comfyui/app`；模型 SDXL base 1.0（6.9 GB，SHA256 `31e35c80…` 與官方一致，CreativeML Open RAIL++-M）。下載合計約 10 GB。過程中依賴過濾規則誤排除 `torchsde`，補裝後正常。
+- **可拼貼**：自寫自訂節點 `slice/tools/comfyui/campus_seamless.py`，把 UNet＋VAE 共 95 層卷積改成環狀填充；`slice/tools/comfyui/gen_textures.py` 走 HTTP API 無頭批次生成（5 種建材 × 2 種子，每張 1024² 約 14 秒，總計 2 分 24 秒）。
+- **檢查**：`tools/comfyui/seam_check.py`：接縫差 ÷ 內部相鄰差 0.84–1.19（8/10 張；≈1 即看不出接縫），紅磚 8919 為 2.32、米黃面磚 8919 為 1.84——紅磚是規則砂漿線剛好落在邊界造成指標失真，2×2 拼貼目視無縫。拼貼總覽 `docs/stage3/comfyui_candidates_2x2.jpg`。
+- **產出**：`slice/assets/texture-candidates/`（512² JPEG＋`generation.json`＋README，共 704 KB）。可用：紅磚 8919、清水混凝土 1000、磨石子、戶外鋪面 8919；米黃面磚品質不足。**未接入場景**（材質庫目前只有程式生成的紋理，接入需新增「圖片型紋理」）。ComfyUI 服務已關閉。
+- **階段 3 完成**。
 
 ### 2026-10-17 階段 3-4：統一曝光＋柔和陰影
 - 新增 `slice/src/dongxin/app/lighting.js`：燈光參數集中（環境光 0.32、半球光 0.66、日光 0.6，再乘統一 `exposure` 係數），材質 JSON 可用 `"lighting"` 覆寫，`?shadows=0` 關陰影。
