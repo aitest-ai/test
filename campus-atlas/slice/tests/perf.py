@@ -2,7 +2,8 @@
 # 用法：python3 tests/perf.py [--url URL] [--soft] [--uncap] [--out tests/perf-out] [--label NAME]
 #   未給 --url 時會自己起一個靜態伺服器服務 dist/（請先 npm run build）。
 # 結果：<out>/<label>.json 與截圖 <out>/<label>_*.png。
-import argparse, asyncio, json, os, threading, http.server, socketserver, functools, time
+# 退出碼：有 pageerror / console error / 請求失敗，或任一情境 FPS 低於 --min-fps → 1（可放進 CI）。
+import argparse, asyncio, json, os, sys, threading, http.server, socketserver, functools, time
 from playwright.async_api import async_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -12,6 +13,7 @@ ap.add_argument('--soft', action='store_true', help='SwiftShader 軟體渲染（
 ap.add_argument('--out', default=os.path.join(ROOT, 'tests', 'perf-out')); ap.add_argument('--label')
 ap.add_argument('--uncap', action='store_true', help='解除 vsync，量 GPU 真實上限')
 ap.add_argument('--secs', type=float, default=5.0)
+ap.add_argument('--min-fps', type=float, default=0, help='任一情境低於此值即失敗')
 a = ap.parse_args()
 label = a.label or ('soft' if a.soft else 'gpu_uncap' if a.uncap else 'gpu')
 os.makedirs(a.out, exist_ok=True)
@@ -68,7 +70,10 @@ async def main():
         await b.close()
     fps = [s['fps'] for s in res['scenes'].values()]
     res['fpsMin'] = round(min(fps), 1); res['fpsAvg'] = round(sum(fps) / len(fps), 1)
+    res['ok'] = not res['errors'] and res['fpsMin'] >= a.min_fps
     json.dump(res, open(os.path.join(a.out, f'{label}.json'), 'w'), ensure_ascii=False, indent=1)
     print(json.dumps(res, ensure_ascii=False, indent=1))
+    print(('PASS' if res['ok'] else 'FAIL'), f"{label}: fps min {res['fpsMin']} / avg {res['fpsAvg']}, errors {len(res['errors'])}", file=sys.stderr)
+    return res['ok']
 
-asyncio.run(main())
+sys.exit(0 if asyncio.run(main()) else 1)

@@ -24,7 +24,7 @@
 ## 階段 1：工程基礎（GX10 實作，Claude 審查）
 - [x] 導入 Vite + TypeScript（或先維持純 JS 但改 ES module + 本地 three 依賴，取代 CDN r128）。
 - [x] 把 `app.js` 拆成：scene / player / collision / navigation / ui / data，行為不變，先確保 demo 仍可玩。
-- [ ] 加 Playwright 腳本：開頁、截圖、收 console 錯誤、量平均 FPS，輸出到 `tests/`。
+- [x] 加 Playwright 腳本：開頁、截圖、收 console 錯誤、量平均 FPS，輸出到 `tests/`。
 
 ## 階段 2：碰撞與導航（核心）
 - [ ] 角色改為膠囊體碰撞，建築使用簡化碰撞體（不用視覺網格）；選項：Rapier 或自寫 AABB 掃掠。驗收：貼牆斜走不穿牆、不卡角。
@@ -44,6 +44,18 @@
 - [ ] 更新 README：本輪「實際改動」與「仍為示意 / 已證實」清單。
 
 ## 執行紀錄（GX10 填寫，最新在最上面）
+
+### 2026-10-17 階段 1-3：Playwright 效能／健康腳本
+- `slice/tests/perf.py`：開頁 → 收 pageerror／console error／請求失敗 → 5 情境（出生、行走、鳥瞰、導航中、2F 走廊）各截圖＋量 5 秒平均 FPS 與最差幀、draw calls、三角形數 → `tests/perf-out/<label>.json|png`。`--soft`（SwiftShader）、`--uncap`（解除 vsync）、`--min-fps N`；有錯誤或低於門檻時退出碼 1。`tests/parity.py`：固定視角像素比對。依賴列在 `tests/requirements.txt`。
+- 階段 1 結束時數據（three 0.186、拆分後）：
+
+| 模式 | 最低 | 平均 | 對照階段 0 最低 |
+|---|---|---|---|
+| GPU vsync | 60.0 | 60.1 | 60.0 |
+| GPU `--uncap` | 1508 | 1612 | 1378 |
+| SwiftShader | 9.5 | 10.9 | 10.2 |
+
+  draw calls 195–271、三角形 14.2 萬–15.8 萬；console 錯誤 0。SwiftShader 數值波動約 ±1 FPS（屬 CPU 軟體渲染雜訊）。
 
 ### 2026-10-17 階段 1-2：拆分 main_dx.js（行為不變）
 東新版的 collision（`dongxin/world.js`）、navigation（`dongxin/nav.js`＋`model.js` A*）、data（`dongxin/model.js`＋`data/dongxin_geo.json`）原本就獨立；真正的單一大檔是 `src/main_dx.js`（25 KB）。拆成：
