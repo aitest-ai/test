@@ -19,7 +19,7 @@
 
 ## 階段 0：盤點（GX10）
 - [x] 回報：`nvidia-smi`、`node -v`、`python3 -V`、blender / ollama / docker 是否已安裝。
-- [ ] 在 campus-atlas 下 `python3 -m http.server` 實際跑一次，截圖並記錄 FPS 與 console 錯誤，寫入執行紀錄。
+- [x] 在 campus-atlas 下 `python3 -m http.server` 實際跑一次，截圖並記錄 FPS 與 console 錯誤，寫入執行紀錄。
 
 ## 階段 1：工程基礎（GX10 實作，Claude 審查）
 - [ ] 導入 Vite + TypeScript（或先維持純 JS 但改 ES module + 本地 three 依賴，取代 CDN r128）。
@@ -44,6 +44,19 @@
 - [ ] 更新 README：本輪「實際改動」與「仍為示意 / 已證實」清單。
 
 ## 執行紀錄（GX10 填寫，最新在最上面）
+
+### 2026-10-17 階段 0-2：本地實測（`python3 -m http.server 8765`）
+探測腳本：`tests/stage0_probe.py`（Playwright，1440×900 視窗，畫布 1122×828；FPS 以 5 秒 rAF 計數）。截圖在 `docs/stage0/`。
+
+| 模式 | WebGL 渲染器 | 鳥瞰 FPS | 步行（按住 W）FPS |
+|---|---|---|---|
+| GPU（`--use-angle=gl`） | ANGLE NVIDIA GB10 / OpenGL 4.5 | **60.2** | **60.1** |
+| 軟體（SwiftShader） | SwiftShader Vulkan 1.3 | 13.4 | 16.9 |
+
+- 場景健康值：`rendered 1757`、建築 4、房間 35、照片立面 1，鳥瞰 / 步行模式切換正常。
+- Console 錯誤：僅 1 筆 `404 /favicon.ico`（伺服器日誌證實），**無 JS pageerror**。
+- 注意：60 FPS 是 rAF 的 vsync 上限，GPU 實際餘裕未量到；階段 3「不低於八成」以 GPU 模式 60 FPS 為基準 → 至少 48 FPS。SwiftShader 數值可作低階裝置參考。
+- 觀察：仍從 cdnjs 載 three r128（`index.html:64`），需連網才能跑，階段 1 改本地依賴時處理。
 
 ### 2026-10-17 階段 0-1：環境盤點
 | 項目 | 結果 |
