@@ -343,3 +343,7 @@ Phase 0 分三個檢查點，**檢查點之間不必等雲端驗收**，但每�
 - **混凝土孔洞呈斑塊**：原因是舊的程式疊圖，圓點半徑 6 px／0.9 m 一格，遠看成斑。A 已改成實景 `concrete_formwork`：孔徑 3 cm、孔距 0.6 m、邊緣清楚，遠處被 mipmap 平均掉，不會成斑（梯塔近景見 `docs/round3/B/tower.jpg`）。
 - **鋪面比例（1-7）**：A 已改成 10 × 20 cm 順砌的實景灰連鎖磚（一張代表 0.8 m）。另外，戶外鋪面原本只疊明暗紋理、底色仍是設計圖的米白；現在把底色往貼圖本身的灰色拉（只作用在鋪面色區域，草地、跑道、球場不變），與照片中灰色連鎖磚一致（`jixian_facade_courtyard`、`gate_inside_sculpture_wall`）。
 - 測試：`npm test` ALL PASS；`dx.structure` 17、`dx.ao` 5（`--stale-ok`）、`dx.route` 10、`dx.camstate` 8、`dx.layout` 13、`browser` 8、`dx.textures` 8、`dx.browser` 23 全過。
+
+### D. 測試修補 — 2026-10-18
+- `tests/dx.ao.py`：原本各情境已預設加 `?degrade=0`（第二輪就改了），這次補上**自動降級路徑**。新情境不加 `?degrade=0`，用 init script 讓每幀忙等 70 ms（約 14 FPS），等 5 秒後確認：陰影自動關閉（`renderInfo().shadows=false`、`degraded=true`，console 有「[lighting] FPS 持續低於 30，已自動關閉陰影」）、AO 自動關閉（`status=degraded`，有 `[ao]` 訊息）、無 pageerror。AO 待重烘期間（`--stale-ok`），AO 那一半標 SKIP（簽章不符時 AO 本來就沒套用）。F 重烘後會實測。
+- `tests/dx.browser.py`：開第二個 context（1000 px 小視窗版面檢查）前，先關第一個 context。原本兩個 SwiftShader WebGL 場景同時存在。23 項照舊全過。

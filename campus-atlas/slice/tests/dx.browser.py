@@ -89,6 +89,7 @@ async def main():
         # 手機
         await pg.set_viewport_size({'width':390,'height':780}); await ev('__dx.advance(0.4)'); await shot('13_mobile')
         # 版面：桌機（1280）清單常駐；小視窗（< 1100 px）清單預設收合（第二輪 D）
+        await ctx.close()   # 先關第一個 context 再開第二個（第三輪 D：SwiftShader 同時跑兩個 WebGL 場景很吃記憶體與 CPU）
         c2=await b.new_context(viewport={'width':1000,'height':700}); p2=await c2.new_page(); p2.on('pageerror',lambda e: log['pageerrors'].append(str(e)))
         await p2.goto(f'http://127.0.0.1:{PORT}/dongxin.html'); await p2.wait_for_function('window.__dx',timeout=40000); await p2.wait_for_timeout(400)
         chk('小視窗 1000px：清單預設收合',not await p2.evaluate(PV)); await c2.close()
