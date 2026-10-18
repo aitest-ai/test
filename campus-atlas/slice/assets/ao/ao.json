@@ -5,18 +5,18 @@
   "quality": 85,
   "outSize": 2048
  },
- "signature": "288d190a",
+ "signature": "d1a97412",
  "lightmap": {
   "size": 4096,
   "pad": 3,
-  "texelsPerMeter": 8.956,
-  "faces": 76804,
-  "islands": 30227,
-  "skipped": 46577,
-  "fill": 0.544,
-  "meshes": 97,
-  "signature": "288d190a",
-  "ms": 96
+  "texelsPerMeter": 8.773,
+  "faces": 77144,
+  "islands": 30867,
+  "skipped": 46277,
+  "fill": 0.542,
+  "meshes": 71,
+  "signature": "d1a97412",
+  "ms": 126
  },
  "bake": {
   "blender": "4.0.2",
@@ -26,25 +26,25 @@
   "distance": 1.2,
   "margin": 16,
   "sec": {
-   "import": 0.8,
-   "setup": 1.7,
-   "bake": 195.5,
-   "save": 200.4
+   "import": 0.7,
+   "setup": 1.5,
+   "bake": 170.0,
+   "save": 174.3
   }
  },
  "files": {
   "ao_main": {
-   "contactTexels": 4951310,
-   "filledWhite": 1228841,
+   "contactTexels": 4970060,
+   "filledWhite": 1190314,
    "size": 2048,
-   "KB": 1244.1,
-   "mean": 0.637
+   "KB": 1267.1,
+   "mean": 0.634
   },
   "ao_ground": {
-   "contactTexels": 365952,
-   "filledWhite": 264697,
+   "contactTexels": 365846,
+   "filledWhite": 264741,
    "size": 2048,
-   "KB": 192.9,
+   "KB": 192.8,
    "mean": 0.969
   }
  }

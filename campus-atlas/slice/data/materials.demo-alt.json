@@ -222,7 +222,8 @@
   },
   "tile": {
    "label": "室內地磚",
-   "map": "tile"
+   "map": "tile",
+   "noShadow": true
   },
   "wood": {
    "label": "木門",
@@ -262,7 +263,8 @@
   },
   "ceil": {
    "label": "天花／飾帶",
-   "color": "#f1efe8"
+   "color": "#f1efe8",
+   "noShadow": true
   },
   "glass": {
    "label": "玻璃（透明）",
@@ -285,15 +287,18 @@
   },
   "board": {
    "label": "黑板",
-   "color": "#2f4b43"
+   "color": "#2f4b43",
+   "noShadow": true
   },
   "desk": {
    "label": "課桌",
-   "color": "#c9a46b"
+   "color": "#c9a46b",
+   "noShadow": true
   },
   "chair": {
    "label": "課椅",
-   "color": "#3b6ea5"
+   "color": "#3b6ea5",
+   "noShadow": true
   },
   "trunk": {
    "label": "樹幹",

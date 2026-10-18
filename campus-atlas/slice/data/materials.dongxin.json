@@ -414,7 +414,8 @@
   },
   "tile": {
    "label": "室內地磚",
-   "map": "tile"
+   "map": "tile",
+   "noShadow": true
   },
   "wood": {
    "label": "木門",
@@ -438,11 +439,13 @@
   },
   "tileCorr": {
    "label": "走廊淺灰石英磚",
-   "map": "tileCorr"
+   "map": "tileCorr",
+   "noShadow": true
   },
   "raised": {
    "label": "白色架高地板",
-   "map": "raised"
+   "map": "raised",
+   "noShadow": true
   },
   "granite": {
    "label": "灰色花崗石",
@@ -455,7 +458,8 @@
   },
   "veneer": {
    "label": "淺色木紋貼皮",
-   "map": "veneer"
+   "map": "veneer",
+   "noShadow": true
   },
   "frame": {
    "label": "鋁窗框（灰）",
@@ -477,7 +481,8 @@
   },
   "ceil": {
    "label": "天花／飾帶",
-   "color": "#f1efe8"
+   "color": "#f1efe8",
+   "noShadow": true
   },
   "glass": {
    "label": "玻璃（透明）",
@@ -500,15 +505,18 @@
   },
   "board": {
    "label": "黑板",
-   "color": "#2f4b43"
+   "color": "#2f4b43",
+   "noShadow": true
   },
   "desk": {
    "label": "課桌",
-   "color": "#c9a46b"
+   "color": "#c9a46b",
+   "noShadow": true
   },
   "chair": {
    "label": "課椅",
-   "color": "#3b6ea5"
+   "color": "#3b6ea5",
+   "noShadow": true
   },
   "trunk": {
    "label": "樹幹",

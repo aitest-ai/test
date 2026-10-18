@@ -7,10 +7,10 @@
 ## 狀態
 | 候選 | 狀態 |
 |---|---|
-| `brick_red_8919` | **已接入**（紅磚面磚）→ `assets/textures/brick_red.jpg` |
-| `concrete_fair_1000` | **已接入**（仿清水混凝土，疊模板縫與繫結孔）→ `assets/textures/concrete_fair.jpg` |
+| `brick_red_8919` | 曾接入（紅磚面磚）；**第三輪 A 由實景照片取樣的 `brick_jixian.jpg` 取代，檔案已移除** |
+| `concrete_fair_1000` | 曾接入（仿清水混凝土）；**第三輪 A 由實景照片取樣的 `concrete_formwork.jpg` 取代，檔案已移除** |
 | `floor_terrazzo_1000` | **已接入**（室內地磚／磨石子，疊 1 m 分割條）→ `assets/textures/floor_terrazzo.jpg` |
-| `paving_outdoor_8919` | **已接入**（戶外鋪面，以細節層疊在地面底圖的鋪面色上）→ `assets/textures/paving_outdoor.jpg` |
+| `paving_outdoor_8919` | 曾接入（戶外鋪面）；**第三輪 A 由實景照片取樣的 `pave_interlock.jpg` 取代，檔案已移除** |
 | `wood_door_8919`（第二輪） | **已接入**（木門）→ `assets/textures/wood_door.jpg` |
 | `tile_beige_*`、`tile_beige_v2_*`（第二輪重生成） | 不採用：格線歪斜、斜向排列、黑色粗縫或混入白磚；米黃面磚維持程式化 |
 | `metal_louver_*`（第二輪） | 不採用：三張都生成成斜向魚鱗狀，不是水平百葉；金屬百葉維持程式化 |

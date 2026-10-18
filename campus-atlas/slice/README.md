@@ -39,9 +39,9 @@ tools/blender、tools/comfyui Blender（Docker arm64）與 ComfyUI 材質候選�
 
 ## 測試
 ```bash
-npm test                                # Node：sim、dx.sim（84 目標可達）、dx.collision（穿牆／卡角）、dx.nav（樓梯選擇／淨空／轉乘）、materials
+npm test                                # Node：sim、dx.sim（所有教室與地點可達）、dx.collision（穿牆／卡角）、dx.nav（樓梯選擇／淨空／轉乘）、materials
 npm run build                           # 以下瀏覽器測試都服務 dist/
-python3 tests/dx.browser.py             # 東新版 21 項檢查
+python3 tests/dx.browser.py             # 東新版 23 項檢查
 python3 tests/dx.route.py               # 地面導引帶＋小地圖同步
 python3 tests/dx.camstate.py            # 鏡頭狀態機：切換不跳動
 python3 tests/dx.cam_metrics.py         # 導覽途中鏡頭位移／角速度
@@ -49,7 +49,10 @@ python3 tests/perf.py [--soft|--uncap] [--min-fps N]   # 5 情境 FPS、console 
 python3 tests/parity.py shoot DIR [--query '?skin=…']  # 固定視角截圖；parity.py diff A B 像素差
 python3 tests/glb_viewer.py assets-out/dongxin.glb     # 壓縮後 glb 能以 KTX2 載入
 python3 tests/dx.textures.py            # 圖片型紋理：載入、失敗退回程式化、換膜
-python3 tests/dx.ao.py                  # 烘焙 AO：套用、簽章不符、載入失敗、?ao=0
+python3 tests/dx.ao.py                  # 烘焙 AO：套用、簽章不符、載入失敗、?ao=0、自動降級（慢幀模擬）
+python3 tests/dx.structure.py           # 第三輪結構：柱徑、穿堂淨高與懸挑、窗洞凹深、鰭片凸出、司令台淨高與可走、AO 簽章
+python3 tests/dx.tour.py                # 第三輪 E：任務導覽 4 站、介紹卡與來源、E 互動提示
+python3 tests/viewshot.py OUT [視角…]    # 照片對照視角截圖（--query、--json 自訂視角）
 python3 tests/dx.layout.py [OUT]        # 版面：手機 HUD 不重疊、搖桿、小視窗清單收合
 python3 tests/shots7.py OUT             # 第二輪 7 視角截圖＋量測；tests/compare7.py A B OUT 產生左右對照
 python3 tests/browser.py                # 示意切片
@@ -68,6 +71,15 @@ python3 tools/comfyui/prep_textures.py SRC OUT name=file,mean=#rrggbb,...   # Co
 執行期仍用程式化建模（glb 是管線輸出，未取代即時場景）；AO 以烘焙圖套回即時場景。`scripts/ao_post.py` 需要 numpy、pillow（見 `tests/requirements.txt`）。
 
 ---
+
+## 第三輪實際改動（2026-10-18，同分支；細節見 `../docs/GX10_ROUND3_REALPHOTO.md`）
+- **Phase 0 結構校正**：穿堂改成貫穿集賢樓的挑高通道（校門側淨高 7.2 m、懸挑 1 m、0.9 m 大圓柱、彩繪橋、玻璃角窗房）；走廊柱 0.6 m 並進碰撞；深邊梁＋綠色直條欄杆；集賢樓深凹窗洞（凹 0.41 m）；鰭片量體；開放式司令台；梯塔 13 階；沐風苑／蒙萌園米黃磚＋藍灰屋簷；校門矮牆樹雕；停車場柱與標線。
+- **A 實景材質**：7 張照片取樣貼圖（合計 209 KB），穿堂與廣場改淺灰石英磚、上層走廊石英磚面層、電腦教室白色架高地板與木紋高櫃。
+- **B 幾何與色彩**：3F 圖書室北牆退齊（只有鰭片段凸出）、鰭片盒實體化、窗洞依照片加大、司令台雨遮降低加粗、遊戲塔與螺旋滑梯重做、柱縫調淡、天花改粉刷、照片色票。
+- **C 瑕疵**：校門糊塊（底圖軌道線）、戶外鋪面改灰色連鎖磚。
+- **D 測試**：`dx.ao.py` 加自動降級路徑；`dx.browser.py` 先關第一個 context。
+- **E 遊戲邏輯**：任務式導覽（4 站、進度列、附來源的地點介紹卡）、教室門口與樓梯口的 E 互動提示；新增 `tests/dx.tour.py`。
+- **F 收尾**：門牌合併成圖集（每層 1 個網格）、純色材質在批次中合併成頂點色網格、地板與課桌椅等不投影 → draw calls 低於第二輪；AO 重烘。
 
 ## 第二輪實際改動（2026-10-18，同分支）
 詳細數據、量測與退步紀錄見 `../docs/GX10_ROUND2_QUALITY.md`；前後對照總覽 `../docs/round2/compare_overview.jpg`。
@@ -94,9 +106,17 @@ python3 tools/comfyui/prep_textures.py SRC OUT name=file,mean=#rrggbb,...   # Co
 | 棟名（集賢樓／沐風苑／蒙萌園）與外牆語彙（磚紅面磚、清水混凝土灰、米黃面磚＋藍屋簷） | **已證實（語彙）**：校方簡報＋使用者照片＋使用者說明；個別房間的棟別歸屬由位置推定 | `docs/DONGXIN.md` |
 | 比例尺 0.0756 m/px、層高 3.9 m、樓層對應、門的位置、走廊連通修復 | **推論（B 級）**：為了可走而做的建模決定 | `src/dongxin/model.js` |
 | 房間名稱、精確尺寸、樓梯踏步（踢高約 18 cm、雙跑 U 形）、教室桌椅排列 | **示意** | — |
-| 紅磚面磚、仿清水混凝土、磨石子、戶外鋪面、木門的貼圖 | **原創生成材質（示意）**：SDXL＋ComfyUI 生成的通用建材圖，**不是東新國小實景照片、不是實測色票**；平均色對齊原本的程式化底色 | `assets/textures/`、`assets/texture-candidates/generation*.json` |
-| 紅磚尺寸 | **示意（依通用規格）**：縱向依二丁掛 60 mm 磚＋10 mm 縫（每皮 70 mm），橫向平均磚長約 21 cm；未實測東新外牆 | `data/materials.dongxin.json` |
-| 其餘材質紋理與顏色 | **示意**：程式生成，不是照片貼圖、不是實測色票 | `data/materials.*.json` |
+| 貼圖：集賢樓面磚、清水混凝土、走廊淺灰石英磚、電腦教室白色架高地板、中庭灰連鎖磚、櫃體木紋貼皮、灰色花崗石 | **實景照片取樣（東新國小，使用者提供）**：第三輪 A 由 `assets/photo-src/` 裁切、去縫、做無縫（`scripts/photo_textures.py`）；面磚與地坪因照片解析度不足，取照片的色彩／明暗／顆粒強度後依實測比例重畫接縫；各張的來源區域與平均色寫在材質 JSON | `assets/textures/`、`data/materials.dongxin.json` |
+| 貼圖：教室地坪（磨石子）、木門 | **原創生成材質（示意）**：SDXL＋ComfyUI 生成的通用建材圖，不是東新國小實景照片（沒有教室地坪與木門的照片） | `assets/textures/`、`assets/texture-candidates/generation*.json` |
+| 集賢樓面磚尺寸 | **照片量測**：頻譜量得每層 4.2 px、磚長 14.4 px，以窗台列距＝層高 3.9 m 為尺 → 每層 7 cm、磚長 24 cm（第三輪 A） | `docs/GX10_ROUND3_REALPHOTO.md` |
+| 色票：集賢樓磚、清水混凝土、綠欄杆、藍灰屋簷、米黃磚 | **照片取樣**：受光面平均／中位色（第三輪 B），寫在材質 JSON 的 evidence；米黃磚紋理本身仍是程式生成（示意） | `data/materials.dongxin.json` |
+| 其餘材質紋理與顏色（草地、金屬百葉、粉刷、窗框灰、課桌椅…） | **程式紋理／示意**：程式生成或指定色，不是照片貼圖、不是實測色票 | `data/materials.*.json` |
+| 結構尺寸（穿堂淨高與懸挑、柱徑、窗洞凹深與尺寸、梯塔階數、鰭片量體、司令台） | **照片推算**：以層高 3.9 m、欄杆 1.1 m、門 2.35 m 等已知尺寸當尺量測；沒有可靠參照的標「估計」（第三輪 Phase 0／B） | `docs/GX10_ROUND3_REALPHOTO.md` |
+| 3F 圖書室北牆 | **使用者決定**：只讓鰭片段（21.3 m）凸出，其餘與 2F／4F 齊平（設計圖原為整層凸出 1.52 m） | `docs/GX10_ROUND3_REALPHOTO.md` B |
+| 停車場坡道坡度（約 33%） | **示意**：使用者決定維持，不改成常見的 15% | `docs/GX10_ROUND3_REALPHOTO.md` |
+| 時鐘梯塔的時鐘與綠色百葉箱位置 | **未驗證**：新照片看不到，維持早期照片的做法，待使用者補拍 | `docs/GX10_ROUND3_REALPHOTO.md` |
+| 遊戲塔與螺旋滑梯、校門樹雕、司令台雨遮 | **照片近似**：依使用者照片的幾何近似（尺寸估計） | `src/dongxin/scene.js` |
+| 任務導覽的地點介紹文字 | **已查證資料**：棟名與用途（使用者確認）、使用者照片；每張卡附來源，不寫未驗證的尺寸或細節 | `data/tour.dongxin.json` |
 | 環境遮蔽（AO） | **計算結果（對示意模型而言）**：Cycles 依本模型幾何烘焙，遮蔽距離 1.2 m；反映的是示意幾何，不是實景光照；實例化的柱、樹與窗框等細部未涵蓋 | `assets/ao/ao.json` |
 | 陰影方向與強度 | **示意**：固定的太陽方向，不對應實際方位與時間 | `src/dongxin/app/lighting.js` |
 | B1 內部、停車場坡道尺寸、校門細節 | **示意**（B1 幾乎是空的；坡道未接入導航） | `docs/DONGXIN.md` |

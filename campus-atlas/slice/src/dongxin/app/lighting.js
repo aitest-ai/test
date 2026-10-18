@@ -29,10 +29,11 @@ export function createLighting(renderer, scene, override, { shadows = true } = {
   const catcher = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.ShadowMaterial({ opacity: S.groundOpacity, depthWrite: false }));
   catcher.rotation.x = -Math.PI / 2; catcher.position.y = 0.02; catcher.receiveShadow = true; catcher.renderOrder = 1; catcher.visible = on; scene.add(catcher);
 
-  // 哪些網格投影／受影：不透明、受光的材質才參與；看板（MeshBasic）、玻璃（透明）、標記不投影
+  // 哪些網格投影／受影：不透明、受光的材質才參與；看板（MeshBasic）、玻璃（透明）、標記不投影；
+  // 材質 JSON 標 noShadow 的（地板、課桌椅、黑板、飾帶、櫃子…：陰影幾乎看不到）只受影、不投影，省下陰影貼圖那一趟 draw call（第三輪 F）
   function setupCasters(root) {
     let n = 0; root.traverse(o => { if (!o.isMesh) return; const m = o.material, lit = m && !m.isMeshBasicMaterial && !m.isShadowMaterial, opaque = m && !m.transparent;
-      o.castShadow = lit && opaque; o.receiveShadow = lit; if (o.castShadow) n++; }); return n; }
+      o.castShadow = lit && opaque && !(m.userData && m.userData.noShadow); o.receiveShadow = lit; if (o.castShadow) n++; }); return n; }
   let ext = 0;
   function update(S_, birdMode) {        // 每幀：陰影相機跟著角色（鳥瞰時放大範圍）；以 texel 為單位對齊，移動時陰影不閃爍
     if (!on) return; const e = birdMode ? S.birdExtent : S.extent;

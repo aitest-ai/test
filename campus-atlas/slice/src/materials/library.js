@@ -1,7 +1,7 @@
 // 材質庫：由材質 JSON（data/materials.*.json）建出 three 材質。換校＝換一份 JSON（換膜），程式不用改。
 //   textures  依序產生（共用亂數序列 → 同一份 JSON 永遠產生相同紋理；個別紋理可給 seed 用自己的序列）
 //             加上 "image" 區塊即為圖片型紋理：先用程式化版本（gen/p）當備援立即顯示，圖片載入後換上；載入失敗就一直用備援，不會白屏。
-//   materials 物理材質（紅磚、清水混凝土、鋁框、玻璃、地磚…）：map 指向紋理，或 color；unlit 用 MeshBasic
+//   materials 物理材質（紅磚、清水混凝土、鋁框、玻璃、地磚…）：map 指向紋理，或 color；unlit 用 MeshBasic；noShadow：只受影、不投影
 //   roles     場景角色 → 材質 id（外牆、樓板、欄杆、各棟立面、各棟屋頂…），場景程式只認角色
 //   accents   房間類型色帶
 //
@@ -89,7 +89,7 @@ export function buildMaterials(spec, { resolve = (s) => s } = {}) {
   for (const [id, d] of Object.entries(spec.materials)) {
     const o = {}; if (d.map) o.map = TEX[d.map]; if (d.color) o.color = new THREE.Color(d.color);
     if (d.transparent) { o.transparent = true; o.opacity = d.opacity ?? 1; } if (d.depthWrite === false) o.depthWrite = false;
-    M[id] = d.unlit ? new THREE.MeshBasicMaterial(o) : new THREE.MeshLambertMaterial(o); M[id].name = id; M[id].userData.label = d.label || id;
+    M[id] = d.unlit ? new THREE.MeshBasicMaterial(o) : new THREE.MeshLambertMaterial(o); M[id].name = id; M[id].userData.label = d.label || id; if (d.noShadow) M[id].userData.noShadow = true;
   }
   const roles = {}; for (const [r, id] of Object.entries(spec.roles || {})) roles[r] = M[id];
   const acc = {}; for (const [k, c] of Object.entries(spec.accents || {})) acc[k] = new THREE.MeshLambertMaterial({ color: new THREE.Color(c) });

@@ -18,9 +18,10 @@ export function buildDongxinScene(m, MS, opts = {}) {
     const t = new T.CanvasTexture(c); t.anisotropy = 4; if (repeat) t.wrapS = t.wrapT = T.RepeatWrapping; return t; };
   const roundRect = (g, x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
   const fit = (g, txt, maxW, size, weight) => { let s = size; g.font = weight + ' ' + s + 'px ' + FONT; while (g.measureText(txt).width > maxW && s > 12) { s -= 2; g.font = weight + ' ' + s + 'px ' + FONT; } return s; };
-  const signTex = (name, color) => canvasTex(256, 96, (g, w, h) => {
+  // 門牌：畫在 (ox, oy) 起的 w×h 格（第三輪 F：所有門牌畫進同一張圖集，見 flushSigns）
+  const drawSign = (g, ox, oy, w, h, name, color) => { g.save(); g.translate(ox, oy);
     g.fillStyle = color; roundRect(g, 2, 2, w - 4, h - 4, 16); g.fill(); g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 3; roundRect(g, 8, 8, w - 16, h - 16, 11); g.stroke();
-    g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'; fit(g, name, w - 36, 52, '700'); g.fillText(name, w / 2, h / 2 + 2); });
+    g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'; fit(g, name, w - 36, 52, '700'); g.fillText(name, w / 2, h / 2 + 2); g.restore(); };
 
   // 場景角色 → 材質：全部來自材質 JSON 的 roles（換校＝換 JSON）。facade.* / roof.* 為各棟立面與屋頂。
   const M = Object.assign({}, MS.roles), R = (k) => MS.role(k);
@@ -196,15 +197,27 @@ function corridorFace(ib,sd,r,door,y0,wh){
     if(ax==='x') ib.add(M.wood,0.05,DOOR_H-0.06,lw,g0+0.06,Y((DOOR_H-0.06)/2),fix+nz*(lw/2+0.1));
     else ib.add(M.wood,lw,DOOR_H-0.06,0.05,fix+nx*(lw/2+0.1),Y((DOOR_H-0.06)/2),g0+0.06); }
 }
+// 門牌（第三輪 F：draw call 收斂）：原本每塊門牌 2 個網格＋各自一張貼圖（約 190 個 draw call）；改為先收集，
+// flushSigns 把所有門牌畫進同一張圖集（每格 256×96，格間留 8 px 防 mipmap 滲色），每個樓層群組合併成 1 個網格（鳥瞰剖層照樣跟著樓層顯示／隱藏）
+const SIGNS=new Map();   // 群組 → [{text,col,pos:[[x,y,z,ry],...]}]
 function doorSign(g,r,door,y0,text,col){
-  const tex=signTex(text,col); tex.shared=false;
-  const mat=new T.MeshBasicMaterial({map:tex,side:T.FrontSide});
   const rot={N:Math.PI,S:0,E:Math.PI/2,W:-Math.PI/2}[door.side];
-  const nx=door.nx,nz=door.nz, off=SLAB/2+0.03;
-  [1,-1].forEach(dir=>{
-    const m=new T.Mesh(new T.PlaneGeometry(1.7,0.64),mat); m.position.set(door.x+nx*off*dir,y0+DOOR_H+0.62,door.z+nz*off*dir);
-    m.rotation.y=rot+(dir<0?Math.PI:0); g.add(m);
-  });
+  const nx=door.nx,nz=door.nz, off=SLAB/2+0.03, pos=[1,-1].map(dir=>[door.x+nx*off*dir,y0+DOOR_H+0.62,door.z+nz*off*dir,rot+(dir<0?Math.PI:0)]);
+  if(!SIGNS.has(g)) SIGNS.set(g,[]); SIGNS.get(g).push({text,col,pos});
+}
+function flushSigns(){
+  const all=[...SIGNS.values()].flat(); if(!all.length) return;
+  const CW=256, CH=96, GUT=8, cols=Math.floor(2048/(CW+GUT)), rows=Math.ceil(all.length/cols), W=cols*(CW+GUT), H=rows*(CH+GUT);
+  let k=0; const cell=new Map();
+  const tex=canvasTex(W,H,(g)=>{ g.clearRect(0,0,W,H); for(const s of all){ const cx=(k%cols)*(CW+GUT)+GUT/2, cy=Math.floor(k/cols)*(CH+GUT)+GUT/2; drawSign(g,cx,cy,CW,CH,s.text,s.col); cell.set(s,[cx,cy]); k++; } });
+  tex.shared=false; const mat=new T.MeshBasicMaterial({map:tex,side:T.FrontSide}); mat.name='doorSigns';
+  const mm=new T.Matrix4(), q=new T.Quaternion(), ax=new T.Vector3(0,1,0), one=new T.Vector3(1,1,1), p=new T.Vector3();
+  SIGNS.forEach((list,g)=>{ const parts=[];
+    for(const s of list){ const [cx,cy]=cell.get(s), u0=cx/W, u1=(cx+CW)/W, v1=1-cy/H, v0=1-(cy+CH)/H;
+      for(const [x,y,z,ry] of s.pos){ const pg=new T.PlaneGeometry(1.7,0.64), uv=pg.attributes.uv;
+        for(let i=0;i<uv.count;i++) uv.setXY(i,u0+uv.getX(i)*(u1-u0),v0+uv.getY(i)*(v1-v0));
+        q.setFromAxisAngle(ax,ry); p.set(x,y,z); pg.applyMatrix4(mm.compose(p,q,one)); parts.push(pg); } }
+    const mesh=new T.Mesh(BGU.mergeGeometries(parts),mat); mesh.name='doorSigns_'+g.name; g.add(mesh); });
 }
 const TWR = m.TOWER ? m.TOWER.s : null;   // 時鐘梯塔（最靠近校門的梯間）
 // 3F→4F 轉折平台後方：米白粉刷牆＋木紋門（機房／儲藏）＋灰色消防栓箱（照片 tower_landing_3to4.jpg）
@@ -739,6 +752,6 @@ function buildSigns(){
 }
   m.ROOMS.forEach(r=>{ if(['潛能教室','電腦教室','音樂教室'].includes(r.name)) r.ribbon=true; });
   const FIB = FG.map(g => IB(g));   // 各樓層共用的方塊批次（buildFloors、buildChuantang 都加進來，最後一次合併）
-  buildGround(); buildFloors(); buildChuantang(); buildStage(); buildFinBox(); buildSlide(); buildTower(); buildGuard(); buildPlanters(); buildGarage(); FIB.forEach(b => b.flush()); buildFence(); buildDecor(); buildTrees(); buildTreeSupports(); buildRamp(); buildSigns(); flushProps();
+  buildGround(); buildFloors(); buildChuantang(); buildStage(); buildFinBox(); buildSlide(); buildTower(); buildGuard(); buildPlanters(); buildGarage(); FIB.forEach(b => b.flush()); buildFence(); buildDecor(); buildTrees(); buildTreeSupports(); buildRamp(); buildSigns(); flushProps(); flushSigns();
   return { root, FG, CAN, UNDER, PILLARS, WINDOWS, FINBOX, PLANTERS: PLANTERS.planters.length, get groundMesh() { return groundMesh; }, get groundBox() { return groundBox; }, GATE, ACC, GB };
 }
