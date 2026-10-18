@@ -43,11 +43,13 @@ function recomp(o){ o.X0=WX0+o.i0*CELL; o.X1=WX0+(o.i1+1)*CELL; o.Z0=WZ0+o.j0*CE
   BYFLOOR.forEach(l=>l.forEach(recomp));
 })();
 ROOMS.forEach(r=>{ if(['潛能教室','電腦教室','音樂教室'].includes(r.name)&&r.x0/SC>800){ r.keep=true; r.forceDoor='N'; } });
-// 相對位置（使用者實測回報，Phase 0.5）：會議室 → 會議室牆 → 樓梯 → 電腦教室；電腦教室整間在梯塔之後（往警衛室方向），門開在梯塔外側
+// 相對位置（使用者實測回報，Phase 0.5）：前一間 → 牆 → 樓梯 → 電腦教室／潛能教室／音樂教室／（1F）儲藏室；
+// 這幾間整間在梯塔之後（往警衛室方向），門開在梯塔外側；走廊側的牆從前一間一路連到它，沒有縫隙
 (function(){ const s4=STAIRS.find(s=>s.id==='S4'); if(!s4) return;
-  ROOMS.forEach(r=>{ if(r.name==='電腦教室'&&s4.fl.includes(r.f)&&r.j0<=s4.j1){ r.j0=s4.j1+1; recomp(r);
-    // 實景：走廊側是一整面牆從會議室連到電腦教室、沒有缺口 → 會議室往南延伸到電腦教室
-    const mr=BYFLOOR[r.f].find(q=>q.name==='會議室'); if(mr&&mr.j1<r.j0-1){ mr.j1=r.j0-1; recomp(mr); } } }); })();
+  ROOMS.forEach(r=>{ if(!['電腦教室','潛能教室','音樂教室','儲藏室'].includes(r.name)||r.X0>64||r.X0<60||!s4.fl.includes(r.f)||r.f>3) return;
+    r.j0=s4.j1+1; recomp(r);
+    let prev=null; for(const q of BYFLOOR[r.f]){ if(q===r||q.X0>64||q.X1<r.X0+2||q.Z1>r.Z0+1.5||q.Z1<r.Z0-8||q.Z0>=r.Z0) continue; if(!prev||q.Z1>prev.Z1) prev=q; }
+    if(prev){ prev.j1=r.j0-1; prev.keep=true; recomp(prev); } }); })();
 (function trimToCorridor(){ // 房間不得吃進走廊：外緣整排大多是走廊格就往內縮（保持走廊連續）
   for(let f=0;f<4;f++){ const cm=CORR[f];
     for(const r of BYFLOOR[f]){ if(r.solid||r.keep) continue;

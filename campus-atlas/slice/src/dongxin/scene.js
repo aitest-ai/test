@@ -259,7 +259,7 @@ function buildStairInterior(ib,g,s,f){
   const o1=F1*(W/2-0.05), o2=-o1, h1=F1*(W/2-0.09), h2=-h1;
   if(solid(comp(F1))) hand(s.uA,h1,y0,s.uB,h1,yM); else { railQ(s.uA,o1,y0,s.uB,o1,yM,1.1); railQ(s.uB,o1,yM,hw,o1,yM,1.1); }
   if(solid(comp(-F1))) hand(s.uB,h2,yM,s.uA,h2,y0+FH); else { railQ(s.uB,o2,yM,s.uA,o2,y0+FH,1.1); railQ(s.uB,o2,yM,hw,o2,yM,1.1); }
-  if(!solid(bEnd)){ if(s===TWR&&f===2) towerLandingWall(ib,s,f,box); else railQ(hw-0.05,-W/2,yM,hw-0.05,W/2,yM,1.1); }
+  if(!solid(bEnd)){ railQ(hw-0.05,-W/2,yM,hw-0.05,W/2,yM,1.1); }
 }
 // 沐風苑／蒙萌園屋頂（S5、S11）：外牆邊加藍灰色金屬斜屋簷（沐風苑出挑 1.0 m、封邊 0.35 m；蒙萌園薄簷出挑 0.6 m）；
 // 蒙萌園單層翼樓：幼兒園辦公室＝平屋頂（深灰防水層＋低女兒牆），其餘＝藍色鋼板單斜屋頂（照片 mengmeng_mufeng_courtyard_a/b；哪一翼用哪種為推定）。
@@ -341,7 +341,8 @@ function buildFloors(){
     for(const p of m.PILLARS){ if(f<p.f0||f>p.f1) continue; const ya=f===p.f0?p.y0:LY(f), yb=f===p.f1?p.y1:LY(f)+FH; ib.cyl(p.kind==='ctPaint'?muralCol():colMat,p.r*2,yb-ya,p.x,(ya+yb)/2,p.z);
       if(f===0&&p.f0===0) ib.cyl(colMat,p.r*2+0.12,0.06,p.x,0.03,p.z); }   // 柱腳小圓盤
     // 走廊外緣（S3）：深邊梁（樓板下外露 0.9 m）＋ 0.25 m 矮緣（寬 0.3 m，在走廊線外側）＋ 綠色直條欄杆（總高 1.1 m）
-    if(f>0&&!GARAGE) for(const e of EDGES[f]){ const len=e.b-e.a; if(len<0.1) continue; const c=(e.a+e.b)/2;
+    if(f>0&&!GARAGE) for(const e of EDGES[f]){ const len=e.b-e.a; if(len<0.1) continue;
+      if(TWR&&len<0.6&&e.ax==='x'&&Math.abs(e.a-TWR.X0)<0.6&&e.fix>TWR.Z0-0.3&&e.fix<TWR.Z1+0.3) continue; /* 梯塔入口兩側多出來的 0.3 m 小欄杆（使用者回報）：不畫 */ const c=(e.a+e.b)/2;
       const put=(mt,off,th,y,h,L=len,cc=c)=>{ const q=e.fix+e.out*off; if(e.ax==='x') ib.add(mt,L,h,th,cc,y,q); else ib.add(mt,th,h,L,q,y,cc); };
       put(M.conc,0.15,0.3,y0-0.9+1.15/2,1.15);
       put(railBars,0.15,0.03,y0+0.25+0.85/2,0.85); put(M.rail,0.15,0.06,y0+1.08,0.05); put(M.rail,0.15,0.05,y0+0.3,0.04);
