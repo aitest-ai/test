@@ -337,3 +337,9 @@ Phase 0 分三個檢查點，**檢查點之間不必等雲端驗收**，但每�
 **對照圖**：`docs/round3/B/`（左照片、右模型，`?ao=0`）：`ct_far`、`jx34`、`fin`、`stage`、`mm_b`、`mf`、`comp`、`tower`。
 
 **測試**：`npm test` ALL PASS（DX SIM 149/149、COLLISION、NAV、MATERIALS）；`dx.structure` 17、`dx.ao` 5（`--stale-ok`，AO 在 F 重烘）、`dx.route` 10、`dx.camstate` 8、`dx.layout` 13、`browser` 8、`dx.textures` 8、`dx.browser` 23 全過。
+
+### C. 已知瑕疵 — 2026-10-18
+- **校門右下角糊塊**：用 `?shadows=0` 確認不是陰影，也不是 AO（目前 AO 因簽章不符沒有套用，仍看得到）。原因是 3D 地面底圖 `dongxin_plan_soft.jpg` 在校門線下方有兩條淡灰細線（設計圖上伸縮門的軌道線，平面圖座標約 x 1150–1300、y 1030–1045），底圖解析度低，斜看就變成一道模糊斜斑。只把影像 (1655,2274)-(1775,2314) 這一塊裡比底色暗的像素換成周邊底色（中位色 249,243,231，邊緣羽化，共 624 px），其餘像素不動。用原檔的量化表一次重存（744 → 712 KB）。小地圖用的 `dongxin_plan.jpg` 沒動。前後見 `docs/round3/C/gate_before_after.jpg`。
+- **混凝土孔洞呈斑塊**：原因是舊的程式疊圖，圓點半徑 6 px／0.9 m 一格，遠看成斑。A 已改成實景 `concrete_formwork`：孔徑 3 cm、孔距 0.6 m、邊緣清楚，遠處被 mipmap 平均掉，不會成斑（梯塔近景見 `docs/round3/B/tower.jpg`）。
+- **鋪面比例（1-7）**：A 已改成 10 × 20 cm 順砌的實景灰連鎖磚（一張代表 0.8 m）。另外，戶外鋪面原本只疊明暗紋理、底色仍是設計圖的米白；現在把底色往貼圖本身的灰色拉（只作用在鋪面色區域，草地、跑道、球場不變），與照片中灰色連鎖磚一致（`jixian_facade_courtyard`、`gate_inside_sculpture_wall`）。
+- 測試：`npm test` ALL PASS；`dx.structure` 17、`dx.ao` 5（`--stale-ok`）、`dx.route` 10、`dx.camstate` 8、`dx.layout` 13、`browser` 8、`dx.textures` 8、`dx.browser` 23 全過。

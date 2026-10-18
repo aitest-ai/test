@@ -590,7 +590,8 @@ function groundDetail(mat, det, tile){
           vec2 gq=abs(fract(vWXZ/0.6+0.5)-0.5)*0.6; float ln=1.0-smoothstep(0.004,0.012,min(gq.x,gq.y)); float l=dot(pc,vec3(0.3,0.59,0.11));
           vec3 gc=uTileK>0.0?texture2D(uTile,vWXZ*uTileScale).rgb*1.05:vec3(l*0.93,l*0.95,l*0.96)*(1.0-0.22*ln);
           diffuseColor.rgb=mix(diffuseColor.rgb,gc,wp); }
-        else diffuseColor.rgb*=mix(vec3(1.0),d,w*uDetK); }`); };
+        else { vec3 tc=texture2D(uDet,vWXZ*uDetScale).rgb*1.12;   // 鋪面：除了加紋理，也把底圖的米白往實景連鎖磚的灰色拉（照片 jixian_facade_courtyard、gate_inside_sculpture_wall 為灰色連鎖磚）
+          diffuseColor.rgb=mix(diffuseColor.rgb*mix(vec3(1.0),d,w*uDetK),tc,w*uDetK*1.2); } }`); };
   mat.customProgramCacheKey=()=>'groundDetail';
 }
 function buildDecor(){
