@@ -4,6 +4,8 @@ import { buildDongxinScene } from '../scene.js';
 import { makeMaterials } from '../../scene/materials.js';
 import { makeCharacter } from '../../scene/character.js';
 import { createLighting } from './lighting.js';
+import { assignLightmapUV } from '../lightmap.js';
+import { createAO } from './ao.js';
 
 export function createStage(canvas, m, world, { planSoft, skin, shadows = true }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -15,6 +17,9 @@ export function createStage(canvas, m, world, { planSoft, skin, shadows = true }
   const lighting = createLighting(renderer, scene, skin && skin.lighting, { shadows });   // 曝光、太陽、柔和陰影（lighting.js）
   const M = makeMaterials(skin);   // skin＝材質 JSON（換膜）；未給則用東新預設
   const dx = buildDongxinScene(m, M, { planUrl: planSoft }); scene.add(dx.root);
+  const Q = new URLSearchParams(location.search);
+  const lm = assignLightmapUV(dx.root, { size: +(Q.get('lmsize') || 4096) });   // AO 圖集座標（lightmap.js）
+  const ao = createAO(dx, lm, { enabled: Q.get('ao') !== '0', intensity: +(Q.get('aok') || 1) });   // 烘焙 AO（ao.js）；?ao=0 關閉
   world.setPillars(dx.PILLARS);
   lighting.setupCasters(dx.root);
 
@@ -37,5 +42,5 @@ export function createStage(canvas, m, world, { planSoft, skin, shadows = true }
     if (dx.groundMesh) dx.groundMesh.visible = !(bird && showB1);
   }
 
-  return { renderer, scene, camera, sun: lighting.sun, lighting, M, dx, selPlane, pin, ch, resize, applyFloorVisibility, render() { renderer.render(scene, camera); } };
+  return { renderer, scene, camera, sun: lighting.sun, lighting, M, dx, lm, ao, selPlane, pin, ch, resize, applyFloorVisibility, render() { renderer.render(scene, camera); } };
 }

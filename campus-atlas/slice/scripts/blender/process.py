@@ -8,7 +8,8 @@ argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 opt = lambda k, d: type(d)(argv[argv.index(k) + 1]) if k in argv else d
 inp, out = argv[0], argv[1]
 RES, SAMPLES, MERGE = opt('--res', 2048), opt('--samples', 16), opt('--merge', 0.0005)
-T0 = time.time(); rep = {'input': inp, 'blender': bpy.app.version_string, 'res': RES, 'samples': SAMPLES}
+DIST, MARGIN, PUSH = opt('--distance', 1.2), opt('--margin', 16), opt('--push', 0.02)   # 第二輪：AO 距離 6 → 1.2 m（室內不再整片變暗）、邊緣外擴 4 → 16 px、共面外推
+T0 = time.time(); rep = {'input': inp, 'blender': bpy.app.version_string, 'res': RES, 'samples': SAMPLES, 'distance': DIST, 'margin': MARGIN, 'push': PUSH}
 def lap(k):
     rep.setdefault('sec', {})[k] = round(time.time() - T0, 1); print('STEP', k, rep['sec'][k], 's', flush=True)
 
@@ -49,6 +50,8 @@ rep.update(verticesMerged=merged, facesFlipped=flipped, triangles=tris); lap('no
 # 合併成單一物件（保留各材質槽）：烘焙一次完成，避免上千個物件逐一烘焙的開銷
 # 超大底色平面（最大邊 > 300 m）不烘 AO：它會吃掉整張 lightmap 的面積，校舍只剩細縫
 big = [o for o in meshes if max(o.dimensions) > 300]; meshes = [o for o in meshes if o not in big]; rep['excludedHuge'] = [o.name for o in big]
+# 帶頂點色的網格（樹冠：匯出時把逐實例顏色攤平成 COLOR_0）不合併也不烘 AO：合併會讓其他網格也帶上預設頂點色，樹冠也不需要 AO
+colored = [o for o in meshes if len(getattr(o.data, 'color_attributes', [])) > 0]; meshes = [o for o in meshes if o not in colored]; rep['keptVertexColor'] = [o.name for o in colored]
 bpy.ops.object.select_all(action='DESELECT')
 for o in meshes: o.select_set(True)
 bpy.context.view_layer.objects.active = meshes[0]; bpy.ops.object.join(); meshes = [bpy.context.view_layer.objects.active]
@@ -75,13 +78,14 @@ rep['trianglesAfterSubdiv'] = sum(len(p.vertices) - 2 for o in meshes for p in o
 bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT')
 bpy.ops.mesh.mark_seam(clear=False)
 bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.0)
-bpy.ops.uv.pack_islands(rotate=True, margin=2.0 / RES)
+bpy.ops.uv.pack_islands(rotate=True, margin=6.0 / RES)   # 島距 2 → 6 px：外擴有空間，不會互相覆蓋（上一輪黑縫）
 bpy.ops.object.mode_set(mode='OBJECT'); lap('uv')
 
 # ---------- 3. 烘焙 AO（Cycles，CPU） ----------
 sc = bpy.context.scene; sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'; sc.cycles.samples = SAMPLES
 sc.cycles.use_denoising = False   # Ubuntu arm64 版未編入 OpenImageDenoise：開著會讓算圖報錯、烘焙悄悄輸出全黑
-sc.world = sc.world or bpy.data.worlds.new('W'); sc.world.light_settings.distance = 6.0   # AO 距離 6 m
+sc.world = sc.world or bpy.data.worlds.new('W'); sc.world.light_settings.distance = DIST
+sc.render.bake.margin = MARGIN; sc.render.bake.margin_type = 'EXTEND'
 img = bpy.data.images.new('campus_ao', RES, RES, alpha=False, float_buffer=False); img.generated_color = (1, 1, 1, 1)
 mats = {m for o in meshes for m in o.data.materials if m}
 for m in mats:
@@ -89,10 +93,21 @@ for m in mats:
     uvn = nt.nodes.new('ShaderNodeUVMap'); uvn.uv_map = 'AO'; uvn.name = 'AO_UV'
     tn = nt.nodes.new('ShaderNodeTexImage'); tn.image = img; tn.name = 'AO_TEX'; tn.interpolation = 'Linear'
     nt.links.new(uvn.outputs['UV'], tn.inputs['Vector']); nt.nodes.active = tn
+# 共面重疊（屋頂盒與天花板盒）會自撞成斑駁：烘焙用每個面沿法線外推 PUSH 的複本（對次級光線不可見），原幾何當遮蔽物（同 bake_uv1.py）
+bake_obj = meshes[0]
+if PUSH > 0:
+    dup = bake_obj.copy(); dup.data = bake_obj.data.copy(); bpy.context.collection.objects.link(dup)
+    bm = bmesh.new(); bm.from_mesh(dup.data); bmesh.ops.split_edges(bm, edges=bm.edges[:])
+    for f in bm.faces:
+        d = f.normal * PUSH
+        for v in f.verts: v.co += d
+    bm.to_mesh(dup.data); bm.free()
+    for k in ('visible_diffuse', 'visible_glossy', 'visible_transmission', 'visible_volume_scatter', 'visible_shadow'): setattr(dup, k, False)
+    bake_obj = dup
 bpy.ops.object.select_all(action='DESELECT')
-for o in meshes: o.select_set(True)
-bpy.context.view_layer.objects.active = meshes[0]
-bpy.ops.object.bake(type='AO', margin=4, use_clear=True, target='IMAGE_TEXTURES')
+bake_obj.select_set(True); bpy.context.view_layer.objects.active = bake_obj
+bpy.ops.object.bake(type='AO', margin=MARGIN, use_clear=True, target='IMAGE_TEXTURES')
+if bake_obj is not meshes[0]: bpy.data.objects.remove(bake_obj, do_unlink=True)
 img.filepath_raw = os.path.splitext(out)[0] + '_ao.png'; img.file_format = 'PNG'; img.save()
 allpx = img.pixels[:]; px = allpx[0::4 * 97]; rep['aoMean'] = round(sum(px) / len(px), 3); lap('bake')
 
@@ -108,6 +123,6 @@ lap('hook')
 
 # ---------- 5. 匯出 ----------
 os.makedirs(os.path.dirname(out) or '.', exist_ok=True)
-bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', export_image_format='AUTO', export_texcoords=True, export_normals=True, export_materials='EXPORT', use_selection=False, export_apply=True)
+bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', export_image_format='AUTO', export_texcoords=True, export_normals=True, export_colors=True, export_materials='EXPORT', use_selection=False, export_apply=True)
 rep['outputKB'] = os.path.getsize(out) // 1024; lap('export')
 json.dump(rep, open(out + '.blender.json', 'w'), ensure_ascii=False, indent=1); print('BLENDER_REPORT', json.dumps(rep, ensure_ascii=False))

@@ -43,7 +43,7 @@ async def main(out):
             pg.on('response', lambda r: got.__setitem__(0, got[0] + int(r.headers.get('content-length', 0) or 0)))
             t0 = time.time(); await pg.goto(url, wait_until='domcontentloaded'); await pg.wait_for_function('window.__dx', timeout=60000)
             lt.append(time.time() - t0)
-            await pg.evaluate('__dx.texturesReady ? __dx.texturesReady() : null'); lt2.append(time.time() - t0)
+            await pg.evaluate('__dx.texturesReady ? __dx.texturesReady() : null'); await pg.evaluate('__dx.aoReady ? __dx.aoReady() : null'); lt2.append(time.time() - t0)
             await pg.wait_for_timeout(300); xfer.append(got[0]); await c.close()
         M['loadSec'] = {'median': round(statistics.median(lt), 2), 'all': [round(x, 2) for x in lt]}
         M['loadSecTexturesReady'] = {'median': round(statistics.median(lt2), 2), 'all': [round(x, 2) for x in lt2]}
@@ -63,12 +63,13 @@ async def main(out):
         c = await b.new_context(viewport={'width': 1200, 'height': 760}); pg = await c.new_page(); hook(pg)
         await pg.goto(url); await pg.wait_for_function('window.__dx', timeout=60000)
         M['textures'] = await pg.evaluate('__dx.texturesReady ? __dx.texturesReady() : null')   # 圖片型紋理載入完成才拍
+        M['ao'] = await pg.evaluate('__dx.aoReady ? __dx.aoReady() : null')
         await views(pg, POSES, True)
         M['memory'] = await pg.evaluate('__dx.memInfo()'); M['renderer'] = await pg.evaluate("""()=>{const g=document.createElement('canvas').getContext('webgl');const d=g&&g.getExtension('WEBGL_debug_renderer_info');return d?g.getParameter(d.UNMASKED_RENDERER_WEBGL):null}""")
         await c.close()
         c = await b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, is_mobile=True, has_touch=True); pg = await c.new_page(); hook(pg)
         await pg.goto(url); await pg.wait_for_function('window.__dx', timeout=60000)
-        await pg.evaluate('__dx.texturesReady ? __dx.texturesReady() : null')
+        await pg.evaluate('__dx.texturesReady ? __dx.texturesReady() : null'); await pg.evaluate('__dx.aoReady ? __dx.aoReady() : null')
         if await pg.is_visible('#help'): await pg.click('#helpclose')
         await views(pg, MOBILE, False)
         await c.close(); await b.close()

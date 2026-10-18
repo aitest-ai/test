@@ -13,6 +13,7 @@ ap.add_argument('--soft', action='store_true', help='SwiftShader 軟體渲染（
 ap.add_argument('--out', default=os.path.join(ROOT, 'tests', 'perf-out')); ap.add_argument('--label')
 ap.add_argument('--uncap', action='store_true', help='解除 vsync，量 GPU 真實上限')
 ap.add_argument('--secs', type=float, default=5.0)
+ap.add_argument('--query', default='', help='網址參數，例如 ?ao=0')
 ap.add_argument('--min-fps', type=float, default=0, help='任一情境低於此值即失敗')
 a = ap.parse_args()
 label = a.label or ('soft' if a.soft else 'gpu_uncap' if a.uncap else 'gpu')
@@ -24,7 +25,7 @@ if not url:
         def log_message(self, *x): pass
     srv = socketserver.TCPServer(('127.0.0.1', 0), functools.partial(Q, directory=os.path.join(ROOT, 'dist')))
     threading.Thread(target=srv.serve_forever, daemon=True).start()
-    url = f'http://127.0.0.1:{srv.server_address[1]}/dongxin.html'
+    url = f'http://127.0.0.1:{srv.server_address[1]}/dongxin.html' + (a.query or '')
 
 ARGS = ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] if a.soft else \
        ['--no-sandbox', '--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=gl'] + (['--disable-gpu-vsync', '--disable-frame-rate-limit'] if a.uncap else [])
@@ -59,6 +60,7 @@ async def main():
             if hold: await pg.keyboard.up(hold)
             r['info'] = await pg.evaluate('__dx.info()')
             r['calls'] = await pg.evaluate('__dx.renderInfo ? __dx.renderInfo() : null')
+            r['ao'] = await pg.evaluate('__dx.ao ? __dx.ao().status : null')
             await pg.screenshot(path=os.path.join(a.out, f'{label}_{name}.png'))
             res['scenes'][name] = {k: (round(v, 1) if isinstance(v, float) else v) for k, v in r.items()}
 

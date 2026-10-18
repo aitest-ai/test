@@ -23,7 +23,7 @@ export class Batch {
       geo.setAttribute('normal', new THREE.Float32BufferAttribute(g.n, 3));
       geo.setAttribute('uv', new THREE.Float32BufferAttribute(g.u, 2));
       geo.setIndex(g.i);
-      const mesh = new THREE.Mesh(geo, mat); mesh.name = name || ''; mesh.frustumCulled = false;
+      const mesh = new THREE.Mesh(geo, mat); mesh.name = name || ''; mesh.frustumCulled = false; mesh.userData.batch = true;   // 每個面 4 個獨立頂點的軸對齊矩形（lightmap.js 依此配 uv1）
       if (mat.transparent) mesh.renderOrder = 2;
       parent.add(mesh);
     }

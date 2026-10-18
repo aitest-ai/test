@@ -229,7 +229,7 @@ function buildFloors(){
           if(eE&&sE<0) sE=j; if(!eE&&sE>=0){ seg('z',WX0+(i+1)*CELL,WZ0+sE*CELL,WZ0+j*CELL); sE=-1; }
         } }
       // 雨遮（頂層走廊或上方無結構的走廊）
-      const can=new T.Group(); CAN[f]=can; world.add(can); const cb=IB(can); UNDER[f]=new Uint8Array(GW*GH); CEIL.forEach(c=>cb.add(M.slab,...c));
+      const can=new T.Group(); can.name='CAN'+f; CAN[f]=can; world.add(can); const cb=IB(can); UNDER[f]=new Uint8Array(GW*GH); CEIL.forEach(c=>cb.add(M.slab,...c));
       const used=new Uint8Array(GW*GH), cov=new Uint8Array(GW*GH);
       for(let k=0;k<GW*GH;k++){ if(!(rc[k]<0&&n[k]&&(f>0||CORR[0][k]))) continue;
         const up=UP[f], above=GARAGE||(up>=0&&(NAV[up][k]||RC[up][k]>=0)); if(above) UNDER[f][k]=1; else { cov[k]=1; UNDER[f][k]=1; } }
@@ -257,7 +257,8 @@ function buildGround(){
   const base=new T.Mesh(new T.PlaneGeometry(1400,1400),new T.MeshBasicMaterial({color:0xd5d8d5})); base.rotation.x=-Math.PI/2; base.position.set(80,-0.06,40); world.add(base);
   const tx=D.tex, w=(tx.x1-tx.x0)*SC, h=(tx.y1-tx.y0)*SC;
   groundBox={x:tx.x0*SC,z:tx.y0*SC,w,h};
-  const t=new T.TextureLoader().load(opts.planUrl||tx.file); t.anisotropy=8;
+  let planOk; const planReady=new Promise(r=>planOk=r);
+  const t=new T.TextureLoader().load(opts.planUrl||tx.file,()=>planOk(t)); t.anisotropy=8;
   // 地面：往地下室的梯口要挖洞（Shape 內座標 = (x, -z)，旋轉後朝上）
   const x0=groundBox.x, z0=groundBox.z; const shp=new T.Shape(); shp.moveTo(x0,-z0); shp.lineTo(x0+w,-z0); shp.lineTo(x0+w,-(z0+h)); shp.lineTo(x0,-(z0+h)); shp.lineTo(x0,-z0);
   STAIRS.forEach(st=>{ if(!st.fl.includes(4)) return; const a=st.P(st.uA+0.02,0.0,0), b=st.P(st.uB,st.sh/2,0);
@@ -269,7 +270,7 @@ function buildGround(){
   const gm=new T.MeshBasicMaterial({map:t,color:0xf2f2f2});
   groundDetail(gm, R('ground.detail'));
   const m=new T.Mesh(gg,gm);
-  m.position.set(0,-0.02,0); world.add(m); groundMesh=m;
+  m.name='ground_plan'; m.userData.planReady=planReady; m.position.set(0,-0.02,0); world.add(m); groundMesh=m;   // planReady：底圖載入完成（ao.js 把地面 AO 乘進底圖）
 }
 // 地面細節：把圖片型鋪面紋理（材質角色 ground.detail）以世界公尺鋪在底圖上，只作用在底圖的「鋪面色」（低彩度、非綠、非線條），
 // 草地、跑道、球場保留底圖原色。細節除以貼圖平均色，只加明暗紋理、不改底圖色調；遠處 mipmap 平均後自然淡出。
