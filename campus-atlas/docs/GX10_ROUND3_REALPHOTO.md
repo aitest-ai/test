@@ -23,6 +23,15 @@
 使用者要求：先把「建築邏輯和照片不同」的地方一次校正。以下是雲端 Claude 對照 14 張照片與目前模型（`slice/src/dongxin/scene.js`）找出的差異。尺寸皆為照片估計，請用照片中已知尺寸當尺（層高 3.9 m、欄杆約 1.1 m、門 2.35 m）自行量測後再定值；不確定的在紀錄裡標「估計」。
 新增照片（`photo-src/`）：`mengmeng_mufeng_courtyard_a/b`、`tower_*`（5 張）、`sling_platform_canopy / jixian_playground_side_finbox / finbox_underside_detail`、`chuantang_front_cantilever / chuantang_front_glassbox_col / chuantang_from_above / chuantang_looking_to_gate / jixian_facade_3_4f`。（另有 3 張含學童的穿堂內景照不放 repo，重點已寫在 S1。）
 
+### 執行節奏（重要）
+Phase 0 分三個檢查點，**檢查點之間不必等雲端驗收**，但每個檢查點都要 commit、跑完整測試、在檔案底部記錄；**整個 Phase 0 做完才停下來等驗收**。Phase 0 通過後，A–F 可一路做到底，A、B、C 各 commit 一次，**只在 F 之後停下來等驗收**。
+- **檢查點 1：骨架結構**＝S1 穿堂、S2 柱子、S3 走廊邊梁。會動碰撞與導航，做完必須：新增並跑通 `tests/dx.structure.py`、`dx.route.py`、`dx.camstate.py`、`dx.layout.py`、`browser.py`、`dx.textures.py`、`dx.ao.py`（`?degrade=0`）全過，再往下。
+- **檢查點 2：建築外觀**＝S4 窗洞、S5 沐風苑屋頂、S6 鰭片量體、S9 司令台、S10 時鐘梯塔、S11 萌蒙園／沐風苑外觀。
+- **檢查點 3：周邊**＝S7 警衛室、S8 廣場地坪與花壇、S12 停車場、校門地標（樹雕＋矮牆）。
+- 每個尺寸在紀錄中寫明**依據哪張照片、如何量**（例如「以欄杆 1.1 m 為尺，柱寬 ≈ 0.6 倍欄杆高」），不確定的標「估計」。
+- **停損規則**：任一檢查點測試失敗、或碰撞／導航回退（卡柱、路徑不通、樓梯無法走），先修好或回退該檢查點，**不可帶著問題往下做**。
+- AO 只在 Phase 0 全部完成後重烘一次（不要每個檢查點重烘）；中途用 `?ao=0` 測試即可。
+
 **S1 穿堂（最大差異）**——它不是「1 樓高度向外延伸的雨遮」，而是**貫穿集賢樓的挑高通道**：
 - 校門側開口：**雙層挑空（約 7.8 m 淨高）**，上方 3–4F 紅磚量體由一塊**厚混凝土懸挑板**承托，板緣是厚約 0.8–1 m 的邊梁；板只越過前排柱外側約 0.5–1 m，**不可再向外拉伸**（目前 `scene.js` 的 3 m 雨遮邏輯不適用於穿堂）。
 - 前排兩根**大圓柱**直徑約 0.9–1.0 m、高兩層，立在板緣下；內側還有一排柱。
