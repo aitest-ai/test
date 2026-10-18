@@ -49,7 +49,7 @@ ROOMS.forEach(r=>{ if(['潛能教室','電腦教室','音樂教室'].includes(r.
   ROOMS.forEach(r=>{ if(!['電腦教室','潛能教室','音樂教室','儲藏室'].includes(r.name)||r.X0>64||r.X0<60||!s4.fl.includes(r.f)||r.f>3) return;
     r.j0=s4.j1+1; recomp(r);
     let prev=null; for(const q of BYFLOOR[r.f]){ if(q===r||q.X0>64||q.X1<r.X0+2||q.Z1>r.Z0+1.5||q.Z1<r.Z0-8||q.Z0>=r.Z0) continue; if(!prev||q.Z1>prev.Z1) prev=q; }
-    if(prev){ prev.j1=r.j0-1; prev.keep=true; recomp(prev); } }); })();
+    if(prev){ prev.j1=r.j0-1; recomp(prev); } }); })();
 (function trimToCorridor(){ // 房間不得吃進走廊：外緣整排大多是走廊格就往內縮（保持走廊連續）
   for(let f=0;f<4;f++){ const cm=CORR[f];
     for(const r of BYFLOOR[f]){ if(r.solid||r.keep) continue;

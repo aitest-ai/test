@@ -30,17 +30,18 @@ async def main():
         chk('跨樓層路線含梯段、終點在 2F', sm['stair'] > 10 and abs(sm['y1'] - 0.07 - 3.9) < 0.05, sm)
         await pg.screenshot(path=f'{SH}/01_start.png')
         mm0 = await pg.evaluate(MINI); chk('小地圖：起點有橘色路線', mm0['orange'] > 150, mm0)
-        progs, rems, texts = [], [], []
+        progs, rems, texts = [], [], []; mmmax = 0
         for k in range(14):
             await pg.evaluate('__dx.advance(2.5)')
             r = await pg.evaluate("(()=>{const r=__dx.S.route;return r?{prog:r.prog,remain:r.remain}:null})()")
             if not r: break
             progs.append(r['prog']); rems.append(r['remain']); texts.append(await pg.inner_text('#stext'))
-            if k == 3: await pg.screenshot(path=f'{SH}/02_walking.png'); mm1 = await pg.evaluate(MINI)
+            mmk = await pg.evaluate(MINI); mmmax = max(mmmax, mmk['gray']) if k else mmk['gray']   # 路線改動時樓層切換時機會變：取沿途最大灰色量
+            if k == 3: await pg.screenshot(path=f'{SH}/02_walking.png'); mm1 = dict(mmk)
             if k == 7: await pg.screenshot(path=f'{SH}/03_stairs.png')
         chk('進度單調遞增', all(b2 >= a2 for a2, b2 in zip(progs, progs[1:])) and progs[-1] > progs[0], progs)
         chk('剩餘距離單調遞減', all(b2 <= a2 + 1e-6 for a2, b2 in zip(rems, rems[1:])), [round(x, 1) for x in rems])
-        chk('小地圖：走一段後出現灰色已走路段', mm1['gray'] > mm0['gray'] + 20, [mm0, mm1])
+        chk('小地圖：走一段後出現灰色已走路段', mmmax > mm0['gray'] + 20, [mm0, mm1, mmmax])
         chk('狀態列顯示剩餘公尺', any('剩' in t and '公尺' in t for t in texts), texts[:3])
         done = await pg.evaluate('__dx.info()'); toast = await pg.inner_text('#toast')
         chk('到達後導引帶清除、提示已到達', done['walker'] is False and '已到達' in toast, [done, toast])
