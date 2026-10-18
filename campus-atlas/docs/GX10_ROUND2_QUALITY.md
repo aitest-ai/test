@@ -46,13 +46,73 @@
 - [x] `tests/dx.browser.py` 補一項：小視窗下面板預設為收合。
 
 ## 階段 E：驗收、紀錄與交付
-- [ ] 全部測試：`npm test`、`dx.browser.py`、`dx.route.py`、`dx.camstate.py`、`browser.py`、`glb_viewer.py`、`perf.py`（GPU 與 SwiftShader）。
-- [ ] 產生 7 視角「前後對照總覽」`docs/round2/compare_overview.jpg`，方便使用者與 Claude 驗收。
-- [ ] 更新 `slice/README.md`：「本輪實際改動」與「仍為示意／已證實」表（新增材質的證據等級要寫清楚）。
-- [ ] 在紀錄最上方寫「本輪結論」：哪些做到、哪些沒做到、哪些退步、本機開啟指令。
-- [ ] 不部署；是否部署由使用者決定。
+- [x] 全部測試：`npm test`、`dx.browser.py`、`dx.route.py`、`dx.camstate.py`、`browser.py`、`glb_viewer.py`、`perf.py`（GPU 與 SwiftShader）。
+- [x] 產生 7 視角「前後對照總覽」`docs/round2/compare_overview.jpg`，方便使用者與 Claude 驗收。
+- [x] 更新 `slice/README.md`：「本輪實際改動」與「仍為示意／已證實」表（新增材質的證據等級要寫清楚）。
+- [x] 在紀錄最上方寫「本輪結論」：哪些做到、哪些沒做到、哪些退步、本機開啟指令。
+- [x] 不部署；是否部署由使用者決定。
 
 ## 執行紀錄（GX10 填寫，最新在最上面）
+
+### 本輪結論（2026-10-18）
+**總覽圖**：`docs/round2/compare_overview.jpg`（7 視角，左本輪前、右本輪後）。各階段的左右對照在 `round2/materials/`、`round2/ao/`、`round2/ui/`。
+
+**做到的**
+- **圖片型紋理（B）**：
+  - 紅磚面磚、仿清水混凝土、室內磨石子、戶外鋪面、木門改用原創生成材質（示意）。
+  - 比例以世界公尺固定（紅磚依二丁掛 60 mm＋10 mm 縫）。
+  - 圖片載入失敗會退回程式化紋理，不白屏；`?skin=demo-alt` 與改前逐像素相同。
+  - 新增下載 272 KB。
+- **AO 接到即時場景（C）**：
+  - 以決定性 lightmap UV 讓 Blender 烘焙結果直接套回即時場景；牆角、牆與地板／天花交界、接地處有柔和遮蔽，沒有黑縫。
+  - 上一輪三項瑕疵（黑縫、屋頂斑駁、樹冠變白）都已修正，另外查出並修正「逐物件外擴互蓋」這個黑縫主因。
+- **版面（D）**：寬度 < 1100 px 時清單預設收合、可關閉；手機直式 HUD 在三種狀態下都互不重疊，搖桿可用。
+- **碰撞與導航**：全程沒動，`npm test` 數字不變。
+- **全部測試通過**：
+  - 既有：`npm test`、`dx.browser.py`、`dx.route.py`、`dx.camstate.py`、`browser.py`、`glb_viewer.py`（兩個 glb）、`perf.py`（GPU、`--uncap`、SwiftShader）；
+  - 本輪新增：`dx.textures.py`、`dx.ao.py`、`dx.layout.py`。
+
+**沒做到的**
+- 米黃面磚與金屬百葉：重生成後仍不合格，維持程式化。屋頂貼圖沒做（平屋頂只在鳥瞰看得到，效益低）。
+- AO 沒有涵蓋實例化的柱與旋轉方塊、樹、看板，以及小於 15 cm 的細部（窗框）；戶外的遮蔽效果較含蓄。
+- 沒有在實體手機上測試（只用 Chromium 觸控模擬），橫向手機版面沒有特別處理。
+- 依規定不部署 Vercel。
+
+**退步與代價**（改前 → 改後，GB10 GPU）
+| 項目 | 改前（階段 A） | 改後 | 說明 |
+|---|---|---|---|
+| 東新頁傳輸量 | 2,604 KB | 4,092 KB | +1.49 MB：圖片紋理 0.27 MB＋AO 圖 1.22 MB |
+| dist 大小 | 3,961 KB | 5,453 KB | 同上 |
+| 載入時間（場景就緒中位數） | 0.77 s | 0.94 s | +0.17 s（AO 的限制是 ≤ 1 s） |
+| 貼圖記憶體估計 | 58.2 MB | 69.4 MB | +11 MB |
+| draw calls | 357／262／260／353／223／297／236 | 完全相同 | — |
+| GPU vsync 最低 FPS | 60.1 | 60.1 | 門檻 48 |
+| `--uncap` 最低 FPS | 1200 | 1230 | 門檻 1000 |
+| SwiftShader 最低 FPS | 9.7 | 8.8 | 門檻 8。低 FPS 時會自動關掉 AO（與關陰影同時），所以低階機看不到 AO；強制開 AO＋陰影（`?degrade=0`）只有 5.5 |
+| SwiftShader 載入時間 | 4.3 s | 5.1 s | 首幀要多編譯含 aoMap 的 shader |
+
+**量測環境注意**：C、D、E 期間，機器上有一個不是本工作啟動的 root 程序（`python main.py --listen 0.0.0.0 --port 8188`）佔用 CPU 與 38 GB 記憶體，SwiftShader 數字會跳動，我沒有動它。本工作自己的 ComfyUI 已在 C 階段關閉。
+
+**本機開啟**
+```bash
+cd campus-atlas/slice
+npm ci
+npm run build
+npm run preview          # → http://localhost:4173/dongxin.html
+# 對照：?ao=0（關 AO）、?skin=demo-alt（示範膜）、?shadows=0（關陰影）
+```
+
+### E 驗收、紀錄與交付 — 完成（2026-10-18）
+- **全部測試**：
+  - `npm test` ALL PASS（sim、dx.sim、collision、nav、materials 含 8 個錯誤案例）；
+  - `dx.browser.py`（含小視窗收合兩項）、`dx.route.py`、`browser.py`：FAILS: []；
+  - `dx.camstate.py` PASS；`dx.textures.py`、`dx.ao.py`、`dx.layout.py` PASS；
+  - `glb_viewer.py assets-out/dongxin.glb` 與 `assets-out/dongxin_ao.glb` PASS。
+- **perf.py**：GPU vsync 最低 60.1／平均 60.1；`--uncap` 最低 1230／平均 1340；SwiftShader 最低 8.8／平均 9.9（AO 已自動降級）；皆無 console 錯誤。
+- **前後對照總覽**：`docs/round2/compare_overview.jpg`；逐視角左右圖在 `docs/round2/final/compare/`，原始截圖與量測在 `docs/round2/final/`。
+- **`slice/README.md`**：新增「第二輪實際改動」；「仍為示意／已證實」表加入原創生成材質（示意）、紅磚尺寸依據、AO 屬計算結果、手機只做模擬驗證；補上新測試、`npm run assets:ao`、`?ao=0` 等參數。
+- **單檔版**：`npm run build:single` 可建（5,216 KB，AO 與貼圖內嵌）。
+- **不部署**：是否部署由使用者決定。
 
 ### D 版面與小螢幕 — 完成（2026-10-18）
 **問題（改前量測，`docs/round2/ui/before/`）**

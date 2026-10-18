@@ -13,10 +13,10 @@ npm run dev            # 開發伺服器：http://localhost:5173/dongxin.html（
 npm run build          # 輸出 dist/（純靜態）；npm run preview 可預覽
 npm run build:single   # 東新版單一 HTML（資料、底圖內嵌）→ dongxin_single.html，可用 file:// 開啟
 ```
-網址參數：`?skin=demo-alt`（換膜示範）、`?shadows=0`（關陰影）、`?degrade=0`（停用低 FPS 自動關陰影，量測用）。
+網址參數：`?skin=demo-alt`（換膜示範）、`?shadows=0`（關陰影）、`?ao=0`（關環境遮蔽）、`?degrade=0`（停用低 FPS 自動關陰影／AO，量測用）。
 
 ## 操作
-W/S 前後、**A/D 轉彎（鏡頭跟著轉）**、Q/E 橫移、Shift 跑、拖曳轉視角、滾輪縮放、V 切視角（第三人稱→第一人稱→鳥瞰，平滑過渡）、Esc 取消導覽。左側選教室／地點 →「帶我去」沿地面導引帶自動走過去（含樓梯與地下室），小地圖同步顯示已走／剩餘路段；右側切樓層；鳥瞰可剖開樓層並點選教室。
+W/S 前後、**A/D 轉彎（鏡頭跟著轉）**、Q/E 橫移、Shift 跑、拖曳轉視角、滾輪縮放、V 切視角（第三人稱→第一人稱→鳥瞰，平滑過渡）、Esc 取消導覽。左側選教室／地點（視窗寬度 < 1100 px 時清單預設收合，按 ☰ 打開）→「帶我去」沿地面導引帶自動走過去（含樓梯與地下室），小地圖同步顯示已走／剩餘路段；右側切樓層；鳥瞰可剖開樓層並點選教室。
 
 ## 架構
 ```
@@ -26,11 +26,13 @@ src/dongxin/world.js         碰撞：膠囊 × 簡化碰撞體（不可走格 A
 src/dongxin/pathgrid.js      導航：路徑網格（淨空成本、樓梯入口圖、可轉乘）
 src/dongxin/nav.js           組成含樓梯航點的路線
 src/dongxin/scene.js         場景工廠（只認材質「角色」）
-src/dongxin/app/             stage（渲染）、lighting（曝光／陰影）、player、camera（狀態機）、input、guide、routeline
+src/dongxin/lightmap.js      靜態網格的 lightmap UV（uv1，決定性；AO 烘焙用）
+src/dongxin/app/             stage（渲染）、lighting（曝光／陰影）、ao（烘焙 AO 套用）、player、camera（狀態機）、input、guide、routeline
 src/dongxin/ui/              panel、minimap
-src/materials/               紋理產生器＋材質庫（由 JSON 建材質）
+src/materials/               紋理產生器＋材質庫（由 JSON 建材質；程式化或圖片型紋理）
+assets/textures/             圖片型紋理（原創生成材質（示意））   assets/ao/   烘焙 AO 圖＋簽章
 src/main_dx.js               組裝＋主迴圈＋window.__dx 測試掛鉤
-scripts/                     glb 匯出、壓縮（KTX2／meshopt）、Blender 無頭處理、單檔建置
+scripts/                     glb 匯出、壓縮（KTX2／meshopt）、Blender 無頭處理（AO 烘焙）、AO 後處理、單檔建置
 tools/blender、tools/comfyui Blender（Docker arm64）與 ComfyUI 材質候選工具
 ```
 碰撞與導航都不讀 three 物件，所以能在 Node 跑大量模擬測試。示意切片的架構見 `docs/ANALYSIS.md`。
@@ -46,6 +48,10 @@ python3 tests/dx.cam_metrics.py         # 導覽途中鏡頭位移／角速度
 python3 tests/perf.py [--soft|--uncap] [--min-fps N]   # 5 情境 FPS、console 錯誤、截圖 → tests/perf-out/
 python3 tests/parity.py shoot DIR [--query '?skin=…']  # 固定視角截圖；parity.py diff A B 像素差
 python3 tests/glb_viewer.py assets-out/dongxin.glb     # 壓縮後 glb 能以 KTX2 載入
+python3 tests/dx.textures.py            # 圖片型紋理：載入、失敗退回程式化、換膜
+python3 tests/dx.ao.py                  # 烘焙 AO：套用、簽章不符、載入失敗、?ao=0
+python3 tests/dx.layout.py [OUT]        # 版面：手機 HUD 不重疊、搖桿、小視窗清單收合
+python3 tests/shots7.py OUT             # 第二輪 7 視角截圖＋量測；tests/compare7.py A B OUT 產生左右對照
 python3 tests/browser.py                # 示意切片
 ```
 Python 測試依賴見 `tests/requirements.txt`。
@@ -55,13 +61,22 @@ Python 測試依賴見 `tests/requirements.txt`。
 npm run assets:export      # 程式化校舍 → assets-src/dongxin_raw.glb（three GLTFExporter）
 npm run assets:compress    # 去重／合併／量化／meshopt＋貼圖 KTX2（toktx）→ assets-out/dongxin.glb（8.8 MB → 1.7 MB）
 npm run assets:blender     # Blender 4.0（Docker arm64）整理法線／UV＋烘焙 AO → 壓縮 → assets-out/dongxin_ao.glb
+npm run assets:ao          # 即時場景用 AO：匯出（含 uv1）→ Blender 依 uv1 烘焙 → 後處理 → assets/ao/（場景幾何改了就要重跑，否則執行期會拒用舊圖）
 scripts/install_ktx.sh     # 安裝 toktx（KTX-Software 4.4.2，免 sudo）
+python3 tools/comfyui/prep_textures.py SRC OUT name=file,mean=#rrggbb,...   # ComfyUI 輸出 → 交付用可拼貼 JPEG
 ```
-執行期仍用程式化建模；glb 是管線輸出，尚未取代即時場景。
+執行期仍用程式化建模（glb 是管線輸出，未取代即時場景）；AO 以烘焙圖套回即時場景。`scripts/ao_post.py` 需要 numpy、pillow（見 `tests/requirements.txt`）。
 
 ---
 
-## 本輪實際改動（2026-10-17，分支 `campus-quality-pass-20261017`）
+## 第二輪實際改動（2026-10-18，同分支）
+詳細數據、量測與退步紀錄見 `../docs/GX10_ROUND2_QUALITY.md`；前後對照總覽 `../docs/round2/compare_overview.jpg`。
+1. **圖片型紋理**：材質 JSON 新增 `image` 區塊（`repeatMeters` 以世界公尺定比例、各向異性、色彩空間與既有程式化紋理一致），先顯示程式化備援、載入後換圖，失敗不白屏。接入紅磚面磚、仿清水混凝土（疊模板縫）、室內磨石子（疊分割條）、戶外鋪面（疊在地面底圖的鋪面色上）、木門；共 272 KB。米黃面磚、金屬百葉的生成候選不合格，維持程式化。
+2. **烘焙 AO 套回即時場景**：決定性 lightmap UV＋Blender 依 uv1 烘焙；修掉黑縫（逐物件外擴互蓋）、接觸面黑條、屋頂斑駁、glb 樹冠變白。下載 +1.2 MB、載入 +0.13 s；低 FPS 裝置自動關 AO。
+3. **版面**：寬 < 1100 px 清單預設收合（可關閉）；手機直式 HUD 互不重疊。
+4. **量測工具**：`shots7.py`／`compare7.py`（7 視角前後對照）、`dx.textures.py`、`dx.ao.py`、`dx.layout.py`；`perf.py --query`。
+
+## 第一輪實際改動（2026-10-17，分支 `campus-quality-pass-20261017`）
 詳細數據與驗收見 `../docs/GX10_TASKS.md` 的執行紀錄。
 1. **工程**：Vite 8＋three 0.186（npm 本地依賴，取代 CDN r128；與 r128 畫面像素一致）；`main_dx.js` 拆成 stage／player／camera／input／guide／ui（拆前拆後逐像素相同）；Playwright 效能／健康腳本。
 2. **碰撞**：膠囊（R=0.3）× 簡化碰撞體，精確圓×AABB 判定＋貼牆滑動＋凸角繞行。斜推牆最大穿入 0.297 m → 0.007 m；凸角擦邊卡住 834/834 → 0/834。
@@ -79,9 +94,12 @@ scripts/install_ktx.sh     # 安裝 toktx（KTX-Software 4.4.2，免 sudo）
 | 棟名（集賢樓／沐風苑／蒙萌園）與外牆語彙（磚紅面磚、清水混凝土灰、米黃面磚＋藍屋簷） | **已證實（語彙）**：校方簡報＋使用者照片＋使用者說明；個別房間的棟別歸屬由位置推定 | `docs/DONGXIN.md` |
 | 比例尺 0.0756 m/px、層高 3.9 m、樓層對應、門的位置、走廊連通修復 | **推論（B 級）**：為了可走而做的建模決定 | `src/dongxin/model.js` |
 | 房間名稱、精確尺寸、樓梯踏步（踢高約 18 cm、雙跑 U 形）、教室桌椅排列 | **示意** | — |
-| 材質紋理與顏色 | **示意**：全為程式生成，不是照片貼圖、不是實測色票；ComfyUI 候選亦為生成素材 | `data/materials.*.json` |
+| 紅磚面磚、仿清水混凝土、磨石子、戶外鋪面、木門的貼圖 | **原創生成材質（示意）**：SDXL＋ComfyUI 生成的通用建材圖，**不是東新國小實景照片、不是實測色票**；平均色對齊原本的程式化底色 | `assets/textures/`、`assets/texture-candidates/generation*.json` |
+| 紅磚尺寸 | **示意（依通用規格）**：縱向依二丁掛 60 mm 磚＋10 mm 縫（每皮 70 mm），橫向平均磚長約 21 cm；未實測東新外牆 | `data/materials.dongxin.json` |
+| 其餘材質紋理與顏色 | **示意**：程式生成，不是照片貼圖、不是實測色票 | `data/materials.*.json` |
+| 環境遮蔽（AO） | **計算結果（對示意模型而言）**：Cycles 依本模型幾何烘焙，遮蔽距離 1.2 m；反映的是示意幾何，不是實景光照；實例化的柱、樹與窗框等細部未涵蓋 | `assets/ao/ao.json` |
 | 陰影方向與強度 | **示意**：固定的太陽方向，不對應實際方位與時間 | `src/dongxin/app/lighting.js` |
 | B1 內部、停車場坡道尺寸、校門細節 | **示意**（B1 幾乎是空的；坡道未接入導航） | `docs/DONGXIN.md` |
 | 碰撞與導航的正確性 | **已驗證（對模型而言）**：自動測試量測，不代表與實地一致 | `tests/` |
-| 手機觸控 | **未在實體手機測試**（只有版面截圖） | — |
+| 手機觸控與版面 | **只在 Chromium 觸控模擬驗證**（HUD 不重疊、搖桿可動）；未在實體手機測試，橫向未特別處理 | `tests/dx.layout.py` |
 | Vercel 預覽 | **待使用者處理**：見執行紀錄「Vercel 預覽」 | `../docs/GX10_TASKS.md` |
