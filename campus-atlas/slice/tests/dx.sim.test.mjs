@@ -22,7 +22,7 @@ function walk(start, t, maxSec = 260) {
 const t0 = Date.now();
 for (const t of targets) {
   const r = walk({ x: gate.x, z: gate.z, y: 0 }, t);
-  ok(r.done && !r.err && r.bumps === 0 && Math.hypot(r.p.x - t.x, r.p.z - t.z) < 1.0 && Math.abs(r.p.y - m.LY(t.f)) < 0.05, `gate→${t.name}(${t.f}): ${JSON.stringify(r.err || { done: r.done, stuck: r.stuck, bumps: r.bumps, d: r.p && Math.hypot(r.p.x - t.x, r.p.z - t.z).toFixed(2), y: r.p && r.p.y.toFixed(2) })}`);
+  ok(r.done && !r.err && r.bumps === 0 && Math.hypot(r.p.x - t.x, r.p.z - t.z) < 1.0 && Math.abs(r.p.y - (t.y ?? m.LY(t.f))) < 0.05, `gate→${t.name}(${t.f}): ${JSON.stringify(r.err || { done: r.done, stuck: r.stuck, bumps: r.bumps, d: r.p && Math.hypot(r.p.x - t.x, r.p.z - t.z).toFixed(2), y: r.p && r.p.y.toFixed(2) })}`);
 }
 console.log('gate→all', targets.length, 'targets', Date.now() - t0, 'ms');
 // 2) 跨樓層隨機對（含 B1 ↔ 4F）
@@ -30,8 +30,8 @@ let seed = 12345; const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0)
 const pool = targets.filter(t => t.f !== undefined);
 for (let i = 0; i < 60; i++) {
   const a = pool[(rnd() * pool.length) | 0], b = pool[(rnd() * pool.length) | 0]; if (a === b) continue;
-  const r = walk({ x: a.x, z: a.z, y: m.LY(a.f) }, b);
-  ok(r.done && !r.err && r.bumps === 0 && Math.abs(r.p.y - m.LY(b.f)) < 0.05, `${a.name}(${a.f})→${b.name}(${b.f}): ${JSON.stringify(r.err || { done: r.done, stuck: r.stuck, bumps: r.bumps, y: r.p && r.p.y.toFixed(2) })}`);
+  const r = walk({ x: a.x, z: a.z, y: a.y ?? m.LY(a.f) }, b);
+  ok(r.done && !r.err && r.bumps === 0 && Math.abs(r.p.y - (b.y ?? m.LY(b.f))) < 0.05, `${a.name}(${a.f})→${b.name}(${b.f}): ${JSON.stringify(r.err || { done: r.done, stuck: r.stuck, bumps: r.bumps, y: r.p && r.p.y.toFixed(2) })}`);
 }
 // 2b) B1 ↔ 4F 明確測試（最長的垂直路線）
 { const b1 = m.PLACES.find(p => p.f === 4), r4 = m.ROOMS.find(r => r.f === 3 && !r.solid);

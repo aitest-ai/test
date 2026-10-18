@@ -22,6 +22,7 @@ function snapRect(o){
 for(let f=0;f<NL;f++){
   (D.rooms[f]||[]).forEach(a=>{
     const [name,t,x,y,w,h]=a; if(t==='t') return;
+    if(f===0&&name==='司令台') return;   // 司令台不是房間：開放式平台＋雨遮（S9，見下方 STAGE）
     const r={name,t,f,x0:x*SC,z0:y*SC,x1:(x+w)*SC,z1:(y+h)*SC,code:t==='c'?name:'',label:levelLabel(f),solid:t==='w'};
     snapRect(r); r.idx=ROOMS.length; ROOMS.push(r); BYFLOOR[f].push(r);
   });
@@ -95,14 +96,14 @@ function bldOf(t,px,py){ if(t==='k') return 'K'; if(px<800) return (py>900&&px<7
 ROOMS.forEach(r=>{ r.bld=bldOf(r.t,(r.x0+r.x1)/2/SC,(r.z0+r.z1)/2/SC); r.bldName=BLD[r.bld]; });
 STAIRS.forEach(s=>{ s.bld=bldOf('t',(s.x0+s.x1)/2/SC,(s.z0+s.z1)/2/SC); s.bldName=BLD[s.bld]; });
 /* ---------- 樓梯幾何（雙跑，入口平台在 A 端，轉折平台在 B 端） ---------- */
-const STR_A=1.8, STR_B=1.0, STR_N=11;
+const STR_A=1.8, STR_B=1.0, STR_N=13;   // 每跑 13 階：照片 tower_stair_flight.jpg 數得 13 個踢面 → 級高 3.9/26＝0.150 m（原 11 階＝0.177 m）
 function stairInit(s){
   s.along=(s.w>=s.d)?'x':'z'; s.Lt=s.along==='x'?s.w:s.d; s.sh=s.along==='x'?s.d:s.w;
   const lo=s.along==='x'?'W':'N', hi=s.along==='x'?'E':'S';
   const score=side=>s.fl.reduce((a,f)=>a+(pickDoor(f,s,side).run||0),0);
   const sl=score(lo), sh_=score(hi); const useLo=sl>=sh_;
   s.A=useLo?'lo':'hi'; s.sgn=useLo?1:-1; s.doorSide=useLo?lo:hi;
-  s.uA=-s.Lt/2+STR_A; s.uB=s.Lt/2-STR_B; s.L=s.uB-s.uA; s.lane=s.sh/4; s.ww=s.sh/2-0.35;
+  s.uA=-s.Lt/2+STR_A; s.uB=s.Lt/2-STR_B; s.L=s.uB-s.uA; s.lane=s.sh/4; s.ww=s.sh/2-0.35; s.fs=-1;   // fs：第一跑（往上）在 v 的哪一側（-1／+1）；時鐘梯塔依照片翻成 +1（見 TOWER）
   s.P=(u,v,y)=>s.along==='x'?{x:s.cx+s.sgn*u,z:s.cz+v,y}:{x:s.cx+v,z:s.cz+s.sgn*u,y};
   s.ent=s.P(-s.Lt/2+STR_A/2,0,0);
 }
@@ -260,6 +261,45 @@ const CT=(()=>{ const L=byName(0,'家長會辦公室'), Rr=byName(0,'學務處')
     soffit:2*FH-SLAB_, beamBot:2*FH-0.6, beamTop:2*FH+0.3, gateClear:2*FH-0.6, fieldClear:FH-SLAB_, north:{x0:N0.X1,x1:N1.X0,z0:N0.Z0,z1:N0.Z1},
     get x0(){ return this.xl-this.wallT; }, get x1(){ return this.box.x1+this.wallT; } };
 })();
+// 司令台（S9，照片 sling_platform_canopy.jpg）：開放式抬高平台（花崗石貼面、深色木紋面）＋側邊斜坡（不鏽鋼扶手）＋鋼柱斜撐的折板大雨遮。
+// 位置：集賢樓操場側穿堂出口旁（照片：由操場看向集賢樓，平台在穿堂出口左側＝東側），平台邊與穿堂東牆線之間留斜坡口。
+// 物理：平台與斜坡是解析式表面（同樓梯），1F 格網在這一區由解析式表面接管（PLATMASK）；導航格網保留平台／斜坡可走，四周留一圈不可走（只能從斜坡上下）。
+const STAGE=(()=>{ const H=byName(0,'健康中心'); if(!H) return null;
+  const face=H.Z0, x0=cornerX(H.X0), PH=1.1;
+  const plat={x0:x0+2.1,x1:x0+12.1,z0:cornerZ(face-8.2),z1:cornerZ(face-3.2)};               // 10 m × 5 m（任務檔估計；照片無尺）
+  const ramp={x0:x0,x1:plat.x1,z0:plat.z1+0.6,z1:plat.z1+2.0,top:plat.x1-2.0};             // 寬 1.4 m，坡段 x0→top 上升 1.1 m（約 1:9），top→x1 為上平台
+  const canopy={x0:x0-1.2,x1:plat.x1+0.8,z0:plat.z0-3.4,z1:face-0.25,yBack:5.8,yFront:4.7,drop:0.55};   // 照片：雨遮頂約在 2F 窗台高、前緣遠超出平台（估計）
+  const cols=[[x0-0.35,face-1.0],[x0+6.6,face-1.0]];                                          // 鋼柱（含斜撐），在斜坡後方
+  return {face,PH,plat,ramp,canopy,cols,colR:0.17,
+    height(x,z){ if(x>=plat.x0&&x<=plat.x1&&z>=plat.z0&&z<=plat.z1) return PH;
+      if(x>=ramp.top&&x<=ramp.x1&&z>=plat.z1&&z<=ramp.z1) return PH;                          // 上平台與平台相接
+      if(x>=ramp.x0&&x<=ramp.top&&z>=ramp.z0&&z<=ramp.z1) return PH*(x-ramp.x0)/(ramp.top-ramp.x0);
+      return null; } };
+})();
+const PLATMASK=new Uint8Array(GW*GH);
+if(STAGE){ const S_=STAGE, P_=S_.plat, R_=S_.ramp;
+  for(let j=cj(P_.z0-0.9);j<=cj(S_.face-0.01);j++) for(let i=ci(R_.x0-0.6);i<=ci(P_.x1+0.9);i++){ if(i<0||j<0||i>=GW||j>=GH) continue;
+    const k=j*GW+i, x=cxm(i), z=czm(j), h=S_.height(x,z);
+    const nearPlat=x>P_.x0-0.45&&x<P_.x1+0.45&&z>P_.z0-0.45&&z<R_.z1+0.45&&!(x<R_.x0+0.3);   // 平台／斜坡外圍一圈（＋斜坡後方到牆）
+    if(h!==null){ PLATMASK[k]=1; NAV[0][k]=1; }
+    else if(nearPlat||(x>R_.x0-0.3&&x<P_.x1+0.45&&z>R_.z1-0.01)) { PLATMASK[k]=1; NAV[0][k]=0; } }
+  S_.cols.forEach(([x,z])=>blockDisk(0,x,z,S_.colR)); }
+// 時鐘梯塔（S10）＝最靠近校門的梯間：轉折平台端（B 端）外側兩角各一座方形清水混凝土牆墩 0.9 m（沿梯）× 1.4 m（橫向），
+// 照片 tower_exterior_corner_formwork.jpg 以欄杆 1.1 m 為尺：牆墩正面寬約 1.3 倍欄杆高 → 1.4 m、側面約 0.8 倍 → 0.9 m（估計）。地面層進碰撞。
+const TOWER=(()=>{ const g=D.places.find(p=>p[0]==='校門'); if(!g) return null; const gx=g[1]*SC, gz=g[2]*SC;
+  const s=STAIRS.slice().sort((a,b)=>Math.hypot(a.cx-gx,a.cz-gz)-Math.hypot(b.cx-gx,b.cz-gz))[0]; if(!s||!s.P) return null;
+  const piers=[-1,1].map(sv=>{ const a=s.P(s.Lt/2,sv*s.sh/2,0), b=s.P(s.Lt/2+0.9,sv*(s.sh/2-1.4),0); return {x0:Math.min(a.x,b.x),x1:Math.max(a.x,b.x),z0:Math.min(a.z,b.z),z1:Math.max(a.z,b.z)}; });
+  s.fs=1;   // 照片 tower_stair_flight／tower_landing_3to4：往上走時實牆（朝南、掛鐘那面）在右手邊 → 第一跑貼著南牆（v>0）
+  return {s,piers}; })();
+if(TOWER) TOWER.piers.forEach(p=>{ let ok=true; for(let j=cj(p.z0+1e-3);j<=cj(p.z1-1e-3);j++) for(let i=ci(p.x0+1e-3);i<=ci(p.x1-1e-3);i++) if(RC[0][j*GW+i]>=0) ok=false; p.ok=ok; if(ok) blockRect(0,p.x0,p.z0,p.x1,p.z1); });
+// 蒙萌園中庭遊戲塔（S11，照片 mengmeng_mufeng_courtyard_a/b：黃色塔身＋紅黃螺旋滑梯，約兩層高）：
+// 位置照片無法定位到格網 → 取蒙萌園中庭（平面圖 x 300–560、y 760–980，四周為太陽班／星星班、幼兒園辦公室、彩虹班／月亮班）內離障礙物最遠的戶外空地（示意）。佔地半徑 1.7 m 進碰撞。
+const SLIDE=(()=>{ let best=null; const x0=300*SC, x1=560*SC, z0=760*SC, z1=980*SC, R=14, mx=(x0+x1)/2, mz=(z0+z1)/2;
+  for(let j=cj(z0);j<=cj(z1);j++) for(let i=ci(x0);i<=ci(x1);i++){ if(!NAV[0][j*GW+i]||CORR[0][j*GW+i]) continue; let d=R;
+    for(let dj=-R;dj<=R&&d>0;dj++) for(let di=-R;di<=R;di++){ const ii=i+di, jj=j+dj; if(ii<0||jj<0||ii>=GW||jj>=GH||!NAV[0][jj*GW+ii]){ d=Math.min(d,Math.hypot(di,dj)); } }
+    const c=Math.hypot(cxm(i)-mx,czm(j)-mz); if(!best||d>best.d||(d===best.d&&c<best.c)) best={d,c,x:cxm(i),z:czm(j)}; }   // 同樣空曠時取最靠近中庭中心
+  return best&&best.d>=6?{x:best.x,z:best.z,r:1.7}:null; })();
+if(SLIDE) blockDisk(0,SLIDE.x,SLIDE.z,SLIDE.r);
 // 柱子（S2）：清水混凝土圓柱，貫穿多層（同一位置每層一段，視覺連續）。走廊柱直徑 0.6 m，柱心放在格角 → 正好佔 2×2 格（0.605 m），
 // 穿堂前排 0.9 m（佔 4×4 格）、橋下 0.75 m。柱子進碰撞：佔到的格子設為不可走（淨空場、A*、膠囊碰撞都看得到）。
 // 走廊柱沿走廊外緣（與欄杆同一線），間距 ≤ 4.8 m（照片估計），由上往下生成：上層的柱一路往下延伸到遇到房間為止。
@@ -396,7 +436,8 @@ D.places.forEach(p=>{
   const px=p[1]*SC, pz=p[2]*SC; const c=nearestCell(p[0].startsWith('地下')?4:0,px,pz,120);
   const bf=p[0].startsWith('地下'); PLACES.push({name:p[0],code:'',t:'p',f:bf?4:0,label:bf?'B1':'戶外',x:c>=0?cxm(c%GW):px,z:c>=0?czm((c/GW)|0):pz});
 });
+if(STAGE){ const P_=STAGE.plat; PLACES.push({name:'司令台',code:'',t:'p',f:0,label:'戶外',x:(P_.x0+P_.x1)/2,z:(P_.z0+P_.z1)/2,y:STAGE.PH}); }   // y：站在平台上的高度
 { const c=nearestCell(0,(RAMP.x0+RAMP.x1)/2,RAMP.z1+1.5,40); PLACES.push({name:'停車場入口',code:'',t:'p',f:0,label:'戶外',x:c>=0?cxm(c%GW):(RAMP.x0+RAMP.x1)/2,z:c>=0?czm((c/GW)|0):RAMP.z1+1.5}); }
 return { BLD,RAMP,D,SC,CELL,GX0,GY0,GW,GH,WX0,WZ0,FH,NF,NL,UP,DN,LY,RANK,clampN,ci,cj,cxm,czm,TYPE_LABEL,levelLabel,
-  ROOMS,PLACES,STAIRS,BYFLOOR,CORR,WALK0,NAV,FLOOR,EDGES,PILLARS,CT,ERO,RC,STR_A,STR_B,STR_N,freeAt,roomAt,canStand,nearestCell,losOK,astar,planRoute,pickDoor };
+  ROOMS,PLACES,STAIRS,BYFLOOR,CORR,WALK0,NAV,FLOOR,EDGES,PILLARS,CT,STAGE,PLATMASK,SLIDE,TOWER,ERO,RC,STR_A,STR_B,STR_N,freeAt,roomAt,canStand,nearestCell,losOK,astar,planRoute,pickDoor };
 }

@@ -8,7 +8,8 @@ export function createDxNav(m, world, opts = {}) {
   // 梯段 waypoint：由 lo 層走到 lo 的上一層（dir>0）或反向
   function stairPts(s, lo, dir) {
     const y0 = LY(lo), yM = y0 + FH / 2, y1 = y0 + FH;
-    let pts = [s.P(s.uA, -s.lane, y0), s.P(s.uB, -s.lane, yM), s.P(s.uB + 0.5, -s.lane, yM), s.P(s.uB + 0.5, s.lane, yM), s.P(s.uB, s.lane, yM), s.P(s.uA, s.lane, y1)];
+    const l1 = s.fs * s.lane, l2 = -l1;   // 第一跑／第二跑的中線（s.fs：第一跑在哪一側）
+    let pts = [s.P(s.uA, l1, y0), s.P(s.uB, l1, yM), s.P(s.uB + 0.5, l1, yM), s.P(s.uB + 0.5, l2, yM), s.P(s.uB, l2, yM), s.P(s.uA, l2, y1)];
     if (dir < 0) pts = pts.reverse();
     return pts.map(p => ({ x: p.x, z: p.z, y: p.y, stair: true }));
   }

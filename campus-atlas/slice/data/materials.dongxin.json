@@ -1,7 +1,7 @@
 {
  "id": "dongxin",
  "school": "東新國小",
- "evidence": "顏色與語彙取自已查證的新校舍照片與校方簡報：集賢樓磚紅面磚、沐風苑清水混凝土灰、蒙萌園米黃面磚＋藍色屋簷、灰框玻璃、綠色欄杆、木門。紅磚面磚、仿清水混凝土、室內地磚（磨石子）、戶外鋪面、木門五張為原創生成材質（示意），非實景照片：以 SDXL 生成的可拼貼通用建材圖（assets/textures/，來源見 assets/texture-candidates/generation.json），不是東新國小的實拍，也不是實測色票；圖片載入失敗時改用程式化紋理。其餘紋理為程式生成的示意。",
+ "evidence": "顏色與語彙取自已查證的新校舍照片與校方簡報：集賢樓磚紅面磚、沐風苑／蒙萌園米黃面磚＋藍灰色屋簷＋清水混凝土樑柱（第三輪依實景照片 mufeng_facade、mengmeng_mufeng_courtyard_a/b 改：沐風苑外牆由清水混凝土灰改為米黃面磚；梯面由混凝土改為灰色地磚，依 tower_stair_flight）、灰框玻璃、綠色欄杆、木門。紅磚面磚、仿清水混凝土、室內地磚（磨石子）、戶外鋪面、木門五張為原創生成材質（示意），非實景照片：以 SDXL 生成的可拼貼通用建材圖（assets/textures/，來源見 assets/texture-candidates/generation.json），不是東新國小的實拍，也不是實測色票；圖片載入失敗時改用程式化紋理。其餘紋理為程式生成的示意。",
  "rng": { "type": "pm", "seed": 7 },
  "textures": [
   { "id": "brick", "label": "紅磚面磚", "size": [256, 256], "gen": "brick", "p": { "mortar": "#c9c2b6", "rows": 12, "cols": 6, "base": 150, "jitter": 26, "mul": [1, 0.46, 0.34], "add": [20, 0, 0] }, "image": { "src": "brick_red.jpg", "repeatMeters": [1.0, 0.84], "anisotropy": 8, "colorSpace": "none" } },
@@ -49,8 +49,8 @@
  "roles": {
   "wall": "plaster", "slab": "concrete", "slabTop": "concrete", "floor": "tile", "roof": "roof", "glass": "glassFacade", "glass2": "glass",
   "brick": "brick", "conc": "concrete", "band": "ceil", "rail": "green", "dark": "frame", "frame": "frame", "fence": "fence", "trunk": "trunk",
-  "step": "concrete", "wood": "wood", "slat": "slat", "garage": "garage", "brickY": "brickY", "roofBlue": "roofBlue",
-  "facade.J": "brick", "facade.J.side": "concrete", "facade.M": "concrete", "facade.K": "brickY", "facade.stair": "concrete", "facade.ribbon": "brick",
+  "step": "tile", "wood": "wood", "slat": "slat", "garage": "garage", "brickY": "brickY", "roofBlue": "roofBlue",
+  "facade.J": "brick", "facade.J.side": "concrete", "facade.M": "brickY", "facade.K": "brickY", "facade.stair": "concrete", "facade.ribbon": "brick",
   "roof.J": "roof", "roof.M": "roofBlue", "roof.K": "roofBlue",
   "ground.detail": "pave"
  },

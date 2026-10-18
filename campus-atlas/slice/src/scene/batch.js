@@ -16,6 +16,16 @@ export class Batch {
     face([0, 0, 1], [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], v => [v[0] / T, v[1] / T]);
     face([0, 0, -1], [[x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0]], v => [v[0] / T, v[1] / T]);
   }
+  // 任意平面四邊形（斜坡、斜屋簷）：a→b→c→d 逆時針（從正面看）；兩面都加（背面反向），UV 依法線投影到世界公尺。
+  // 仍是「每面 4 個獨立頂點」的矩形，lightmap.js 的配島邏輯照樣適用（需為矩形）。
+  quad(mat, a, b, c, d, twoSided = true) {
+    const g = this._g(mat), e1 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], e2 = [d[0] - a[0], d[1] - a[1], d[2] - a[2]];
+    let n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]]; const l = Math.hypot(...n) || 1; n = n.map(v => v / l);
+    const ax = Math.abs(n[0]) > Math.abs(n[1]) && Math.abs(n[0]) > Math.abs(n[2]) ? 0 : Math.abs(n[1]) > Math.abs(n[2]) ? 1 : 2;
+    const uv = v => ax === 0 ? [v[2], v[1]] : ax === 1 ? [v[0], v[2]] : [v[0], v[1]];
+    const put = (vs, nn) => { const base = g.p.length / 3; for (const v of vs) { g.p.push(...v); g.n.push(...nn); g.u.push(...uv(v)); } g.i.push(base, base + 1, base + 2, base, base + 2, base + 3); };
+    put([a, b, c, d], n); if (twoSided) put([a, d, c, b], n.map(v => -v));
+  }
   flush(parent, name) {
     for (const [mat, g] of this.m) {
       const geo = new THREE.BufferGeometry();

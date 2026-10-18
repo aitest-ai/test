@@ -22,7 +22,7 @@ export function createPlayer({ S, m, world, input, ch }, hooks) {
         { const sA = world.stairAt(S.x, S.z, 0.3);                                      // 梯口導引：朝梯間直走時，輕推向最近的梯跑中線（梯口中央是分隔牆，不用精準對位）
           if (sA && Math.abs(S.y - LY(curF())) < 0.2) { const [u, v] = world.stairLoc(sA, S.x, S.z), fU = (sA.along === 'x' ? mx : mz) * sA.sgn;
             if (fU > 0.3 && u < sA.uA + 0.2 && u > sA.uA - 1.6) { const cf = curF(), canDn = m.DN[cf] >= 0 && sA.fl.includes(m.DN[cf]), canUp = UP[cf] >= 0 && sA.fl.includes(UP[cf]);
-              const tv = (v > 0.3 && canDn) || !canUp ? sA.lane : -sA.lane, dv = clamp((tv - v) * 2.6, -1.8, 1.8) * dt; world.move(S, sA.along === 'x' ? 0 : dv, sA.along === 'x' ? dv : 0); } } }
+              const tv = (-sA.fs * v > 0.3 && canDn) || !canUp ? -sA.fs * sA.lane : sA.fs * sA.lane, dv = clamp((tv - v) * 2.6, -1.8, 1.8) * dt; world.move(S, sA.along === 'x' ? 0 : dv, sA.along === 'x' ? dv : 0); } } }
         S.heading += angDiff(S.heading, Math.atan2(mx, mz)) * Math.min(1, dt * 12); }
       else S.heading += angDiff(S.heading, S.yaw) * Math.min(1, dt * 8);
     } else if (S.walker) {

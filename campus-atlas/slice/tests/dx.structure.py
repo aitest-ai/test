@@ -3,6 +3,10 @@
 #           懸挑板外伸（前排柱心 → 板緣）0.5–1.2 m；穿堂南北可走通（校門 → 運動場 自動導覽抵達）。
 #   S2 柱子：走廊柱徑 0.5–0.7 m；每根柱在每一層：膠囊（R=0.3）中心距柱心 < 柱半徑＋R 的 16 個方向都判定碰撞（不可穿柱）。
 #   S3 走廊邊緣：上層走廊外緣下方打射線，第一個面在樓板面下 0.55–0.95 m（深邊梁）。
+#   S4 窗洞：抽樣 40 個窗洞，從外往牆打水平射線：窗洞中心（玻璃）比旁邊窗間牆深 ≥ 0.3 m。
+#   S6 鰭片量體：3F 量體正面（鰭片外緣）比 4F 磚面凸出 1.0–1.9 m（設計圖 3F 北牆凸出 1.55 m＋鰭片 0.35 m，扣 4F 磚外皮 0.25 m；照片估計 1.2–1.5 m）。
+#   S9 司令台：平台上方雨遮淨高 ≥ 2.6 m；校門 → 司令台 自動導覽走斜坡上到平台（高 1.1 m）。
+#   S10 梯級：每跑 13 階、級高 0.150 m。
 #   AO：簽章與烘焙一致（--stale-ok：Phase 0 中途 AO 尚未重烘，改為確認「簽章不符 → 不套用」）。
 # 用法：python3 tests/dx.structure.py [--stale-ok]
 import asyncio, os, sys, json, threading, http.server, socketserver, functools
@@ -40,7 +44,17 @@ PROBE = r"""(()=>{ const d=__dx, T=d.THREE, m=d.m, CT=m.CT, W=d.world, R=W.R, ou
   // 邊梁：上層走廊外緣外側 0.15 m，從下方 2 m 往上打
   const beams=[]; for(let f=1;f<=3;f++){ for(const e of m.EDGES[f]){ if(e.b-e.a<3) continue; const c=(e.a+e.b)/2, q=e.fix+e.out*0.15, x=e.ax==='x'?c:q, z=e.ax==='x'?q:c, y0=m.LY(f);
       const h=cast([x,y0-2.5,z],[0,1,0],3); if(h!==null) beams.push(+(2.5-h).toFixed(2)); if(beams.length>=12*f) break; } }
-  out.beamDepths=beams; return out; })()"""
+  out.beamDepths=beams;
+  // S4 窗洞凹深
+  const Wn=d.scn.WINDOWS, rec=[]; for(let k=0;k<Wn.length&&rec.length<40;k+=Math.max(1,Math.floor(Wn.length/40))){ const w=Wn[k], o=[w.x+w.nx*2,w.y,w.z+w.nz*2], dir=[-w.nx,0,-w.nz];
+    const a=cast(o,dir,4), side=[w.nz*0.95,0,w.nx*0.95]; const b=cast([o[0]+side[0],o[1],o[2]+side[2]],dir,4); if(a!==null&&b!==null) rec.push(+(a-b).toFixed(3)); }
+  out.windows=Wn.length; out.recess=rec;
+  // S6 鰭片量體
+  const F=d.scn.FINBOX; if(F){ const xm=(F.x0+F.x1)/2+0.45, a=cast([xm,m.LY(2)+1.0,F.z0-3],[0,0,1],6), b=cast([xm,m.LY(3)+2.3,F.z0-3],[0,0,1],6); out.finProj=(a!==null&&b!==null)?+(b-a).toFixed(2):null; }
+  // S9 平台上方淨空
+  const SG=m.STAGE; if(SG){ const P=SG.plat, cl=[]; for(let x=P.x0+0.5;x<P.x1;x+=1.5) for(let z=P.z0+0.5;z<P.z1;z+=1.5){ const h=cast([x,SG.PH+0.05,z],[0,1,0],10); cl.push(h===null?99:+(h+0.05).toFixed(2)); } out.stageClear=Math.min(...cl); }
+  out.strN=m.STR_N; out.riser=+(m.FH/(2*m.STR_N)).toFixed(3);
+  return out; })()"""
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(args=['--no-sandbox', '--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=gl'])
@@ -57,12 +71,20 @@ async def main():
         check('S1 懸挑板外伸（柱心→板緣）0.5–1.2 m', r['overhang'] is not None and 0.5 <= r['overhang'] <= 1.2, r['overhang'])
         bd = r['beamDepths']
         check('S3 走廊外緣深邊梁（樓板面下 0.55–0.95 m）', len(bd) >= 10 and all(0.55 <= v <= 0.95 for v in bd), f"{len(bd)} 處 {sorted(set(bd))}")
+        check('S4 集賢樓窗洞凹深 ≥ 0.3 m（抽樣）', len(r['recess']) >= 20 and min(r['recess']) >= 0.3, f"{r['windows']} 個窗洞，抽樣 {len(r['recess'])}，凹深 {min(r['recess']) if r['recess'] else None}–{max(r['recess']) if r['recess'] else None} m")
+        check('S6 3F 鰭片量體凸出 1.0–1.9 m', r.get('finProj') is not None and 1.0 <= r['finProj'] <= 1.9, r.get('finProj'))
+        check('S9 司令台平台上方雨遮淨高 ≥ 2.6 m', r.get('stageClear', 0) >= 2.6, r.get('stageClear'))
+        check('S10 梯級：每跑 13 階、級高 0.150 m', r['strN'] == 13 and abs(r['riser'] - 0.15) < 1e-6, (r['strN'], r['riser']))
         # 穿堂南北通行：校門 → 運動場 自動導覽
         await pg.evaluate('__dx.unfreeze()')
         res = await pg.evaluate("""(()=>{ const d=__dx, t=n=>d.TARGETS.find(x=>x.name===n), CT=d.m.CT; d.cancelRoute(); d.teleportTo(t('校門')); d.setDest(t('運動場')); d.startRoute(true);
           let through=false, k=0; for(; k<60*120; k++){ d.tick(1/60); const S=d.S; if(S.x>CT.xl&&S.x<CT.xr&&S.z<CT.face&&S.z>CT.north.z0) through=true; if(!S.walker) break; }
           const g=t('運動場'); return { arrived: Math.hypot(d.S.x-g.x,d.S.z-g.z)<1.5, through, sec: +(k/60).toFixed(1) }; })()""")
         check('S1 穿堂可通行（校門 → 運動場 自動導覽經過穿堂並抵達）', res['arrived'] and res['through'], res)
+        res = await pg.evaluate("""(()=>{ const d=__dx, t=n=>d.TARGETS.find(x=>x.name===n); d.cancelRoute(); d.teleportTo(t('校門')); d.setDest(t('司令台')); d.startRoute(true);
+          let ymax=0, k=0; for(; k<60*120; k++){ d.tick(1/60); ymax=Math.max(ymax,d.S.y); if(!d.S.walker) break; }
+          const g=t('司令台'); return { arrived: Math.hypot(d.S.x-g.x,d.S.z-g.z)<1.5, y:+d.S.y.toFixed(2), sec:+(k/60).toFixed(1) }; })()""")
+        check('S9 司令台可走上去（校門 → 司令台 自動導覽經斜坡上平台，y = 1.1 m）', res['arrived'] and abs(res['y'] - 1.1) < 0.05, res)
         if STALE: check('AO（Phase 0 中途未重烘）：簽章不符 → 不套用並警告', ao['status'] == 'mismatch' and any('不符' in w for w in warns), ao)
         else: check('AO 簽章與烘焙一致、已套用', ao['status'] == 'on', ao)
         check('無 pageerror', not errs, errs)

@@ -8,10 +8,11 @@
 export const R = 0.3, STEP_UP = 0.45, MAX_DROP = 0.6;
 
 export function createDxWorld(m) {
-  const { NL, FH, LY, UP, STAIRS, NAV, RC, ERO, CELL, GW, GH, WX0, WZ0, STR_N, CT } = m, FLOOR = m.FLOOR || NAV;
+  const { NL, FH, LY, UP, STAIRS, NAV, RC, ERO, CELL, GW, GH, WX0, WZ0, STR_N, CT, STAGE } = m, FLOOR = m.FLOOR || NAV, PLATMASK = m.PLATMASK;
   const SLAB = 0.3;
   const cell = (x, z) => { const i = Math.floor((x - WX0) / CELL), j = Math.floor((z - WZ0) / CELL); return (i < 0 || j < 0 || i >= GW || j >= GH) ? -1 : j * GW + i; };
-  const gridFree = (f, x, z) => { const k = cell(x, z); return k >= 0 && NAV[f][k] === 1; };
+  // 司令台一區（PLATMASK）的 1F 地面由解析式平台／斜坡表面接管（導航格網仍視為可走，物理不從格網取地面）
+  const gridFree = (f, x, z) => { const k = cell(x, z); return k >= 0 && NAV[f][k] === 1 && !(f === 0 && PLATMASK && PLATMASK[k]); };
   // y → 內部樓層編號（B1 = 4）。梯段中間回傳較近的那層。
   const floorOfY = (y) => { let best = 0, bd = 1e9; for (let f = 0; f < NL; f++) { const d = Math.abs(y - LY(f)); if (d < bd) { bd = d; best = f; } } return best; };
 
@@ -25,11 +26,12 @@ export function createDxWorld(m) {
       for (const lo of s.fl) {
         const up = UP[lo]; if (up < 0 || !s.fl.includes(up)) continue;
         const y0 = LY(lo), yM = y0 + FH / 2;
-        if (u >= s.uA - 0.3 && u <= s.uB && Math.abs(v + s.lane) <= s.ww / 2) { const k = Math.min(STR_N - 1, Math.max(0, Math.floor((u - s.uA) / dl))); out.push(y0 + (k + 1) * hs); }
+        if (u >= s.uA - 0.3 && u <= s.uB && Math.abs(v - s.fs * s.lane) <= s.ww / 2) { const k = Math.min(STR_N - 1, Math.max(0, Math.floor((u - s.uA) / dl))); out.push(y0 + (k + 1) * hs); }
         if (u >= s.uB && u <= s.Lt / 2 && Math.abs(v) <= s.sh / 2 - 0.1) out.push(yM);
-        if (u >= s.uA - 0.3 && u <= s.uB && Math.abs(v - s.lane) <= s.ww / 2) { const k = Math.min(STR_N - 1, Math.max(0, Math.floor((s.uB - u) / dl))); out.push(yM + (k + 1) * hs); }
+        if (u >= s.uA - 0.3 && u <= s.uB && Math.abs(v + s.fs * s.lane) <= s.ww / 2) { const k = Math.min(STR_N - 1, Math.max(0, Math.floor((s.uB - u) / dl))); out.push(yM + (k + 1) * hs); }
       }
     }
+    if (STAGE) { const h = STAGE.height(x, z); if (h !== null) out.push(h); }   // 司令台平台／斜坡
     return out;
   };
   const surfaces = (x, z) => {
@@ -50,6 +52,7 @@ export function createDxWorld(m) {
   const ZONE = new Uint8Array(GW * GH);
   for (const s of STAIRS) { const a = Math.floor((s.X0 - 0.4 - WX0) / CELL), b = Math.floor((s.X1 + 0.4 - WX0) / CELL), c = Math.floor((s.Z0 - 0.4 - WZ0) / CELL), d = Math.floor((s.Z1 + 0.4 - WZ0) / CELL);
     for (let j = Math.max(0, c); j <= Math.min(GH - 1, d); j++) for (let i = Math.max(0, a); i <= Math.min(GW - 1, b); i++) ZONE[j * GW + i] = 1; }
+  if (PLATMASK) for (let j = 1; j < GH - 1; j++) for (let i = 1; i < GW - 1; i++) if (PLATMASK[j * GW + i]) for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) ZONE[(j + dj) * GW + i + di] = 1;
   const RING = [[0, 0]], NR = 96, NI = 16;
   for (let k = 0; k < NR; k++) RING.push([Math.cos(k / NR * 2 * Math.PI), Math.sin(k / NR * 2 * Math.PI)]);
   for (let k = 0; k < NI; k++) RING.push([0.55 * Math.cos((k + 0.5) / NI * 2 * Math.PI), 0.55 * Math.sin((k + 0.5) / NI * 2 * Math.PI)]);
@@ -139,6 +142,7 @@ export function createDxWorld(m) {
   const ceilingY = (x, z, y) => {
     const f = floorOfY(y + 0.1), k = cell(x, z); if (k < 0) return Infinity;
     if (f === 4 && y < LY(0)) return LY(0) - SLAB;
+    if (f === 0 && STAGE) { const C = STAGE.canopy; if (x > C.x0 && x < C.x1 && z > C.z0 && z < C.z1) return C.yFront - C.drop - 0.2; }   // 司令台雨遮下
     if (f === 0 && CT && x > CT.x0 && x < CT.x1 && z > CT.zb && z < CT.edge) return CT.beamBot - 0.1;   // 穿堂校門側：挑空到 3F（邊梁底）
     const up = RC[f][k] >= 0 && !(RC[f][k] >= 1000) ? LY(f) + FH - SLAB : (covered(f, k) ? LY(f) + FH - SLAB : Infinity);
     return up;

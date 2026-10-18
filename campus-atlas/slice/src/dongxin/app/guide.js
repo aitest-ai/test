@@ -14,7 +14,7 @@ export function createGuide({ S, m, world, nav, stage, cam, ui }) {
     if (!t) { selPlane.visible = pin.visible = false; return; }
     $('#iname').textContent = t.name; $('#isub').textContent = `${where(t)}・${t.t === 'p' ? '地點' : '名稱暫定（依設計圖）'}・非校方測繪`;
     if (t.X0 !== undefined) { selPlane.visible = true; selPlane.scale.set(t.w - 0.3, t.d - 0.3, 1); selPlane.position.set(t.cx, LY(t.f) + 0.05, t.cz); } else selPlane.visible = false;
-    pin.visible = true; pin.position.set(t.x, LY(t.f) + 2.8, t.z); ui.renderList(); }
+    pin.visible = true; pin.position.set(t.x, (t.y ?? LY(t.f)) + 2.8, t.z); ui.renderList(); }
   function cancelRoute() { S.walker = null; S.route = null; line.clear(); $('#status').hidden = true; }
   function startRoute(auto = true) { const t = S.selected; if (!t) return; const rt = nav.route(S, t); if (!rt) { ui.toast('找不到路線'); return; }
     S.route = rt; drawRoute(rt); if (auto) S.walker = createWalker(world, rt, { tol: 0.12 }); $('#status').hidden = false; lastRemain = -1; $('#stext').textContent = `前往 ${t.name}（約 ${Math.round(rt.total)} 公尺）`; }
@@ -22,7 +22,7 @@ export function createGuide({ S, m, world, nav, stage, cam, ui }) {
   function teleportTo(t) { cancelRoute();                      // 教室：站到門外走廊、面向教室門；其他：就地
     const d = t.door; let x = t.x, z = t.z;
     if (d && d.out && world.standOk(d.out.x, d.out.z, LY(t.f))) { x = d.out.x; z = d.out.z; S.yaw = S.heading = Math.atan2(-d.nx, -d.nz); }
-    S.x = x; S.z = z; S.y = LY(t.f); S.yCam = S.y; cam.reset(); }
+    S.x = x; S.z = z; S.y = t.y ?? LY(t.f); S.yCam = S.y; cam.reset(); }   // t.y：有站立高度的地點（司令台平台）
   function nearestOnFloor(f) {   // 該樓層離目前位置最近、不在房間/梯口附近的可走格
     const e = m.ERO[f], i0 = m.ci(S.x), j0 = m.cj(S.z), sts = STAIRS.filter(t => t.fl.includes(f)); let best = -1, bd = 1e9;
     const okc = (i, j, strict) => { const k = j * m.GW + i; if (!e[k]) return false; if (strict) { if (m.RC[f][k] >= 0) return false; const x = m.cxm(i), z = m.czm(j); for (const t of sts) if (x > t.X0 - 2.5 && x < t.X1 + 2.5 && z > t.Z0 - 2.5 && z < t.Z1 + 2.5) return false; } return true; };
@@ -47,6 +47,6 @@ export function createGuide({ S, m, world, nav, stage, cam, ui }) {
     if (!S.route) return; line.update(S, dt);
     const r = Math.ceil(S.route.remain); if (S.walker && r !== lastRemain && S.selected) { lastRemain = r; $('#stext').textContent = `前往 ${S.selected.name}・剩 ${r} 公尺`; }
   }
-  function animatePin(dt) { pin.rotation.y += dt * 2; if (pin.visible && S.selected) pin.position.y = LY(S.selected.f) + 2.8 + Math.sin(performance.now() / 300) * 0.1; }
+  function animatePin(dt) { pin.rotation.y += dt * 2; if (pin.visible && S.selected) pin.position.y = (S.selected.y ?? LY(S.selected.f)) + 2.8 + Math.sin(performance.now() / 300) * 0.1; }
   return { setDest, cancelRoute, startRoute, drawRoute, teleportTo, gotoFloor, animatePin, update };
 }
