@@ -3,10 +3,12 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const $ = (s) => document.querySelector(s);
 const KM = { KeyW: 'f', ArrowUp: 'f', KeyS: 'b', ArrowDown: 'b', KeyA: 'tl', ArrowLeft: 'tl', KeyD: 'tr', ArrowRight: 'tr', KeyQ: 'sl', KeyE: 'sr', ShiftLeft: 'run', ShiftRight: 'run' };
 
-// on: { cycleMode(), cancel(), pick(pointerEvent) }
+// on: { cycleMode(), cancel(), pick(pointerEvent), interact() → 有互動就回傳 true }
 export function createInput(canvas, S, on) {
   const keys = {}, joy = { x: 0, y: 0 }; let drag = null, lastDragT = -9;
-  addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; const k = KM[e.code]; if (k) { keys[k] = true; e.preventDefault(); }
+  addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'KeyE' && !e.repeat && on.interact && on.interact()) { e.preventDefault(); return; }   // 互動提示出現時，E＝互動（第三輪 E）；否則仍是橫移
+    const k = KM[e.code]; if (k) { keys[k] = true; e.preventDefault(); }
     if (e.code === 'KeyV') on.cycleMode(); if (e.code === 'Escape') on.cancel(); });
   addEventListener('keyup', e => { const k = KM[e.code]; if (k) keys[k] = false; });
   addEventListener('blur', () => { for (const k in keys) keys[k] = false; });

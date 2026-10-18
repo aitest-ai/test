@@ -18,13 +18,17 @@
 </header>
 <aside id="panel">
   <div class="phead"><b>教室與地點</b><button id="pclose" aria-label="關閉清單">✕</button></div>
+  <button id="tourstart" class="pri tourbtn">任務導覽：校園 4 站</button>
   <input id="q" type="search" placeholder="搜尋教室／地點，例如 圖書、301、3F" autocomplete="off">
   <div id="list"></div>
 </aside>
 <div id="info" hidden><div><strong id="iname"></strong><small id="isub"></small></div>
   <div class="btns"><button id="go" class="pri">帶我去</button><button id="tp">傳送到門口</button><button id="clr" aria-label="取消選取">✕</button></div></div>
+<div id="tour" hidden><div class="tbar"><i id="tourfill"></i></div><span id="tourtext"></span><button id="tourstop" aria-label="結束任務">×</button></div>
 <div id="status" hidden><span id="stext"></span><button id="stop">結束導覽 ×</button></div>
 <div id="toast" hidden></div>
+<div id="tourcard" hidden><div class="card"><h3 id="tctitle"></h3><p id="tctext"></p><small id="tcsrc"></small><button id="tcnext" class="pri">下一站</button></div></div>
+<button id="hint" hidden></button>
 <nav id="floors" aria-label="樓層"></nav>
 <div id="modes"><button data-m="third" class="on">第三人稱</button><button data-m="first">第一人稱</button><button data-m="bird">鳥瞰</button><button id="spd">速度 100%</button></div>
 <div id="where"></div>
@@ -32,7 +36,8 @@
 <div id="joy"><div id="joyknob"></div></div>
 <div id="help" hidden><div class="card"><h2>操作方式</h2>
 <p><b>W / S</b> 前進／後退　<b>A / D</b> 左／右轉彎（鏡頭跟著轉）　<b>Q / E</b> 橫移　<b>Shift</b> 跑步</p>
-<p><b>拖曳畫面</b> 轉視角　<b>滾輪</b> 縮放　<b>V</b> 切換視角　<b>Esc</b> 取消導覽</p>
+<p><b>拖曳畫面</b> 轉視角　<b>滾輪</b> 縮放　<b>V</b> 切換視角　<b>Esc</b> 取消導覽　<b>E</b> 靠近教室門或樓梯口出現提示時：查看教室／換樓層</p>
+<p>「任務導覽」：依序走到 4 個地點，進度條在畫面上方，到站會出現簡短介紹（只用已查證的資料，附來源）。</p>
 <p>左側清單選教室／地點 →「帶我去」自動沿黃色路線走過去（含樓梯與地下室）；右側可切樓層（含 B1），鳥瞰時可剖開樓層並點選教室。</p>
 <p class="note">本版房間位置由你上傳的<b>設計圖</b>推得（格網化、近似值），教室名稱為<b>暫定</b>，<b>未經校方測繪</b>；外觀語彙參照東新國小新校舍照片。右上小地圖會跟著視角旋轉。</p>
 <button id="helpclose" class="pri">開始</button></div></div>

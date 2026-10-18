@@ -1,0 +1,13 @@
+{
+ "evidence": "第三輪 E：任務式導覽的站點與介紹。介紹文字只用已查證的資料：棟名與用途（使用者確認，見 docs/DONGXIN.md v5）、使用者提供的實景照片（assets/photo-src/）、公開報導（README 官方來源）。尺寸、時鐘位置等未驗證的內容不寫進介紹。",
+ "title": "校園 4 站",
+ "stops": ["校門", "穿堂", "司令台", "蒙萌園中庭"],
+ "radius": 4.5,
+ "intros": {
+  "校門": { "title": "校門", "text": "警衛室旁有一道清水混凝土矮牆，牆頂立著銀色鏤空樹雕和彩色小鳥，旁邊是旗桿和藍色伸縮門。警衛室後方的梯塔就是校門邊的樓梯。", "src": "使用者照片 gate_inside_sculpture_wall、chuantang_looking_to_gate" },
+  "穿堂": { "title": "穿堂", "text": "穿堂貫穿集賢樓。校門側是兩層樓高的挑空，上方的 3、4 樓由懸挑樓板承托；通道中段的 2 樓有一座彩繪橋，連接兩側走廊。", "src": "使用者照片 chuantang_front_cantilever、chuantang_from_above、chuantang_looking_to_gate" },
+  "司令台": { "title": "司令台", "text": "司令台在集賢樓操場側，是開放式的抬高平台，旁邊有斜坡和不鏽鋼扶手，上方是鋼柱撐起的大雨遮。", "src": "使用者照片 sling_platform_canopy" },
+  "蒙萌園中庭": { "title": "蒙萌園", "text": "蒙萌園是幼兒園，外牆是米黃面磚配藍色屋簷。中庭有黃色遊戲塔和紅黃相間的螺旋滑梯。", "src": "棟名與用途：使用者確認；外觀：使用者照片 mengmeng_mufeng_courtyard_a、b" },
+  "健康中心": { "title": "集賢樓・健康中心", "text": "集賢樓是教務、學務、健康中心等行政與專科教室所在的大樓，外牆是橘紅色細長面磚，窗戶開在深凹的窗洞裡。", "src": "棟名與用途：使用者確認；外觀：使用者照片 jixian_facade_courtyard、jixian_facade_3_4f" }
+ }
+}

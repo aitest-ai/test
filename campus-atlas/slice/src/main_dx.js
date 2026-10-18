@@ -19,6 +19,8 @@ import { createCameraRig } from './dongxin/app/camera.js';
 import { createGuide } from './dongxin/app/guide.js';
 import { createPanel } from './dongxin/ui/panel.js';
 import { createMinimap } from './dongxin/ui/minimap.js';
+import { createTour } from './dongxin/app/tour.js';
+import TOUR from '../data/tour.dongxin.json';
 import D from '../data/dongxin_geo.json';
 
 // 換膜：data/materials.<id>.json 全部打包；網址 ?skin=<id> 選用（預設 dongxin）
@@ -46,14 +48,15 @@ const ctx = { S, m, world, nav, stage, camera, canvas, TARGETS };
 const ui = ctx.ui = createPanel(ctx);
 const cam = ctx.cam = createCameraRig({ S, m, world, camera, ch: stage.ch });
 const guide = ctx.guide = createGuide({ S, m, world, nav, stage, cam, ui });
-const input = createInput(canvas, S, { cycleMode: ui.cycleMode, cancel: guide.cancelRoute, pick: ui.pickRoom });
+const tour = createTour({ S, m, world, TARGETS, guide, ui, data: TOUR });   // 任務式導覽與互動提示（第三輪 E）
+const input = createInput(canvas, S, { cycleMode: ui.cycleMode, cancel: guide.cancelRoute, pick: ui.pickRoom, interact: tour.interact });
 const player = createPlayer({ S, m, world, input, ch: stage.ch }, {
   onManualTakeover: () => ui.setStatus('已改為手動操作（路線仍顯示）'),
-  onArrived: (t) => { guide.cancelRoute(); ui.toast('已到達 ' + (t ? t.name : '')); },
+  onArrived: (t) => { guide.cancelRoute(); ui.toast('已到達 ' + (t ? t.name : '')); tour.onArrived(t); },
   onStuck: () => guide.startRoute(true),
 });
 const mini = createMinimap($('#mini'), { S, m, world, groundBox: dx.groundBox, planUrl: PLAN });
-ui.bind();
+ui.bind(); tour.bind();
 
 // ---------- 主迴圈 ----------
 let hudT = 0;
@@ -65,14 +68,15 @@ function update(dt) {
   cam.update(dt, inRoom);
   stage.lighting.update(S, S.mode === 'bird');
   ui.tickFps(dt);
-  hudT += dt; if (hudT > 0.15) { hudT = 0; ui.updateFloorButtons(); mini.draw(); ui.updateWhere(); }
+  tour.update();
+  hudT += dt; if (hudT > 0.15) { hudT = 0; ui.updateFloorButtons(); mini.draw(); ui.updateWhere(); tour.updateHint(); }
 }
 const timer = new THREE.Timer();
 const AUTO_DEGRADE = new URLSearchParams(location.search).get('degrade') !== '0';   // ?degrade=0：不自動關陰影／AO（量測用）
 let frozen = false;   // __dx.view 拍照時暫停主迴圈
 function loop(ts) { requestAnimationFrame(loop); timer.update(ts); if (frozen) return; const raw = Math.max(0, timer.getDelta()); if (AUTO_DEGRADE) { stage.lighting.watch(raw); stage.ao.watch(raw); } update(Math.min(raw, 0.05)); stage.render(); }   // 第一幀：rAF 時戳可能早於啟動時的 performance.now()（載入很忙時差到數秒）→ 負的 dt，曾讓 HUD／小地圖延遲約 2 秒才畫
 
-window.__dx = { S, m, world, nav, setDest: guide.setDest, startRoute: guide.startRoute, gotoFloor: guide.gotoFloor, setMode: ui.setMode, teleportTo: guide.teleportTo, cancelRoute: guide.cancelRoute, keys: input.keys, THREE, TARGETS,
+window.__dx = { S, m, world, nav, tour, setDest: guide.setDest, startRoute: guide.startRoute, gotoFloor: guide.gotoFloor, setMode: ui.setMode, teleportTo: guide.teleportTo, cancelRoute: guide.cancelRoute, keys: input.keys, THREE, TARGETS,
   tick(dt) { update(dt); },
   advance(sec, dt = 1 / 30) { for (let t = 0; t < sec; t += dt) update(dt); stage.render(); },
   cam() { const d = new THREE.Vector3(); camera.getWorldDirection(d); return { p: camera.position.toArray(), d: d.toArray() }; },

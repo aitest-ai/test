@@ -448,6 +448,7 @@ D.places.forEach(p=>{
 });
 if(STAGE){ const P_=STAGE.plat; PLACES.push({name:'司令台',code:'',t:'p',f:0,label:'戶外',x:(P_.x0+P_.x1)/2,z:(P_.z0+P_.z1)/2,y:STAGE.PH}); }   // y：站在平台上的高度
 { const c=nearestCell(0,(RAMP.x0+RAMP.x1)/2,RAMP.z1+1.5,40); PLACES.push({name:'停車場入口',code:'',t:'p',f:0,label:'戶外',x:c>=0?cxm(c%GW):(RAMP.x0+RAMP.x1)/2,z:c>=0?czm((c/GW)|0):RAMP.z1+1.5}); }
+if(SLIDE){ const c=nearestCell(0,SLIDE.x+SLIDE.r+1.2,SLIDE.z,40); PLACES.push({name:'蒙萌園中庭',code:'',t:'p',f:0,label:'戶外',x:c>=0?cxm(c%GW):SLIDE.x+SLIDE.r+1.2,z:c>=0?czm((c/GW)|0):SLIDE.z}); }   // 遊戲塔旁（第三輪 E 任務導覽站點）
 return { BLD,RAMP,D,SC,CELL,GX0,GY0,GW,GH,WX0,WZ0,FH,NF,NL,UP,DN,LY,RANK,clampN,ci,cj,cxm,czm,TYPE_LABEL,levelLabel,
   ROOMS,PLACES,STAIRS,BYFLOOR,CORR,WALK0,NAV,FLOOR,EDGES,PILLARS,CT,STAGE,PLATMASK,SLIDE,TOWER,GCOLS,ERO,RC,STR_A,STR_B,STR_N,freeAt,roomAt,canStand,nearestCell,losOK,astar,planRoute,pickDoor };
 }
