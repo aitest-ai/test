@@ -132,7 +132,7 @@ function wallSegs(ib,r,y0,mat,accMat,door){
       if(sd.ax==='x') ib.add(m,len,h,thick,c,y,sd.fix); else ib.add(m,thick,h,len,sd.fix,y,c);
       if(m===sm&&!r.stair){ const o=sd.fix+IN*(T_/2+0.015); // 室內面：米白粉刷
         if(sd.ax==='x') ib.add(M.wall,len,h,0.03,c,y,o); else ib.add(M.wall,0.03,h,len,o,y,c); } };
-    if(r.stair&&door&&!(sd.s==='S'&&door.side!=='S')){ // 梯塔：只有朝南（校門側、掛鐘）那面是實牆，其餘三面開放：走廊側完全開口，其他側只留欄杆
+    if(r.stair&&door&&!(sd.s==='S'&&door.side!=='S')&&!(r.id==='S4'&&sd.s!==door.side&&sd.s!==OPP[door.side])){ // 梯塔：只有朝南（校門側、掛鐘）那面是實牆，其餘三面開放：走廊側完全開口，其他側只留欄杆
       const len=sd.b-sd.a, c=(sd.a+sd.b)/2, w=len, isDoor=(sd.s===door.side);
       if(sd.ax==='x'){ ib.add(M.conc,w,0.35,T_,c,y0+wh-0.17,sd.fix); ib.add(M.conc,0.35,wh,0.35,sd.a+0.17,y0+wh/2,sd.fix); ib.add(M.conc,0.35,wh,0.35,sd.b-0.17,y0+wh/2,sd.fix); }
       else { ib.add(M.conc,T_,0.35,w,sd.fix,y0+wh-0.17,c); ib.add(M.conc,0.35,wh,0.35,sd.fix,y0+wh/2,sd.a+0.17); ib.add(M.conc,0.35,wh,0.35,sd.fix,y0+wh/2,sd.b-0.17); }
