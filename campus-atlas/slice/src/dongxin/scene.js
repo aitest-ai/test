@@ -103,7 +103,7 @@ function recessFacade(ib,sm,ax,fix,a,b,y0,wh,OUT,seed,top,skip){
     box(M.glass,w0+0.04,w1-0.04,y0+ob,y0+ot,-0.05,0.04);
     for(const [ua,ub] of [[w0,w0+0.06],[w1-0.06,w1],[(w0+w1)/2-0.03,(w0+w1)/2+0.03]]) box(M.frame,ua,ub,y0+(ua===w0||ub===w1?ob:1.66),y0+ot,-0.05,0.08);
     box(M.frame,w0,w1,y0+1.6,y0+1.66,-0.05,0.08); box(M.frame,w0,w1,y0+ot-0.06,y0+ot,-0.05,0.08);
-    box(M.conc,w0-0.1,w1+0.1,y0+ob-0.15,y0+ob,(so+0.15-0.05)/2,so+0.15+0.05);                 // 花崗石窗台
+    box(M.granite,w0-0.1,w1+0.1,y0+ob-0.15,y0+ob,(so+0.15-0.05)/2,so+0.15+0.05);              // 花崗石窗台
     box(M.band,w0+0.18,w1-0.18,y0+ob,y0+ob+0.55,0.12,0.28);                                     // 冷氣室外機
     box(railBars,w0+0.03,w1-0.03,y0+ob,y0+ob+0.8,so-0.04,0.03); box(M.rail,w0,w1,y0+ob+0.8,y0+ob+0.84,so-0.04,0.05);
     const cx=(w0+w1)/2, q=fix-OUT*0.05; WINDOWS.push(ax==='x'?{x:cx,z:q,y:y0+2.3,nx:0,nz:OUT}:{x:q,z:cx,y:y0+2.3,nx:OUT,nz:0}); }
@@ -271,8 +271,9 @@ function buildFloors(){
     rooms.forEach(r=>{
       const isSt=!!r.stair, tp=isSt?'t':r.t, acc=M.acc[tp]||M.acc.p;
       // 樓板／地板
-      if(!isSt){ if(UPR) ib.add(M.slab,r.w+0.3,SLAB,r.d+0.3,r.cx,y0-SLAB/2,r.cz); else ib.add(M.floor,r.w,0.08,r.d,r.cx,y0+0.04,r.cz);
-        if(UPR) ib.add(M.floor,r.w-0.6,0.03,r.d-0.6,r.cx,y0+0.015,r.cz); }
+      const fm=r.name==='電腦教室'?M.raised:M.floor;   // 電腦教室：白色架高地板（照片 computer_room）
+      if(!isSt){ if(UPR) ib.add(M.slab,r.w+0.3,SLAB,r.d+0.3,r.cx,y0-SLAB/2,r.cz); else ib.add(fm,r.w,0.08,r.d,r.cx,y0+0.04,r.cz);
+        if(UPR) ib.add(fm,r.w-0.6,0.03,r.d-0.6,r.cx,y0+0.015,r.cz); }
       else if(!(DN[f]>=0&&r.fl.includes(DN[f]))) ib.add(M.floor,r.w,0.08,r.d,r.cx,y0+0.04,r.cz);
       if(r.solid){ ib.add(M.conc,r.w,WALL_H,r.d,r.cx,y0+WALL_H/2,r.cz); if(GARAGE) CEIL.push([r.w+0.3,SLAB,r.d+0.3,r.cx,-0.3,r.cz]); }
       else{
@@ -288,6 +289,11 @@ function buildFloors(){
           [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>ib.add(M.frame,0.04,0.7,0.04,cx+a*(w/2-0.05),y0+0.37,cz+b*(d/2-0.05)));
           dk.chairs.forEach(c=>{ const cd=dk.chairDir; ib.add(MS.chair,0.4,0.04,0.4,c.x,y0+0.44,c.z); ib.add(M.frame,0.06,0.42,0.06,c.x,y0+0.22,c.z);
             if(cd.x) ib.add(MS.chair,0.04,0.4,0.4,c.x+cd.x*0.19,y0+0.66,c.z); else ib.add(MS.chair,0.4,0.4,0.04,c.x,y0+0.66,c.z+cd.z*0.19); }); });
+        if(!isSt&&r.name==='電腦教室'){ // 木紋貼皮高櫃（照片 computer_room）：下櫃 0.85 m＋開放層板＋上櫃到 2.3 m，沿門側以外的一面側牆（不進碰撞，比照課桌）
+          const ds=door.side, alongX=(ds==='W'||ds==='E'), t0=SLAB+0.02, L=(alongX?r.w:r.d)-2.0;
+          const put=(h,y,dep,inset)=>{ if(alongX) ib.add(M.veneer,L,h,dep,r.cx,y0+y,r.Z0+t0+inset+dep/2); else ib.add(M.veneer,dep,h,L,r.X0+t0+inset+dep/2,y0+y,r.cz); };
+          put(0.85,0.425,0.5,0); put(0.03,1.2,0.4,0); put(1.0,1.8,0.4,0); put(0.02,0.9,0.5,0);   // 下櫃、層板、上櫃、櫃面
+        }
         if(isSt) buildStairInterior(ib,g,r,f);
         doorSign(g,r,door,y0,isSt?'樓梯':r.name,ACC[tp]);
       }
@@ -502,7 +508,7 @@ function beam(ib,mt,p,q,w){ const d=[q[0]-p[0],q[1]-p[1],q[2]-p[2]], L=Math.hypo
 function buildStage(){
   const S_=m.STAGE; if(!S_) return; const ib=FIB[0], P=S_.plat, Rm=S_.ramp, Cn=S_.canopy, PH=S_.PH;
   // 平台：灰色花崗石貼面（量體）＋深色木紋面
-  ib.add(M.conc,P.x1-P.x0+0.3,PH,P.z1-P.z0+0.3,(P.x0+P.x1)/2,PH/2,(P.z0+P.z1)/2);
+  ib.add(M.granite,P.x1-P.x0+0.3,PH,P.z1-P.z0+0.3,(P.x0+P.x1)/2,PH/2,(P.z0+P.z1)/2);
   ib.add(M.wood,P.x1-P.x0,0.02,P.z1-P.z0,(P.x0+P.x1)/2,PH+0.01,(P.z0+P.z1)/2);
   // 斜坡：坡面＋上平台、兩側矮牆（梯形面）、坡道與平台之間的花台
   ib.quad(M.slab,[Rm.x0,0.01,Rm.z1],[Rm.top,PH,Rm.z1],[Rm.top,PH,Rm.z0],[Rm.x0,0.01,Rm.z0]);
@@ -539,7 +545,7 @@ function buildGround(){
   const gg=new T.ShapeGeometry(shp); gg.rotateX(-Math.PI/2);
   { const pos=gg.attributes.position, uv=new Float32Array(pos.count*2); for(let i=0;i<pos.count;i++){ uv[i*2]=(pos.getX(i)-x0)/w; uv[i*2+1]=1-(pos.getZ(i)-z0)/h; } gg.setAttribute('uv',new T.BufferAttribute(uv,2)); }
   const gm=new T.MeshBasicMaterial({map:t,color:0xf2f2f2});
-  groundDetail(gm, R('ground.detail'));
+  groundDetail(gm, R('ground.detail'), R('corridor'));
   const m=new T.Mesh(gg,gm);
   m.name='ground_plan'; m.userData.planReady=planReady; m.position.set(0,-0.02,0); world.add(m); groundMesh=m;   // planReady：底圖載入完成（ao.js 把地面 AO 乘進底圖）
 }
@@ -548,13 +554,17 @@ function buildGround(){
 // 只有圖片載入成功才開啟（程式化備援或換膜沒有圖片時，地面與原本完全相同）。
 // 校門側廣場與穿堂地坪（S8，照片 chuantang_front_glassbox_col：淺灰大塊石英磚約 0.6 m 見方、細縫）的範圍 [x0,z0,x1,z1]（m）
 const PLAZA=[[69.0,42.3,112.0,72.0],[80.1,21.2,93.2,42.4]];   // 校門內側一帶照片為灰色連鎖磚（gate_inside_sculpture_wall），不在大磚範圍
-function groundDetail(mat, det){
+// 廣場／穿堂（PLAZA）鋪材質角色 corridor 的實景淺灰石英磚貼圖（第三輪 A；雲端驗收：原本由底圖去飽和而來，偏米黃）；沒有圖片時退回底圖去飽和＋0.6 m 程式縫。
+function groundDetail(mat, det, tile){
   const tx=det&&det.map; if(!tx||!tx.userData.image) return;
-  const U={uDet:{value:tx},uDetK:{value:0},uDetScale:{value:tx.repeat},uDetMean:{value:new T.Vector3(1,1,1)},uPlA:{value:new T.Vector4(...PLAZA[0])},uPlB:{value:new T.Vector4(...PLAZA[1])}};
+  const tt=tile&&tile.map&&tile.map.userData.image?tile.map:null;
+  const U={uDet:{value:tx},uDetK:{value:0},uDetScale:{value:tx.repeat},uDetMean:{value:new T.Vector3(1,1,1)},uPlA:{value:new T.Vector4(...PLAZA[0])},uPlB:{value:new T.Vector4(...PLAZA[1])},
+    uTile:{value:tt||tx},uTileK:{value:0},uTileScale:{value:(tt||tx).repeat}};
   tx.userData.ready.then(r=>{ if(r.ok){ U.uDetMean.value.set(...r.mean); U.uDetK.value=opts.groundDetail??0.45; } });
+  if(tt) tt.userData.ready.then(r=>{ if(r.ok) U.uTileK.value=1; });
   mat.onBeforeCompile=(sh)=>{ Object.assign(sh.uniforms,U);
     sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 vWXZ;').replace('#include <begin_vertex>','#include <begin_vertex>\nvWXZ=(modelMatrix*vec4(transformed,1.0)).xz;');
-    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vWXZ;uniform sampler2D uDet;uniform float uDetK;uniform vec2 uDetScale;uniform vec3 uDetMean;uniform vec4 uPlA,uPlB;')
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vWXZ;uniform sampler2D uDet;uniform float uDetK;uniform vec2 uDetScale;uniform vec3 uDetMean;uniform vec4 uPlA,uPlB;uniform sampler2D uTile;uniform float uTileK;uniform vec2 uTileScale;')
       .replace('#include <map_fragment>',`#include <map_fragment>
       { vec3 pc=diffuseColor.rgb; float mx=max(pc.r,max(pc.g,pc.b)), mn=min(pc.r,min(pc.g,pc.b)), sat=(mx-mn)/max(mx,1e-3);
         float w=(1.0-smoothstep(0.13,0.22,sat))*(1.0-smoothstep(0.0,0.04,pc.g-pc.r))*smoothstep(0.5,0.65,mx);
@@ -562,7 +572,8 @@ function groundDetail(mat, det){
         bool pl=(all(greaterThan(vWXZ,uPlA.xy))&&all(lessThan(vWXZ,uPlA.zw)))||(all(greaterThan(vWXZ,uPlB.xy))&&all(lessThan(vWXZ,uPlB.zw)));
         if(pl&&uDetK>0.0){ float wp=(1.0-smoothstep(0.0,0.04,pc.g-pc.r))*smoothstep(0.45,0.6,mx);   // 校門側廣場、穿堂：淺灰大磚 0.6 m（S8），底圖暖色調降為淺灰
           vec2 gq=abs(fract(vWXZ/0.6+0.5)-0.5)*0.6; float ln=1.0-smoothstep(0.004,0.012,min(gq.x,gq.y)); float l=dot(pc,vec3(0.3,0.59,0.11));
-          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(l*0.93,l*0.95,l*0.96)*(1.0-0.22*ln),wp); }
+          vec3 gc=uTileK>0.0?texture2D(uTile,vWXZ*uTileScale).rgb*1.05:vec3(l*0.93,l*0.95,l*0.96)*(1.0-0.22*ln);
+          diffuseColor.rgb=mix(diffuseColor.rgb,gc,wp); }
         else diffuseColor.rgb*=mix(vec3(1.0),d,w*uDetK); }`); };
   mat.customProgramCacheKey=()=>'groundDetail';
 }

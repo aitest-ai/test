@@ -1,6 +1,6 @@
 # 圖片型紋理（瀏覽器）：正常載入全部換上圖片；圖片請求全部失敗時自動退回程式化紋理、無 pageerror、畫面不是空白；?skin=demo-alt 仍可用。
 # 用法：python3 tests/dx.textures.py   （服務 dist/，請先 npm run build）
-import asyncio, os, sys, threading, http.server, socketserver, functools, io
+import asyncio, os, sys, threading, http.server, socketserver, functools, io, json
 from playwright.async_api import async_playwright
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 class H(http.server.SimpleHTTPRequestHandler):
@@ -9,7 +9,9 @@ srv = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(H, dir
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 BASE = f'http://127.0.0.1:{srv.server_address[1]}/dongxin.html'
 ARGS = ['--no-sandbox', '--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=gl']
-TEX = ('brick_red', 'concrete_fair', 'floor_terrazzo', 'paving_outdoor', 'wood_door')
+# 圖片型紋理清單由材質 JSON 決定（第三輪 A 加入實景照片紋理後數量會變）
+SPEC = json.load(open(os.path.join(ROOT, 'data', 'materials.dongxin.json'), encoding='utf-8'))
+TEX = tuple(os.path.splitext(t['image']['src'])[0] for t in SPEC['textures'] if t.get('image')); N = len(TEX)
 fails = []
 def check(name, ok, detail=''):
     print('PASS' if ok else 'FAIL', name, detail); (None if ok else fails.append(name))
@@ -34,13 +36,13 @@ async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(args=ARGS)
         st, errs, warns, _, std = await run(b)
-        check('正常：5 張圖片型紋理全部載入', st == {k: 'image' for k in st} and len(st) == 5, str(st))
+        check(f'正常：{N} 張圖片型紋理全部載入', st == {k: 'image' for k in st} and len(st) == N, str(st))
         check('正常：無 pageerror／console error', not errs, str(errs))
         st, errs, warns, blocked, std = await run(b, block=True)
-        check('圖片全部失敗：攔截到圖片請求', len(blocked) >= 5, f'{len(blocked)} 個')
-        check('圖片全部失敗：全部退回程式化紋理', st == {k: 'fallback' for k in st} and len(st) == 5, str(st))
+        check('圖片全部失敗：攔截到圖片請求', len(blocked) >= N, f'{len(blocked)} 個')
+        check('圖片全部失敗：全部退回程式化紋理', st == {k: 'fallback' for k in st} and len(st) == N, str(st))
         check('圖片全部失敗：無 pageerror', not [e for e in errs if 'ERR_FAILED' not in e], str(errs))
-        check('圖片全部失敗：有清楚的警告', sum('程式化備援' in w for w in warns) == 5, str([w for w in warns if '備援' in w][:1]))
+        check('圖片全部失敗：有清楚的警告', sum('程式化備援' in w for w in warns) == N, str([w for w in warns if '備援' in w][:1]))
         check('圖片全部失敗：畫面不是空白', std > 15, f'像素標準差 {std:.1f}')
         st, errs, warns, _, std = await run(b, '?skin=demo-alt')
         check('?skin=demo-alt：無圖片型紋理、正常渲染', st == {} and not errs and std > 15, f'{st} {errs} std {std:.1f}')

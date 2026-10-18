@@ -285,3 +285,23 @@ Phase 0 分三個檢查點，**檢查點之間不必等雲端驗收**，但每�
 **效能**：Phase 0 後三角形 27.4 萬 → 39.3 萬、draw calls +15–19。GX10 的 GPU 空閒後請重量：`perf.py`（GPU vsync 與 `--uncap`、SwiftShader，各 3 次，與第二輪 `d55bb5b` 交錯量測）。門檻：GPU ≥ 48 FPS、`--uncap` ≥ 1000、載入 ≤ 第二輪 +0.3 s。F 階段要把 draw calls 壓回第二輪水準（合併同材質小物件、欄杆鐵條批次化）。
 
 **下一步**：A–F 依本文件前面章節進行；上面「仍看得出的差距」併入 B；效能重量先做（約 10 分鐘）作為 A 的基準。
+
+---
+### A. 實景材質替換 — 2026-10-18
+**產生方式**：`slice/scripts/photo_textures.py`（Pillow＋numpy，可重跑，結果固定）。流程：在照片裡裁「單一材料、沒有接縫」的區塊 → 地坪照片先拉回透視壓縮 → 去掉原有細縫（比局部中值暗的細線換成中值）→ 除掉大範圍光照漸層 → 鏡像交叉混合做成無縫 → 依實測尺寸重畫接縫（縫色也從照片取樣）。
+
+| 貼圖 | 來源（`photo-src/`，像素區域） | 一張代表 | 量法／處理 | 照片平均色 |
+|---|---|---|---|---|
+| `brick_jixian` | `jixian_facade_courtyard` (655,170)-(785,270) | 0.96×0.84 m | 照片中每層磚只有約 4 px，磚縫拍不出來：頻譜量得每層 4.2 px、半塊 7.2 px；以窗台列距 235 px＝層高 3.9 m 為尺 → **每層 7 cm、磚長 24 cm**。磚色逐塊取照片像素、明暗取照片，磚縫依比例重畫（縫色 `#d8a28d`，取低彩度像素） | `#d09682` |
+| `concrete_formwork` | `stair_wall_material` (610,60)-(780,560)；孔色取 (588,243)-(602,257) | 1.2×2.4 m | 表面取自照片；模板分格 1.2×2.4 m、對拉孔每 0.6 m、孔徑 3 cm（`tower_exterior_corner_formwork` 與任務檔），取代原本程式疊的 joints／dots | `#c0beb7` |
+| `tile_corridor` | `mufeng_corridor_2f` (252,712)-(328,758) | 1.2 m（2×2 塊） | 地坪取樣經透視拉回後只有幾十 px，放大會有糊塊：改取照片的平均色與顆粒強度（高頻標準差）畫等向細顆粒；亮度對齊同照片受光地坪（中位色 156）再提亮 10%；60 cm 方磚、細縫 3 mm | `#acabab` |
+| `floor_raised_white` | `computer_room` (300,812)-(420,840) | 1.2 m | 同上做法；照片曝光偏暗，亮度對齊受光區再提亮 15%；60 cm 架高地板、深色縫 6 mm（估計） | `#bfc0c6` |
+| `pave_interlock` | `jixian_facade_courtyard` (20,700)-(300,844) | 0.8 m | 表面取自照片；10×20 cm 順砌（任務檔 1-7），每塊些微色差 | `#9f9990` |
+| `wood_veneer_light` | `computer_room` (1405,244)-(1469,326)（兩道門縫之間） | 0.45×0.9 m | 直紋，上下鏡像接成無縫；吊櫃在背光面，亮度對齊整面吊櫃平均再提亮 20% | `#b09a7e` |
+| `granite_grey` | `jixian_facade_courtyard` (820,770)-(1240,800)（花壇緣下半，上半有雨痕） | 0.6×0.3 m | 窗台、司令台平台貼面、梯面（梯面乘深灰 `#8e9196`，雲端驗收第 5 點：踏面應為深灰） | `#9da0a3` |
+
+- 新增貼圖合計 **209 KB**（上限 1.2 MB）。移除不再使用的生成貼圖 `brick_red`／`concrete_fair`／`paving_outdoor`；`floor_terrazzo`（教室地坪，沒有教室地坪照片）與 `wood_door` 仍是生成圖，evidence 照實標示。
+- `materials.dongxin.json`：新增紋理 `tileCorr`／`raised`／`granite`／`veneer`、材質 `stepTile`，角色 `corridor`／`raised`／`granite`／`veneer`（換膜 JSON 也補上同名角色）。`slabTop`（上層走廊樓板面）由混凝土改成走廊石英磚，與照片一致；`step` 改深灰石英磚。每張圖片型紋理加 `image.evidence`（「實景照片取樣（東新國小，使用者提供）」＋來源）與 `meanColor`。
+- 場景：穿堂與校門側廣場（PLAZA 範圍）改鋪 `tile_corridor` 實景貼圖（雲端驗收第 1 點：原本由底圖去飽和而來，偏米黃）；電腦教室地板改白色架高地板，並沿側牆加木紋貼皮高櫃（下櫃＋層板＋上櫃，不進碰撞，比照課桌）；集賢樓窗台、司令台平台改花崗石。
+- `tests/dx.textures.py`：圖片型紋理數量改由材質 JSON 決定（原本寫死 5 張），正常、全部失敗退回程式化、`?skin=demo-alt` 三種路徑照舊。
+- 測試：`npm test` ALL PASS（DX SIM 149/149、COLLISION、NAV、MATERIALS）；`dx.route` 10、`dx.camstate` 8、`dx.layout` 13、`browser` 8、`dx.textures` 8（現為 9 張圖）、`dx.browser` 23 全過；`dx.structure` 17、`dx.ao` 5 項在 `--stale-ok` 下全過（電腦教室櫃子讓幾何簽章改變，AO 依任務檔在 F 重烘）。

@@ -365,7 +365,11 @@
   "roof.J": "roof",
   "roof.M": "roofBlue",
   "roof.K": "roofBlue",
-  "ground.detail": "pave"
+  "ground.detail": "pave",
+  "corridor": "tile",
+  "raised": "tile",
+  "granite": "concrete",
+  "veneer": "wood"
  },
  "accents": {
   "c": "#b07640",
