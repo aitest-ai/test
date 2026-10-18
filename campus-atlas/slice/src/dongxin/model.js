@@ -268,9 +268,10 @@ const STAGE=(()=>{ const H=byName(0,'健康中心'); if(!H) return null;
   const face=H.Z0, x0=cornerX(H.X0), PH=1.1;
   const plat={x0:x0+2.1,x1:x0+12.1,z0:cornerZ(face-8.2),z1:cornerZ(face-3.2)};               // 10 m × 5 m（任務檔估計；照片無尺）
   const ramp={x0:x0,x1:plat.x1,z0:plat.z1+0.6,z1:plat.z1+2.0,top:plat.x1-2.0};             // 寬 1.4 m，坡段 x0→top 上升 1.1 m（約 1:9），top→x1 為上平台
-  const canopy={x0:x0-1.2,x1:plat.x1+0.8,z0:plat.z0-3.4,z1:face-0.25,yBack:5.8,yFront:4.7,drop:0.55};   // 照片：雨遮頂約在 2F 窗台高、前緣遠超出平台（估計）
+  const canopy={x0:x0-1.2,x1:plat.x1+0.8,z0:plat.z0-3.4,z1:face-0.25,yBack:4.9,yFront:4.15,drop:0.75,ridge:0.55};   // 照片 sling_platform_canopy：鋼柱頂約在 2F 窗台下緣（≈4.4 m）、雨遮低、前緣下垂封邊深、遠超出平台（第三輪 B 降低；估計）
   const cols=[[x0-0.35,face-1.0],[x0+6.6,face-1.0]];                                          // 鋼柱（含斜撐），在斜坡後方
-  return {face,PH,plat,ramp,canopy,cols,colR:0.17,
+  return {face,PH,plat,ramp,canopy,cols,colR:0.22,   // 鋼柱徑約 0.44 m（照片以 1F 窗高 1.5 m 為尺，柱寬約 0.3 倍窗高；第三輪 B 由 0.34 加粗）
+   
     height(x,z){ if(x>=plat.x0&&x<=plat.x1&&z>=plat.z0&&z<=plat.z1) return PH;
       if(x>=ramp.top&&x<=ramp.x1&&z>=plat.z1&&z<=ramp.z1) return PH;                          // 上平台與平台相接
       if(x>=ramp.x0&&x<=ramp.top&&z>=ramp.z0&&z<=ramp.z1) return PH*(x-ramp.x0)/(ramp.top-ramp.x0);
@@ -298,7 +299,7 @@ const SLIDE=(()=>{ let best=null; const x0=300*SC, x1=560*SC, z0=760*SC, z1=980*
   for(let j=cj(z0);j<=cj(z1);j++) for(let i=ci(x0);i<=ci(x1);i++){ if(!NAV[0][j*GW+i]||CORR[0][j*GW+i]) continue; let d=R;
     for(let dj=-R;dj<=R&&d>0;dj++) for(let di=-R;di<=R;di++){ const ii=i+di, jj=j+dj; if(ii<0||jj<0||ii>=GW||jj>=GH||!NAV[0][jj*GW+ii]){ d=Math.min(d,Math.hypot(di,dj)); } }
     const c=Math.hypot(cxm(i)-mx,czm(j)-mz); if(!best||d>best.d||(d===best.d&&c<best.c)) best={d,c,x:cxm(i),z:czm(j)}; }   // 同樣空曠時取最靠近中庭中心
-  return best&&best.d>=6?{x:best.x,z:best.z,r:1.7}:null; })();
+  return best&&best.d>=8?{x:best.x,z:best.z,r:2.1}:null; })();   // r：遊戲塔＋螺旋滑梯的碰撞圓盤（第三輪 B 加大滑梯後 1.7→2.1；需淨空 ≥ 8 格）
 if(SLIDE) blockDisk(0,SLIDE.x,SLIDE.z,SLIDE.r);
 // 地下停車場柱（S12，無實景照片，依台灣常見校園地下停車場）：0.6 m 方柱，沿 x 每 8.1 m（三格車位 2.7 m）；
 // 沿 z 以「背靠背兩排車位 10 m＋車道 6.5 m」為一組，柱在車位前緣（間距 10／6.5 m 交替，平均約 8 m）。柱心在格角、佔 2×2 格，進碰撞。

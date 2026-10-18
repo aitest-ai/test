@@ -42,7 +42,8 @@
     "colorSpace": "none",
     "evidence": "實景照片取樣（東新國小，使用者提供）：jixian_facade_courtyard 磚面取色與明暗；模數 24×7 cm（照片頻譜量測）",
     "meanColor": "#d09682"
-   }
+   },
+   "evidence_color": "jixian_facade_courtyard 磚面平均色 #d09682（偏橘粉，雲端驗收：原本偏飽和紅）"
   },
   {
    "id": "concrete",
@@ -79,7 +80,8 @@
     "colorSpace": "none",
     "evidence": "實景照片取樣（東新國小，使用者提供）：stair_wall_material 表面與對拉孔；模板 1.2×2.4 m、孔距 0.6 m",
     "meanColor": "#c0beb7"
-   }
+   },
+   "evidence_color": "stair_wall_material 清水混凝土平均色 #c0beb7；走廊圓柱（陰影面）(116,121,123)＝中灰"
   },
   {
    "id": "plaster",
@@ -258,19 +260,20 @@
    "gen": "tileHsl",
    "seed": 5,
    "p": {
-    "mortar": "#d3bd86",
+    "mortar": "#d9c39a",
     "rows": 8,
     "cols": 7,
     "cell": 32,
     "hsl": [
-     42,
-     6,
-     42,
+     36,
+     5,
+     50,
      8,
-     64,
+     66,
      6
     ]
-   }
+   },
+   "evidence": "mengmeng_mufeng_courtyard_a 受光米黃磚面中位色 (212,167,111)／(230,189,148)≈ hsl(36°,50%,66%)；第三輪 B 由 hsl(42°,42%,64%) 調整；仍為程式生成磚紋（示意）"
   },
   {
    "id": "tileCorr",
@@ -460,7 +463,8 @@
   },
   "green": {
    "label": "綠色欄杆",
-   "color": "#3f7a5a"
+   "color": "#367a6a",
+   "evidence": "mufeng_corridor_2f 欄杆陰影面 (31,59,53)／(24,55,51)，色相約 167°（偏青綠），亮度依受光面推估；第三輪 B 由 #3f7a5a 調整"
   },
   "roof": {
    "label": "屋頂（灰）",
@@ -468,7 +472,8 @@
   },
   "roofBlue": {
    "label": "藍色屋簷",
-   "color": "#3f6f95"
+   "color": "#5f89aa",
+   "evidence": "mengmeng_mufeng_courtyard_a 屋簷受光面中位色 (100,141,175)，第三輪 B 由 #3f6f95 調淡"
   },
   "ceil": {
    "label": "天花／飾帶",
@@ -546,7 +551,7 @@
  },
  "roles": {
   "wall": "plaster",
-  "slab": "concrete",
+  "slab": "plaster",
   "slabTop": "tileCorr",
   "floor": "tile",
   "roof": "roof",
