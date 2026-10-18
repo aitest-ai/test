@@ -70,7 +70,7 @@ function update(dt) {
 const timer = new THREE.Timer();
 const AUTO_DEGRADE = new URLSearchParams(location.search).get('degrade') !== '0';   // ?degrade=0：不自動關陰影／AO（量測用）
 let frozen = false;   // __dx.view 拍照時暫停主迴圈
-function loop(ts) { requestAnimationFrame(loop); timer.update(ts); if (frozen) return; const raw = timer.getDelta(); if (AUTO_DEGRADE) { stage.lighting.watch(raw); stage.ao.watch(raw); } update(Math.min(raw, 0.05)); stage.render(); }
+function loop(ts) { requestAnimationFrame(loop); timer.update(ts); if (frozen) return; const raw = Math.max(0, timer.getDelta()); if (AUTO_DEGRADE) { stage.lighting.watch(raw); stage.ao.watch(raw); } update(Math.min(raw, 0.05)); stage.render(); }   // 第一幀：rAF 時戳可能早於啟動時的 performance.now()（載入很忙時差到數秒）→ 負的 dt，曾讓 HUD／小地圖延遲約 2 秒才畫
 
 window.__dx = { S, m, world, nav, setDest: guide.setDest, startRoute: guide.startRoute, gotoFloor: guide.gotoFloor, setMode: ui.setMode, teleportTo: guide.teleportTo, cancelRoute: guide.cancelRoute, keys: input.keys, THREE, TARGETS,
   tick(dt) { update(dt); },

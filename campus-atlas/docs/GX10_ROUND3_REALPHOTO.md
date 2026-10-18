@@ -226,3 +226,39 @@ Phase 0 分三個檢查點，**檢查點之間不必等雲端驗收**，但每�
 - 量測環境：本機有 root 的 ComfyUI（`python main.py --listen 0.0.0.0 --port 8188`），以及兩個 ntue 帳號的 `curl` 大模型下載（`models/diffusion_models/qwen_image_*.safetensors`）在跑，都不是本 session 啟動的，未動。
 
 **對照圖**：`docs/round3/cp3/`（照片｜模型並排 3 張；`shots/` 另有警衛室、停車場、坡道、廣場鳥瞰）。
+
+### Phase 0 收尾：AO 重烘（只做這一次）＋全部測試 — 2026-10-18
+**AO 重烘**
+- 流程：`npm run build` → `scripts/export_glb.py` → Blender 4.0 Cycles `bake_uv1.py`（4096²、128 samples、距離 1.2 m）→ `ao_post.py`（輸出 2048²）→ 重新 build。
+- 新幾何簽章 `288d190a`（舊 `34c7b5d`）：97 個網格、76,804 面、30,227 島，8.96 texel/m（舊 10，因面數增加），烘焙 196 s。
+- 輸出：`ao_main.jpg` 1,244 KB（舊 1,047）、`ao_ground.jpg` 193 KB（舊 167）。
+- 目視：穿堂框架、走廊柱與邊梁、梯塔、蒙萌園中庭都有柔和遮蔽，沒有黑縫或斑駁（`docs/round3/final/` 為開 AO 的截圖）。
+- 所有測試已拿掉 `--stale-ok`：`dx.ao.py` 正常路徑「AO 已套用」與載入失敗路徑都恢復實測，6 項全過。
+
+**順手修的既有 bug**：AO 重烘後 `dx.route.py`「小地圖：起點有橘色路線」連續失敗。原因是主迴圈第一幀的 rAF 時戳可能早於啟動時的 `performance.now()`，在載入很忙時（場景建置＋AO 圖解碼）早了約 2 秒，於是第一幀的 dt 變成 −2.1 s。HUD／小地圖計時器因此要再跑約 2 秒才第一次畫。上一版就有這個問題，只是載入較輕、碰不到。修法：`main_dx.js` 把 dt 夾在 ≥ 0。修完後小地圖在第一次 `advance` 就畫出路線。
+
+**最終測試（全部 exit 0，未用 `--stale-ok`）**
+- `npm test`：ALL PASS、DX SIM 149/149、COLLISION PASS、NAV PASS、MATERIALS PASS。
+- `dx.structure.py` 17 項全過，含「AO 簽章與烘焙一致、已套用」。
+- `dx.ao.py` 6、`dx.route.py` 10、`dx.camstate.py` 8、`dx.layout.py` 13、`browser.py` 8、`dx.textures.py` 8、`dx.browser.py` 23：全過。
+
+**效能（量測環境受干擾，數字只能相對比較）**
+- 量測時 GPU 使用率 96%：外部的 root 行程 `python main.py --listen 0.0.0.0 --port 8188`（pid 632693，佔 29.7 GB 顯示記憶體）在用 GPU；另有 ntue 帳號的兩個大模型 `curl` 下載在跑。都不是本 session 啟動的，未動。
+- 在這種情況下，連第二輪最終版（`d55bb5b`）也只量得 GPU 13–16 FPS、`--uncap` 26–38 FPS（第二輪當時是 60／1200）。所以**這次無法驗證 GPU ≥ 48、`--uncap` ≥ 1000 的門檻**，需在 GPU 空閒時重量。
+- 新舊交錯量測（同一時段）：
+
+| 情境 | 第二輪 R2 | 第三輪 R3 |
+|---|---|---|
+| GPU vsync，最低／平均 FPS | 16.1／17.5、12.7／16.9 | 17.1／34.7、16.2／16.9 |
+| `--uncap`，最低 FPS | 26.4、38.3 | 52.3、20.4 |
+| SwiftShader，最低／平均 FPS | 7.7／8.8、7.3／8.7 | 7.1／7.8、7.2／7.8 |
+
+- SwiftShader：第三輪比第二輪低約 0.3–0.6 FPS（最低）、平均低約 1 FPS（約 11%）。三角形 27.4 萬 → 39.3 萬是主因；AO 自動降級照常觸發。此時兩版都低於 8 FPS 門檻（R2 在第二輪曾量得 8.8）。
+- draw calls 比第二輪多 15–19；載入 3 次中位數 0.73 s（冷啟動 1.92 s）。
+- 依任務檔，效能收斂（draw calls 不增加、GPU 60 FPS）在 F 階段處理。
+
+**Phase 0 完成，停在這裡等雲端驗收，未開始 A–F。**
+待使用者補的資料：
+- 時鐘梯塔朝校門側的外觀照片（時鐘位置未驗證）；
+- 若要坡道改 15%，需要決定往哪邊延長（會改導航）；
+- 3F 北牆依設計圖整層凸出 1.55 m，但照片只有鰭片段凸出：要依照片改房間邊界嗎？
