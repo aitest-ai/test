@@ -1,11 +1,11 @@
 # 接縫檢查：比較「右邊緣↔左邊緣」「下邊緣↔上邊緣」的像素差，與影像內部相鄰行列差的比值（≈1 表示看不出接縫）；並輸出 2×2 拼貼圖。
-# 用法：python3 tools/comfyui/seam_check.py DIR OUT_SHEET.jpg [--jpg-dir DIR2]
+# 用法：python3 tools/comfyui/seam_check.py DIR OUT_SHEET.jpg [--jpg-dir DIR2]   （DIR 內的 *.png 與 *.jpg）
 import sys, os, glob, json
 import numpy as np
 from PIL import Image
 D, SHEET = sys.argv[1], sys.argv[2]; JD = sys.argv[sys.argv.index('--jpg-dir') + 1] if '--jpg-dir' in sys.argv else None
 res, tiles = {}, []
-for f in sorted(glob.glob(os.path.join(D, '*.png'))):
+for f in sorted(glob.glob(os.path.join(D, '*.png')) + glob.glob(os.path.join(D, '*.jpg'))):
     a = np.asarray(Image.open(f).convert('RGB'), dtype=np.float32)
     inner = (np.abs(np.diff(a, axis=1)).mean() + np.abs(np.diff(a, axis=0)).mean()) / 2
     seam = (np.abs(a[:, 0] - a[:, -1]).mean() + np.abs(a[0] - a[-1]).mean()) / 2

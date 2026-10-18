@@ -1,6 +1,6 @@
 # 用 ComfyUI（HTTP API，無頭）批次生成牆面／地面材質候選：SDXL base 1.0＋環狀填充（可拼貼）。
 # 先啟動：~/.local/opt/comfyui/venv/bin/python ~/.local/opt/comfyui/app/main.py --listen 127.0.0.1 --port 8188 --disable-auto-launch
-# 用法：python3 tools/comfyui/gen_textures.py OUT_DIR [--seeds 2] [--steps 30]
+# 用法：python3 tools/comfyui/gen_textures.py OUT_DIR [--seeds 2] [--steps 30] [--only name1,name2]
 # 只作原創素材候選；未接入場景。模型授權：CreativeML Open RAIL++-M。
 import json, sys, time, urllib.request, os, shutil
 OUT = sys.argv[1]; os.makedirs(OUT, exist_ok=True)
@@ -13,6 +13,10 @@ PROMPTS = {
   'tile_beige':   'seamless texture, flat orthographic photo of beige glazed ceramic facade tiles, square grid, slight color variation, light mortar joints, even daylight, high detail',
   'floor_terrazzo':'seamless texture, top-down flat photo of light grey terrazzo school corridor floor, small stone chips, polished, even lighting, high detail',
   'paving_outdoor':'seamless texture, top-down flat photo of outdoor interlocking concrete paving blocks, warm grey, herringbone pattern, even daylight, high detail',
+  # 第二輪：米黃面磚重生成（第一版格線歪斜、色塊不均）＋木門、金屬百葉候選
+  'tile_beige_v2':'seamless texture, flat orthographic photo of exterior wall clad with small rectangular cream yellow ceramic tiles, 45x95 mm, straight stack bond, perfectly straight thin white grout lines, uniform even daylight, architectural material sample, high detail',
+  'wood_door':    'seamless texture, flat orthographic photo of light brown wood veneer door panel, straight vertical grain, satin finish, no knots, even daylight, high detail',
+  'metal_louver': 'seamless texture, flat orthographic photo of grey-green painted aluminium horizontal louver slats, evenly spaced, straight, building facade sunscreen, even daylight, high detail',
 }
 def wf(prompt, seed, prefix):
     return {
@@ -28,7 +32,9 @@ def wf(prompt, seed, prefix):
 def post(path, data): return json.loads(urllib.request.urlopen(urllib.request.Request(API + path, json.dumps(data).encode(), {'Content-Type': 'application/json'})).read())
 def get(path): return json.loads(urllib.request.urlopen(API + path).read())
 log = []
+ONLY = opt('--only', '') and opt('--only', '').split(',')
 for name, p in PROMPTS.items():
+    if ONLY and name not in ONLY: continue
     for k in range(SEEDS):
         seed = 1000 + k * 7919; t0 = time.time(); pid = post('/prompt', {'prompt': wf(p, seed, f'campus_{name}_{seed}')})['prompt_id']
         while True:

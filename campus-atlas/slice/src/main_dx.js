@@ -77,10 +77,11 @@ window.__dx = { S, m, world, nav, setDest: guide.setDest, startRoute: guide.star
   cam() { const d = new THREE.Vector3(); camera.getWorldDirection(d); return { p: camera.position.toArray(), d: d.toArray() }; },
   info() { return { x: S.x, z: S.z, y: S.y, floor: player.curF(), mode: S.mode, camState: cam.state, blending: cam.blending, walker: !!S.walker, done: S.walker ? S.walker.done : null }; },
   skins: Object.keys(SKINS), skin: SKIN.id,
+  textures: () => ({ ...stage.M.textureStatus }), textureTiming: () => ({ ...stage.M.textureTiming }), texturesReady: () => stage.M.ready.then(() => ({ ...stage.M.textureStatus })),
   // 匯出校舍為 glb（資產管線用；按需載入 GLTFExporter，不影響一般載入）。回傳 ArrayBuffer。
   async exportGLB() { const { GLTFExporter } = await import('three/examples/jsm/exporters/GLTFExporter.js');
     return new GLTFExporter().parseAsync(dx.root, { binary: true, onlyVisible: false, maxTextureSize: 1024 }); },
-  renderInfo() { const r = stage.renderer.info.render; return { calls: r.calls, triangles: r.triangles, shadows: stage.lighting.shadows, degraded: stage.lighting.degraded }; },
+  renderInfo() { const r = stage.renderer.info.render; return { calls: r.calls, triangles: r.triangles, programs: stage.renderer.info.programs?.length, shadows: stage.lighting.shadows, degraded: stage.lighting.degraded }; },
   setShadows: (v) => stage.lighting.setShadows(v),
   // 量測用：GPU 資源數與貼圖記憶體估計（RGBA8 × mipmap 4/3；壓縮貼圖依區塊格式估）
   memInfo() { const seen = new Set(); let bytes = 0, n = 0;

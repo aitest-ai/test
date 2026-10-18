@@ -1,0 +1,72 @@
+{
+ "model": "sd_xl_base_1.0 (CreativeML Open RAIL++-M)",
+ "steps": 30,
+ "size": 1024,
+ "prompts": {
+  "brick_red": "seamless texture, flat orthographic photo of red-brown ceramic face brick wall tiles, running bond, thin light grey mortar joints, Taiwanese school building facade, even daylight, high detail",
+  "concrete_fair": "seamless texture, flat orthographic photo of fair-faced architectural concrete wall, smooth grey surface, faint formwork panel seams and small tie holes, even daylight, high detail",
+  "tile_beige": "seamless texture, flat orthographic photo of beige glazed ceramic facade tiles, square grid, slight color variation, light mortar joints, even daylight, high detail",
+  "floor_terrazzo": "seamless texture, top-down flat photo of light grey terrazzo school corridor floor, small stone chips, polished, even lighting, high detail",
+  "paving_outdoor": "seamless texture, top-down flat photo of outdoor interlocking concrete paving blocks, warm grey, herringbone pattern, even daylight, high detail",
+  "tile_beige_v2": "seamless texture, flat orthographic photo of exterior wall clad with small rectangular cream yellow ceramic tiles, 45x95 mm, straight stack bond, perfectly straight thin white grout lines, uniform even daylight, architectural material sample, high detail",
+  "wood_door": "seamless texture, flat orthographic photo of light brown wood veneer door panel, straight vertical grain, satin finish, no knots, even daylight, high detail",
+  "metal_louver": "seamless texture, flat orthographic photo of grey-green painted aluminium horizontal louver slats, evenly spaced, straight, building facade sunscreen, even daylight, high detail"
+ },
+ "negative": "text, watermark, logo, signature, perspective, vanishing point, people, plants, shadows from objects, frame, border, vignette, blurry, 3d render of a room",
+ "items": [
+  {
+   "name": "tile_beige_v2",
+   "seed": 1000,
+   "sec": 17.0,
+   "file": "tile_beige_v2_1000.png"
+  },
+  {
+   "name": "tile_beige_v2",
+   "seed": 8919,
+   "sec": 14.0,
+   "file": "tile_beige_v2_8919.png"
+  },
+  {
+   "name": "tile_beige_v2",
+   "seed": 16838,
+   "sec": 14.0,
+   "file": "tile_beige_v2_16838.png"
+  },
+  {
+   "name": "wood_door",
+   "seed": 1000,
+   "sec": 14.1,
+   "file": "wood_door_1000.png"
+  },
+  {
+   "name": "wood_door",
+   "seed": 8919,
+   "sec": 14.0,
+   "file": "wood_door_8919.png"
+  },
+  {
+   "name": "wood_door",
+   "seed": 16838,
+   "sec": 14.0,
+   "file": "wood_door_16838.png"
+  },
+  {
+   "name": "metal_louver",
+   "seed": 1000,
+   "sec": 14.0,
+   "file": "metal_louver_1000.png"
+  },
+  {
+   "name": "metal_louver",
+   "seed": 8919,
+   "sec": 14.0,
+   "file": "metal_louver_8919.png"
+  },
+  {
+   "name": "metal_louver",
+   "seed": 16838,
+   "sec": 14.0,
+   "file": "metal_louver_16838.png"
+  }
+ ]
+}

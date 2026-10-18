@@ -364,7 +364,8 @@
   "facade.ribbon": "brick",
   "roof.J": "roof",
   "roof.M": "roofBlue",
-  "roof.K": "roofBlue"
+  "roof.K": "roofBlue",
+  "ground.detail": "pave"
  },
  "accents": {
   "c": "#b07640",

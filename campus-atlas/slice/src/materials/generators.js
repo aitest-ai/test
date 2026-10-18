@@ -55,4 +55,12 @@ export const GENERATORS = {
   stripes(g, w, h, p) {
     g.fillStyle = p.bg; g.fillRect(0, 0, w, h); g.fillStyle = p.stripe; for (let y = 0; y < h; y += p.pitch) g.fillRect(0, y + p.offset, w, p.width);
   },
+  // 疊加用（不塗底色）：分割縫 grid:[nx,ny] 條、縫寬 width、顏色 line；縫落在紋理邊上（兩側各半），拼貼後連續。
+  // dots：[[fx,fy],…]（0–1 的相對位置）畫圓點（模板繫結孔），半徑 dotR、顏色 dot；hi 給縫一側的亮邊（凹縫的受光面）
+  joints(g, w, h, p) {
+    const [nx, ny] = p.grid || [1, 1], lw = p.width ?? 2;
+    g.fillStyle = p.line; for (let i = 0; i <= nx; i++) g.fillRect(i * w / nx - lw / 2, 0, lw, h); for (let j = 0; j <= ny; j++) g.fillRect(0, j * h / ny - lw / 2, w, lw);
+    if (p.hi) { g.fillStyle = p.hi; for (let i = 0; i <= nx; i++) g.fillRect(i * w / nx + lw / 2, 0, 1, h); for (let j = 0; j <= ny; j++) g.fillRect(0, j * h / ny + lw / 2, w, 1); }
+    if (p.dots) { g.fillStyle = p.dot; for (const [fx, fy] of p.dots) { g.beginPath(); g.arc(fx * w, fy * h, p.dotR ?? 3, 0, Math.PI * 2); g.fill(); } }
+  },
 };

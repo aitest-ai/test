@@ -1,15 +1,15 @@
 {
  "id": "dongxin",
  "school": "東新國小",
- "evidence": "顏色與語彙取自已查證的新校舍照片與校方簡報：集賢樓磚紅面磚、沐風苑清水混凝土灰、蒙萌園米黃面磚＋藍色屋簷、灰框玻璃、綠色欄杆、木門。紋理全為程式生成的示意，不是照片貼圖，也不是實測色票。",
+ "evidence": "顏色與語彙取自已查證的新校舍照片與校方簡報：集賢樓磚紅面磚、沐風苑清水混凝土灰、蒙萌園米黃面磚＋藍色屋簷、灰框玻璃、綠色欄杆、木門。紅磚面磚、仿清水混凝土、室內地磚（磨石子）、戶外鋪面、木門五張為原創生成材質（示意），非實景照片：以 SDXL 生成的可拼貼通用建材圖（assets/textures/，來源見 assets/texture-candidates/generation.json），不是東新國小的實拍，也不是實測色票；圖片載入失敗時改用程式化紋理。其餘紋理為程式生成的示意。",
  "rng": { "type": "pm", "seed": 7 },
  "textures": [
-  { "id": "brick", "label": "紅磚面磚", "size": [256, 256], "gen": "brick", "p": { "mortar": "#c9c2b6", "rows": 12, "cols": 6, "base": 150, "jitter": 26, "mul": [1, 0.46, 0.34], "add": [20, 0, 0] } },
-  { "id": "concrete", "label": "仿清水混凝土", "size": [256, 256], "gen": "concrete", "p": { "bg": "#b9b8b2", "specks": 1800, "speckBase": [90, 90, 88], "speckRange": 70, "speckAlpha": 0.1, "seam": "rgba(70,70,66,.55)", "tie": "rgba(60,60,58,.5)", "ties": [64, 192] } },
+  { "id": "brick", "label": "紅磚面磚", "size": [256, 256], "gen": "brick", "p": { "mortar": "#c9c2b6", "rows": 12, "cols": 6, "base": 150, "jitter": 26, "mul": [1, 0.46, 0.34], "add": [20, 0, 0] }, "image": { "src": "brick_red.jpg", "repeatMeters": [1.0, 0.84], "anisotropy": 8, "colorSpace": "none" } },
+  { "id": "concrete", "label": "仿清水混凝土", "size": [256, 256], "gen": "concrete", "p": { "bg": "#b9b8b2", "specks": 1800, "speckBase": [90, 90, 88], "speckRange": 70, "speckAlpha": 0.1, "seam": "rgba(70,70,66,.55)", "tie": "rgba(60,60,58,.5)", "ties": [64, 192] }, "image": { "src": "concrete_fair.jpg", "repeatMeters": [0.9, 1.8], "anisotropy": 8, "colorSpace": "none", "compose": { "size": [512, 1024], "tile": [1, 2], "overlay": { "gen": "joints", "p": { "grid": [1, 1], "width": 3, "line": "rgba(72,72,68,.55)", "hi": "rgba(255,255,255,.18)", "dots": [[0.17,0.083],[0.83,0.083],[0.17,0.5],[0.83,0.5],[0.17,0.917],[0.83,0.917]], "dotR": 6, "dot": "rgba(70,70,66,.6)" } } } } },
   { "id": "plaster", "label": "白色粉刷", "size": [64, 64], "gen": "speckle", "p": { "bg": "#ece8df", "count": 200, "rgb": [150, 145, 130], "alphaMax": 0.08, "size": [2, 2] } },
-  { "id": "tile", "label": "室內地磚", "size": [128, 128], "gen": "floorTile", "p": { "bg": "#cdd3c8", "joint": "rgba(90,100,90,.5)", "stains": 60, "stain": [80, 90, 80], "stainAlpha": 0.06 } },
-  { "id": "wood", "label": "木門", "size": [64, 128], "gen": "wood", "p": { "bg": "#9a6a3f", "lines": 26, "line": [70, 40, 20], "alpha": [0.1, 0.2] } },
-  { "id": "pave", "label": "戶外鋪面", "size": [256, 256], "gen": "grid", "p": { "bg": "#c9c4b8", "joint": "rgba(100,95,85,.55)", "n": 4 } },
+  { "id": "tile", "label": "室內地磚", "size": [128, 128], "gen": "floorTile", "p": { "bg": "#cdd3c8", "joint": "rgba(90,100,90,.5)", "stains": 60, "stain": [80, 90, 80], "stainAlpha": 0.06 }, "image": { "src": "floor_terrazzo.jpg", "repeatMeters": 1.0, "anisotropy": 8, "colorSpace": "none", "compose": { "size": [512, 512], "tile": [1, 1], "overlay": { "gen": "joints", "p": { "grid": [1, 1], "width": 3, "line": "rgba(150,138,112,.85)" } } } } },
+  { "id": "wood", "label": "木門", "size": [64, 128], "gen": "wood", "p": { "bg": "#9a6a3f", "lines": 26, "line": [70, 40, 20], "alpha": [0.1, 0.2] }, "image": { "src": "wood_door.jpg", "repeatMeters": [0.9, 1.8], "anisotropy": 8, "colorSpace": "none" } },
+  { "id": "pave", "label": "戶外鋪面", "size": [256, 256], "gen": "grid", "p": { "bg": "#c9c4b8", "joint": "rgba(100,95,85,.55)", "n": 4 }, "image": { "src": "paving_outdoor.jpg", "repeatMeters": 2.2, "anisotropy": 8, "colorSpace": "none" } },
   { "id": "grass", "label": "草地", "size": [128, 128], "gen": "speckle", "p": { "bg": "#86ad78", "count": 700, "rgbBase": [60, 110, 60], "rgbRange": [50, 60, 40], "alpha": 0.35, "size": [2, 3] } },
   { "id": "slat", "label": "金屬百葉", "size": [64, 64], "gen": "stripes", "p": { "bg": "#7d8a8c", "stripe": "#5c6a6c", "pitch": 8, "offset": 5, "width": 3 } },
   { "id": "brickY", "label": "米黃面磚", "size": [256, 256], "gen": "tileHsl", "seed": 5, "p": { "mortar": "#d3bd86", "rows": 8, "cols": 7, "cell": 32, "hsl": [42, 6, 42, 8, 64, 6] } }
@@ -51,7 +51,8 @@
   "brick": "brick", "conc": "concrete", "band": "ceil", "rail": "green", "dark": "frame", "frame": "frame", "fence": "fence", "trunk": "trunk",
   "step": "concrete", "wood": "wood", "slat": "slat", "garage": "garage", "brickY": "brickY", "roofBlue": "roofBlue",
   "facade.J": "brick", "facade.J.side": "concrete", "facade.M": "concrete", "facade.K": "brickY", "facade.stair": "concrete", "facade.ribbon": "brick",
-  "roof.J": "roof", "roof.M": "roofBlue", "roof.K": "roofBlue"
+  "roof.J": "roof", "roof.M": "roofBlue", "roof.K": "roofBlue",
+  "ground.detail": "pave"
  },
  "accents": { "c": "#b07640", "s": "#a56bcb", "o": "#3fae6a", "k": "#e4709b", "w": "#8f9aa3", "t": "#7d8a96", "p": "#4a6a88" }
 }

@@ -266,8 +266,26 @@ function buildGround(){
   { const R=RAMP, hp=new T.Path(), xa=R.x0, xb=R.x1, za=R.z0+R.cover, zb=R.z1; hp.moveTo(xa,-za); hp.lineTo(xa,-zb); hp.lineTo(xb,-zb); hp.lineTo(xb,-za); hp.lineTo(xa,-za); shp.holes.push(hp); }
   const gg=new T.ShapeGeometry(shp); gg.rotateX(-Math.PI/2);
   { const pos=gg.attributes.position, uv=new Float32Array(pos.count*2); for(let i=0;i<pos.count;i++){ uv[i*2]=(pos.getX(i)-x0)/w; uv[i*2+1]=1-(pos.getZ(i)-z0)/h; } gg.setAttribute('uv',new T.BufferAttribute(uv,2)); }
-  const m=new T.Mesh(gg,new T.MeshBasicMaterial({map:t,color:0xf2f2f2}));
+  const gm=new T.MeshBasicMaterial({map:t,color:0xf2f2f2});
+  groundDetail(gm, R('ground.detail'));
+  const m=new T.Mesh(gg,gm);
   m.position.set(0,-0.02,0); world.add(m); groundMesh=m;
+}
+// 地面細節：把圖片型鋪面紋理（材質角色 ground.detail）以世界公尺鋪在底圖上，只作用在底圖的「鋪面色」（低彩度、非綠、非線條），
+// 草地、跑道、球場保留底圖原色。細節除以貼圖平均色，只加明暗紋理、不改底圖色調；遠處 mipmap 平均後自然淡出。
+// 只有圖片載入成功才開啟（程式化備援或換膜沒有圖片時，地面與原本完全相同）。
+function groundDetail(mat, det){
+  const tx=det&&det.map; if(!tx||!tx.userData.image) return;
+  const U={uDet:{value:tx},uDetK:{value:0},uDetScale:{value:tx.repeat},uDetMean:{value:new T.Vector3(1,1,1)}};
+  tx.userData.ready.then(r=>{ if(r.ok){ U.uDetMean.value.set(...r.mean); U.uDetK.value=opts.groundDetail??0.45; } });
+  mat.onBeforeCompile=(sh)=>{ Object.assign(sh.uniforms,U);
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 vWXZ;').replace('#include <begin_vertex>','#include <begin_vertex>\nvWXZ=(modelMatrix*vec4(transformed,1.0)).xz;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vWXZ;uniform sampler2D uDet;uniform float uDetK;uniform vec2 uDetScale;uniform vec3 uDetMean;')
+      .replace('#include <map_fragment>',`#include <map_fragment>
+      { vec3 pc=diffuseColor.rgb; float mx=max(pc.r,max(pc.g,pc.b)), mn=min(pc.r,min(pc.g,pc.b)), sat=(mx-mn)/max(mx,1e-3);
+        float w=(1.0-smoothstep(0.13,0.22,sat))*(1.0-smoothstep(0.0,0.04,pc.g-pc.r))*smoothstep(0.5,0.65,mx);
+        vec3 d=texture2D(uDet,vWXZ*uDetScale).rgb/uDetMean; diffuseColor.rgb*=mix(vec3(1.0),d,w*uDetK); }`); };
+  mat.customProgramCacheKey=()=>'groundDetail';
 }
 function buildDecor(){
   const gx=[GB.x0,GB.x1], gz=GB.z;

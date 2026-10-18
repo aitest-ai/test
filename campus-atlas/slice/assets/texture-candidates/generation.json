@@ -15,61 +15,61 @@
    "name": "brick_red",
    "seed": 1000,
    "sec": 18.0,
-   "file": "/tmp/claude-1000/-home-ntue-campus-test/81c78074-8dc6-4637-9f95-1d70aea0204e/scratchpad/tex/brick_red_1000.png"
+   "file": "brick_red_1000.png"
   },
   {
    "name": "brick_red",
    "seed": 8919,
    "sec": 14.0,
-   "file": "/tmp/claude-1000/-home-ntue-campus-test/81c78074-8dc6-4637-9f95-1d70aea0204e/scratchpad/tex/brick_red_8919.png"
+   "file": "brick_red_8919.png"
   },
   {
    "name": "concrete_fair",
    "seed": 1000,
    "sec": 14.0,
-   "file": "/tmp/claude-1000/-home-ntue-campus-test/81c78074-8dc6-4637-9f95-1d70aea0204e/scratchpad/tex/concrete_fair_1000.png"
+   "file": "concrete_fair_1000.png"
   },
   {
    "name": "concrete_fair",
    "seed": 8919,
    "sec": 14.0,
-   "file": "/tmp/claude-1000/-home-ntue-campus-test/81c78074-8dc6-4637-9f95-1d70aea0204e/scratchpad/tex/concrete_fair_8919.png"
+   "file": "concrete_fair_8919.png"
   },
   {
    "name": "tile_beige",
    "seed": 1000,
    "sec": 14.0,
-   "file": "/tmp/claude-1000/-home-ntue-campus-test/81c78074-8dc6-4637-9f95-1d70aea0204e/scratchpad/tex/tile_beige_1000.png"
+   "file": "tile_beige_1000.png"
   },
   {
    "name": "tile_beige",
    "seed": 8919,
    "sec": 14.0,
-   "file": "/tmp/claude-1000/-home-ntue-campus-test/81c78074-8dc6-4637-9f95-1d70aea0204e/scratchpad/tex/tile_beige_8919.png"
+   "file": "tile_beige_8919.png"
   },
   {
    "name": "floor_terrazzo",
    "seed": 1000,
    "sec": 14.0,
-   "file": "/tmp/claude-1000/-home-ntue-campus-test/81c78074-8dc6-4637-9f95-1d70aea0204e/scratchpad/tex/floor_terrazzo_1000.png"
+   "file": "floor_terrazzo_1000.png"
   },
   {
    "name": "floor_terrazzo",
    "seed": 8919,
    "sec": 14.0,
-   "file": "/tmp/claude-1000/-home-ntue-campus-test/81c78074-8dc6-4637-9f95-1d70aea0204e/scratchpad/tex/floor_terrazzo_8919.png"
+   "file": "floor_terrazzo_8919.png"
   },
   {
    "name": "paving_outdoor",
    "seed": 1000,
    "sec": 14.0,
-   "file": "/tmp/claude-1000/-home-ntue-campus-test/81c78074-8dc6-4637-9f95-1d70aea0204e/scratchpad/tex/paving_outdoor_1000.png"
+   "file": "paving_outdoor_1000.png"
   },
   {
    "name": "paving_outdoor",
    "seed": 8919,
    "sec": 14.0,
-   "file": "/tmp/claude-1000/-home-ntue-campus-test/81c78074-8dc6-4637-9f95-1d70aea0204e/scratchpad/tex/paving_outdoor_8919.png"
+   "file": "paving_outdoor_8919.png"
   }
  ]
 }
