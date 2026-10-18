@@ -17,8 +17,8 @@
 - 每個階段完成都要跑 `npm test` 與 `tests/dx.browser.py`，不得退步；FPS 不低於上一輪最終數字的八成（GPU vsync 最低 ≥ 48；`--uncap` 最低 ≥ 1000；SwiftShader 最低 ≥ 8）。
 
 ## 階段 A：建立前後對照基準（先做，不改程式）
-- [ ] 固定 5 個視角（沿用 `tests/parity.py`：校門、2F 走廊、鳥瞰、運動場、教室）＋ 新增 2 個：手機直式 390×844 的出生點與 2F 走廊。截圖存 `docs/round2/before/`。
-- [ ] 記錄：dist 總大小、載入時間、draw calls、貼圖記憶體估計，寫入紀錄。
+- [x] 固定 5 個視角（沿用 `tests/parity.py`：校門、2F 走廊、鳥瞰、運動場、教室）＋ 新增 2 個：手機直式 390×844 的出生點與 2F 走廊。截圖存 `docs/round2/before/`。
+- [x] 記錄：dist 總大小、載入時間、draw calls、貼圖記憶體估計，寫入紀錄。
 
 ## 階段 B：圖片型紋理接進材質庫（最優先）
 上一輪已用 ComfyUI 產出可拼貼候選（`assets/texture-candidates/`），但未接入場景。
@@ -53,4 +53,25 @@
 - [ ] 不部署；是否部署由使用者決定。
 
 ## 執行紀錄（GX10 填寫，最新在最上面）
-（尚無）
+
+### A 建立前後對照基準 — 完成（2026-10-18）
+**做法**：新增 `slice/tests/shots7.py`（7 視角截圖＋量測，之後每階段的「後」都用同一支），並在 `window.__dx` 加量測用掛鉤 `memInfo()`（只讀，不影響畫面）。場景程式未改。
+- 桌機 5 視角（1200×760，隱藏 UI，沿用 `parity.py` 的 POSES）：`gate` 校門、`corr2f` 2F 走廊、`class` 教室、`bird` 鳥瞰、`first` 運動場（第一人稱）。
+- 手機直式 2 視角（390×844、DPR 2、觸控，保留 UI 以看版面）：`m_spawn` 出生點、`m_corr2f` 2F 走廊。
+- 截圖：`docs/round2/before/*.png`；量測：`docs/round2/before/metrics.json`。
+
+**基準數字**（GB10 GPU，Chromium／ANGLE GL，`npm run build` 後的 dist/）
+| 項目 | 數值 |
+|---|---|
+| dist 總大小 | 3,961 KB（assets 3,383 KB、basis 轉碼器 571 KB，後者只有 glb 檢視頁會用） |
+| 東新版實際傳輸量 | 2,604 KB（無快取載入） |
+| 載入時間（goto → 場景就緒） | 中位數 0.77 s（三次：1.19／0.77／0.57） |
+| draw calls（含陰影 pass） | 校門 357、2F 走廊 262、教室 260、鳥瞰 353、運動場 223、手機出生點 297、手機走廊 236 |
+| 三角形 | 約 27.3 萬（各視角 272,648–274,546） |
+| 貼圖 | 111 張、估計 58.2 MB（RGBA8＋mipmap）；GPU 端 105 張貼圖、287 個幾何；陰影貼圖 16 MB（2048²） |
+| FPS（perf.py 5 情境） | GPU vsync 最低 60.1／平均 60.2；`--uncap` 最低 1200／平均 1276；SwiftShader 最低 9.7／平均 10.9；皆無 console 錯誤 |
+
+**本輪 FPS 門檻**（上一輪最終數字的八成，見本檔開頭）：GPU vsync ≥ 48、`--uncap` ≥ 1000、SwiftShader ≥ 8。
+**測試**：`npm test` ALL PASS（碰撞、導航、材質皆過）；`dx.browser.py` 21 項 FAILS: []。
+**目視觀察（給後續階段）**：牆面、地面都是程式化平塗＋雜訊，近看缺少磚縫與粗糙感；運動場第一人稱地面有一塊模糊的陰影斑；手機版左側面板已收合為漢堡鈕，樓層鈕與搖桿、小地圖目前沒有重疊。
+**本機開啟**：`cd campus-atlas/slice && npm ci && npm run build && npm run preview`，瀏覽 `http://localhost:4173/dongxin.html`。

@@ -1,0 +1,60 @@
+{
+ "url": "(預設)",
+ "when": "2026-10-18 01:40:36",
+ "dist": {
+  "totalKB": 3961,
+  "byDirKB": {
+   ".": 6,
+   "assets": 3383,
+   "basis": 571
+  }
+ },
+ "errors": [],
+ "views": {
+  "gate": {
+   "calls": 357,
+   "triangles": 274546
+  },
+  "corr2f": {
+   "calls": 262,
+   "triangles": 274270
+  },
+  "class": {
+   "calls": 260,
+   "triangles": 274276
+  },
+  "bird": {
+   "calls": 353,
+   "triangles": 272648
+  },
+  "first": {
+   "calls": 223,
+   "triangles": 272958
+  },
+  "m_spawn": {
+   "calls": 297,
+   "triangles": 274350
+  },
+  "m_corr2f": {
+   "calls": 236,
+   "triangles": 274218
+  }
+ },
+ "loadSec": {
+  "median": 0.77,
+  "all": [
+   1.19,
+   0.77,
+   0.57
+  ]
+ },
+ "transferKB": 2604,
+ "memory": {
+  "textures": 111,
+  "textureMB": 58.18,
+  "gpuTextures": 105,
+  "gpuGeometries": 287,
+  "shadowMapMB": 16
+ },
+ "renderer": "ANGLE (NVIDIA Corporation, NVIDIA GB10/PCIe, OpenGL 4.5.0)"
+}

@@ -81,7 +81,13 @@ window.__dx = { S, m, world, nav, setDest: guide.setDest, startRoute: guide.star
   async exportGLB() { const { GLTFExporter } = await import('three/examples/jsm/exporters/GLTFExporter.js');
     return new GLTFExporter().parseAsync(dx.root, { binary: true, onlyVisible: false, maxTextureSize: 1024 }); },
   renderInfo() { const r = stage.renderer.info.render; return { calls: r.calls, triangles: r.triangles, shadows: stage.lighting.shadows, degraded: stage.lighting.degraded }; },
-  setShadows: (v) => stage.lighting.setShadows(v) };
+  setShadows: (v) => stage.lighting.setShadows(v),
+  // 量測用：GPU 資源數與貼圖記憶體估計（RGBA8 × mipmap 4/3；壓縮貼圖依區塊格式估）
+  memInfo() { const seen = new Set(); let bytes = 0, n = 0;
+    stage.scene.traverse(o => { const ms = o.material ? [].concat(o.material) : []; for (const mt of ms) for (const k in mt) { const t = mt[k]; if (!t || !t.isTexture || seen.has(t)) continue; seen.add(t); n++;
+      const im = t.image || {}, w = im.width || (t.mipmaps?.[0]?.width) || 0, h = im.height || (t.mipmaps?.[0]?.height) || 0, bpp = t.isCompressedTexture ? 1 : 4;
+      bytes += w * h * bpp * (t.generateMipmaps !== false || t.mipmaps?.length > 1 ? 4 / 3 : 1); } });
+    const r = stage.renderer.info; return { textures: n, textureMB: +(bytes / 1048576).toFixed(2), gpuTextures: r.memory.textures, gpuGeometries: r.memory.geometries, shadowMapMB: stage.lighting.shadows ? +(stage.lighting.sun.shadow.mapSize.x ** 2 * 4 / 1048576).toFixed(1) : 0 }; } };
 try { if (!localStorage.getItem('dx.help1')) { $('#help').hidden = false; localStorage.setItem('dx.help1', '1'); } } catch (e) { }
 ui.renderList(); ui.setMode('third'); ui.updateFloorButtons();
 $('#loading').classList.add('done'); setTimeout(() => $('#loading').style.display = 'none', 500);
