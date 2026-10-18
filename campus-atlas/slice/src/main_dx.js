@@ -69,7 +69,8 @@ function update(dt) {
 }
 const timer = new THREE.Timer();
 const AUTO_DEGRADE = new URLSearchParams(location.search).get('degrade') !== '0';   // ?degrade=0：不自動關陰影／AO（量測用）
-function loop(ts) { timer.update(ts); const raw = timer.getDelta(); if (AUTO_DEGRADE) { stage.lighting.watch(raw); stage.ao.watch(raw); } update(Math.min(raw, 0.05)); stage.render(); requestAnimationFrame(loop); }
+let frozen = false;   // __dx.view 拍照時暫停主迴圈
+function loop(ts) { requestAnimationFrame(loop); timer.update(ts); if (frozen) return; const raw = timer.getDelta(); if (AUTO_DEGRADE) { stage.lighting.watch(raw); stage.ao.watch(raw); } update(Math.min(raw, 0.05)); stage.render(); }
 
 window.__dx = { S, m, world, nav, setDest: guide.setDest, startRoute: guide.startRoute, gotoFloor: guide.gotoFloor, setMode: ui.setMode, teleportTo: guide.teleportTo, cancelRoute: guide.cancelRoute, keys: input.keys, THREE, TARGETS,
   tick(dt) { update(dt); },
@@ -93,6 +94,10 @@ window.__dx = { S, m, world, nav, setDest: guide.setDest, startRoute: guide.star
       mesh.matrix.copy(im.matrix); mesh.matrix.decompose(mesh.position, mesh.quaternion, mesh.scale); im.parent.add(mesh); im.parent.remove(im); }
     return new GLTFExporter().parseAsync(root, { binary: true, onlyVisible: false, maxTextureSize: 1024 }); },
   renderInfo() { const r = stage.renderer.info.render; return { calls: r.calls, triangles: r.triangles, programs: stage.renderer.info.programs?.length, shadows: stage.lighting.shadows, degraded: stage.lighting.degraded }; },
+  // 照片對照用：自由相機（位置、注視點、垂直視角），所有樓層可見，畫一幀（下一次 update 會被鏡頭狀態機蓋回）
+  view(p, t, fov = 60) { frozen = true; dx.FG.forEach(g => g.visible = true); dx.CAN.forEach(g => g && (g.visible = true)); stage.ch.group.visible = false;
+    camera.fov = fov; camera.updateProjectionMatrix(); camera.position.set(...p); camera.up.set(0, 1, 0); camera.lookAt(...t); stage.lighting.update({ ...S, x: t[0], z: t[2] }, false); stage.render(); camera.fov = 60; camera.updateProjectionMatrix(); },
+  unfreeze() { frozen = false; },
   setShadows: (v) => stage.lighting.setShadows(v), _scene: stage.scene, lightmap: stage.lm, ao: () => ({ status: stage.ao.status, ms: Math.round(stage.ao.ms) }), aoReady: () => stage.ao.ready.then(() => ({ status: stage.ao.status })),
   // 量測用：GPU 資源數與貼圖記憶體估計（RGBA8 × mipmap 4/3；壓縮貼圖依區塊格式估）
   memInfo() { const seen = new Set(); let bytes = 0, n = 0;

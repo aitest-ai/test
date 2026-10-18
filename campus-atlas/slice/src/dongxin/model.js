@@ -244,6 +244,69 @@ function repairConnectivity(f){
   }
 }
 for(let f=1;f<NL;f++) repairConnectivity(f);   // 1F 是戶外，不需要
+/* ---------- 第三輪 Phase 0：穿堂、柱子、走廊邊緣（依實景照片；尺寸量測依據見 docs/GX10_ROUND3_REALPHOTO.md 執行紀錄） ---------- */
+// FLOOR：放柱子之前的可走格＝「有樓板」的範圍（場景的走廊樓板、欄杆邊線、雨遮用；柱子佔的格子仍有樓板）
+const FLOOR=NAV.map(a=>a.slice()), SLAB_=0.3;
+const byName=(f,n)=>BYFLOOR[f].find(r=>r.name===n);
+const cornerX=v=>WX0+Math.round((v-WX0)/CELL)*CELL, cornerZ=v=>WZ0+Math.round((v-WZ0)/CELL)*CELL;
+// 穿堂（S1）：貫穿集賢樓的南北向通道。校門側（南）雙層挑空到 3F 樓板；中段 2F 是連通兩側走廊的彩繪橋；操場側（北）只有一層高。
+// 校門側由懸挑框架承托 3F：前排兩根大圓柱、厚邊梁、兩側清水混凝土牆；右側是凸出的 1–2F 灰框玻璃角窗房。
+const CT=(()=>{ const L=byName(0,'家長會辦公室'), Rr=byName(0,'學務處'), N0=byName(0,'總務處'), N1=byName(0,'健康中心'); if(!L||!Rr||!N0||!N1) return null;
+  const face=Math.max(L.Z1,Rr.Z1);                        // 1–2F 南面牆線
+  const xs=[cornerX(N0.X1),cornerX(N1.X0)];               // 柱列：與北段通道兩側牆線同一軸（照片量得前排柱心距 ≈ 8.7 m，北段通道淨寬 8.77 m）
+  let zb=-1e9; { const i=ci((xs[0]+xs[1])/2); for(let j=0;j<GH;j++){ const k=j*GW+i, z=WZ0+(j+1)*CELL; if(z<face&&NAV[1][k]&&RC[1][k]<0) zb=Math.max(zb,z); } }   // 2F 橋的南緣
+  const zc=cornerZ(face+2.1), edge=zc+1.0;                // 前排柱心在牆線外 2.1 m；板緣只越過柱心 1.0 m（柱外緣再出 0.5 m）
+  return { xl:L.X1, xr:Rr.X0, face, zb:cornerZ(zb), zc, edge, xs, wallT:0.6, box:{x0:Rr.X0,x1:Rr.X0+4.6,z0:face,z1:face+2.0},
+    soffit:2*FH-SLAB_, beamBot:2*FH-0.6, beamTop:2*FH+0.3, gateClear:2*FH-0.6, fieldClear:FH-SLAB_, north:{x0:N0.X1,x1:N1.X0,z0:N0.Z0,z1:N0.Z1},
+    get x0(){ return this.xl-this.wallT; }, get x1(){ return this.box.x1+this.wallT; } };
+})();
+// 柱子（S2）：清水混凝土圓柱，貫穿多層（同一位置每層一段，視覺連續）。走廊柱直徑 0.6 m，柱心放在格角 → 正好佔 2×2 格（0.605 m），
+// 穿堂前排 0.9 m（佔 4×4 格）、橋下 0.75 m。柱子進碰撞：佔到的格子設為不可走（淨空場、A*、膠囊碰撞都看得到）。
+// 走廊柱沿走廊外緣（與欄杆同一線），間距 ≤ 4.8 m（照片估計），由上往下生成：上層的柱一路往下延伸到遇到房間為止。
+const COL_D=0.6, COL_STEP=4.8, PILLARS=[], EDGES=[];
+const inStairRect=(x,z,pad)=>STAIRS.some(s=>x>s.X0-pad&&x<s.X1+pad&&z>s.Z0-pad&&z<s.Z1+pad);
+const inCT=(x,z)=>CT&&x>CT.x0-0.4&&x<CT.x1+0.4&&z>CT.zb-0.6&&z<CT.edge+0.4;
+function blockDisk(f,x,z,r){ for(let j=cj(z-r);j<=cj(z+r);j++) for(let i=ci(x-r);i<=ci(x+r);i++){ if(i<0||j<0||i>=GW||j>=GH) continue;
+  const x0=WX0+i*CELL, z0=WZ0+j*CELL, px=clampN(x,x0,x0+CELL), pz=clampN(z,z0,z0+CELL); if(Math.hypot(x-px,z-pz)<r-0.01) NAV[f][j*GW+i]=0; } }
+function blockRect(f,x0,z0,x1,z1){ for(let j=cj(z0+1e-3);j<=cj(z1-1e-3);j++) for(let i=ci(x0+1e-3);i<=ci(x1-1e-3);i++) if(i>=0&&j>=0&&i<GW&&j<GH) NAV[f][j*GW+i]=0; }
+// 走廊外緣（上層＝欄杆線；1F＝走廊與戶外的交界）：{ax,fix,a,b,out}，out＝往外（非走廊側）的方向（±1）
+for(let f=0;f<NL;f++){ const n=FLOOR[f], rc=RC[f], E=[]; EDGES[f]=E;
+  const inC=(i,j)=>{ if(i<0||j<0||i>=GW||j>=GH) return false; const k=j*GW+i; return rc[k]<0&&n[k]&&(f>0||CORR[0][k]); };
+  const edge1=(i,j)=>{ if(i<0||j<0||i>=GW||j>=GH) return true; const k=j*GW+i; return !inC(i,j)&&rc[k]<0; };
+  const edge=(i,j,di,dj)=>edge1(i,j)&&edge1(i+di,j+dj);   // 外側連續兩格都是空的才算外緣（房間與走廊之間一格寬的縫不算，不立柱、不放欄杆）
+  for(let j=0;j<GH;j++){ let sN=-1,sS=-1;
+    for(let i=0;i<=GW;i++){ const fr=inC(i,j), eN=fr&&edge(i,j-1,0,-1), eS=fr&&edge(i,j+1,0,1);
+      if(eN&&sN<0) sN=i; if(!eN&&sN>=0){ E.push({ax:'x',fix:WZ0+j*CELL,a:WX0+sN*CELL,b:WX0+i*CELL,out:-1}); sN=-1; }
+      if(eS&&sS<0) sS=i; if(!eS&&sS>=0){ E.push({ax:'x',fix:WZ0+(j+1)*CELL,a:WX0+sS*CELL,b:WX0+i*CELL,out:1}); sS=-1; } } }
+  for(let i=0;i<GW;i++){ let sW=-1,sE=-1;
+    for(let j=0;j<=GH;j++){ const fr=inC(i,j), eW=fr&&edge(i-1,j,-1,0), eE=fr&&edge(i+1,j,1,0);
+      if(eW&&sW<0) sW=j; if(!eW&&sW>=0){ E.push({ax:'z',fix:WX0+i*CELL,a:WZ0+sW*CELL,b:WZ0+j*CELL,out:-1}); sW=-1; }
+      if(eE&&sE<0) sE=j; if(!eE&&sE>=0){ E.push({ax:'z',fix:WX0+(i+1)*CELL,a:WZ0+sE*CELL,b:WZ0+j*CELL,out:1}); sE=-1; } } }
+}
+{ const cellsAround=(x,z)=>[[x-0.1,z-0.1],[x+0.1,z-0.1],[x-0.1,z+0.1],[x+0.1,z+0.1]].map(([a,b])=>{ const i=ci(a), j=cj(b); return (i<0||j<0||i>=GW||j>=GH)?-1:j*GW+i; });
+  const roomUnder=(g,x,z)=>cellsAround(x,z).some(k=>k<0||RC[g][k]>=0);
+  const near=(f,x,z)=>PILLARS.some(p=>f>=p.f0&&f<=p.f1&&Math.hypot(p.x-x,p.z-z)<1.2);
+  // 柱與牆／別的柱之間留下 1–2 格（≤ 0.6 m）的縫 → 角色擠不過去、會卡在縫裡：這種位置不立柱
+  const pocket=(g,x,z)=>{ const I=Math.round((x-WX0)/CELL), J=Math.round((z-WZ0)/CELL), fr=(i,j)=>i>=0&&j>=0&&i<GW&&j<GH&&NAV[g][j*GW+i]===1;
+    for(let di=-1;di<=1;di++) for(let dj=-1;dj<=1;dj++){ if(!di&&!dj) continue; const bi=di<0?I-1:I, bj=dj<0?J-1:J;   // 2×2 柱格在此方向的角格
+      for(const [oi,oj] of (di&&dj)?[[0,0]]:(di?[[0,-1],[0,0]]:[[-1,0],[0,0]])){ const si=(di?bi:I+oi), sj=(dj?bj:J+oj);
+        let gap=0; for(let d=1;d<=3;d++){ if(fr(si+di*d,sj+dj*d)) gap++; else break; } if(gap>=1&&gap<=2&&!fr(si+di*(gap+1),sj+dj*(gap+1))) return true; } }
+    return false; };
+  const DOORS=[0,1,2,3,4].map(g=>BYFLOOR[g].filter(r=>r.door&&r.door.x!==undefined).map(r=>r.door).concat(STAIRS.filter(s=>s.doors[g]&&s.doors[g].x!==undefined).map(s=>s.doors[g])));
+  const nearDoor=(g,x,z)=>DOORS[g].some(d=>Math.hypot(d.x-x,d.z-z)<CELL*2+1.0);   // 門口（門寬 1.2 m）前後不立柱
+  for(const f of [3,2,1,0]){ // 地上樓層由上往下；B1 停車場另有做法（不進碰撞）
+    for(const e of EDGES[f]){ const len=e.b-e.a; if(len<0.5) continue; const q=Math.max(1,Math.round(len/COL_STEP));
+      for(let t=0;t<=q;t++){ const p=e.ax==='x'?cornerX(e.a+len*t/q):cornerZ(e.a+len*t/q), x=e.ax==='x'?p:e.fix, z=e.ax==='x'?e.fix:p;
+        if(inStairRect(x,z,0.6)||inCT(x,z)||near(f,x,z)) continue;
+        if(f===0){ const up=cellsAround(x,z); if(!up.some(k=>k>=0&&(FLOOR[1][k]||RC[1][k]>=0))) continue; }   // 1F 只在上方有結構處立柱（純雨遮是懸挑，不立柱）
+        if(nearDoor(f,x,z)) continue;
+        let g=f; while(g>0&&!roomUnder(g-1,x,z)&&!nearDoor(g-1,x,z)) g--;
+        let bad=false; for(let h=g;h<=f&&!bad;h++) bad=pocket(h,x,z); if(bad) continue;
+        const P={x,z,r:COL_D/2,f0:g,f1:f,y0:LY(g),y1:LY(f)+FH-0.15,kind:'corr'}; PILLARS.push(P); for(let h=g;h<=f;h++) blockDisk(h,x,z,P.r); } } }
+  if(CT){ CT.xs.forEach((x,k)=>{ PILLARS.push({x,z:CT.zc,r:0.45,f0:0,f1:1,y0:0,y1:CT.soffit,kind:'ct'}); PILLARS.push({x,z:CT.zb,r:0.375,f0:0,f1:1,y0:0,y1:CT.soffit,kind:k===0?'ctPaint':'ctIn'}); }); }
+  for(const p of PILLARS) if(p.kind!=='corr') for(let g=p.f0;g<=p.f1;g++) blockDisk(g,p.x,p.z,p.r);
+  if(CT){ blockRect(0,CT.x0,CT.face,CT.xl,CT.edge); blockRect(0,CT.box.x0,CT.box.z0,CT.box.x1,CT.box.z1); blockRect(0,CT.box.x1,CT.face,CT.x1,CT.edge); }   // 框架兩側牆、玻璃角窗房
+}
 for(let f=0;f<NL;f++){
   const n=NAV[f], e=new Uint8Array(GW*GH);
   for(let j=1;j<GH-1;j++) for(let i=1;i<GW-1;i++){
@@ -335,5 +398,5 @@ D.places.forEach(p=>{
 });
 { const c=nearestCell(0,(RAMP.x0+RAMP.x1)/2,RAMP.z1+1.5,40); PLACES.push({name:'停車場入口',code:'',t:'p',f:0,label:'戶外',x:c>=0?cxm(c%GW):(RAMP.x0+RAMP.x1)/2,z:c>=0?czm((c/GW)|0):RAMP.z1+1.5}); }
 return { BLD,RAMP,D,SC,CELL,GX0,GY0,GW,GH,WX0,WZ0,FH,NF,NL,UP,DN,LY,RANK,clampN,ci,cj,cxm,czm,TYPE_LABEL,levelLabel,
-  ROOMS,PLACES,STAIRS,BYFLOOR,CORR,WALK0,NAV,ERO,RC,STR_A,STR_B,STR_N,freeAt,roomAt,canStand,nearestCell,losOK,astar,planRoute,pickDoor };
+  ROOMS,PLACES,STAIRS,BYFLOOR,CORR,WALK0,NAV,FLOOR,EDGES,PILLARS,CT,ERO,RC,STR_A,STR_B,STR_N,freeAt,roomAt,canStand,nearestCell,losOK,astar,planRoute,pickDoor };
 }

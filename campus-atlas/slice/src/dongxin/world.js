@@ -8,7 +8,7 @@
 export const R = 0.3, STEP_UP = 0.45, MAX_DROP = 0.6;
 
 export function createDxWorld(m) {
-  const { NL, FH, LY, UP, STAIRS, NAV, RC, ERO, CELL, GW, GH, WX0, WZ0, STR_N } = m;
+  const { NL, FH, LY, UP, STAIRS, NAV, RC, ERO, CELL, GW, GH, WX0, WZ0, STR_N, CT } = m, FLOOR = m.FLOOR || NAV;
   const SLAB = 0.3;
   const cell = (x, z) => { const i = Math.floor((x - WX0) / CELL), j = Math.floor((z - WZ0) / CELL); return (i < 0 || j < 0 || i >= GW || j >= GH) ? -1 : j * GW + i; };
   const gridFree = (f, x, z) => { const k = cell(x, z); return k >= 0 && NAV[f][k] === 1; };
@@ -120,7 +120,7 @@ export function createDxWorld(m) {
     for (let i = 1; i <= n; i++) {
       const t = i / n, x = x0 + (x1 - x0) * t, z = z0 + (z1 - z0) * t;
       if (roomAt(f, x, z) !== rp) return Math.max(0, (i - 1) / n);
-      for (const p of pillars) if (p.f === f && (p.x - x) ** 2 + (p.z - z) ** 2 < (0.17 + margin * 0.5) ** 2) return Math.max(0, (i - 1) / n);
+      for (const p of pillars) if (f >= p.f0 && f <= p.f1 && (p.x - x) ** 2 + (p.z - z) ** 2 < ((p.r ?? 0.17) + margin * 0.5) ** 2) return Math.max(0, (i - 1) / n);
     }
     return 1;
   };
@@ -133,12 +133,13 @@ export function createDxWorld(m) {
   const covered = (f, k) => { // 此格頭上是否有結構
     if (RC[f][k] >= 0) return true;
     if (f === 4) return true;                                   // 地下停車場有頂（地面層）
-    const up = UP[f]; if (up >= 0 && (NAV[up][k] || RC[up][k] >= 0)) return true;
+    const up = UP[f]; if (up >= 0 && (FLOOR[up][k] || RC[up][k] >= 0)) return true;
     return false;
   };
   const ceilingY = (x, z, y) => {
     const f = floorOfY(y + 0.1), k = cell(x, z); if (k < 0) return Infinity;
     if (f === 4 && y < LY(0)) return LY(0) - SLAB;
+    if (f === 0 && CT && x > CT.x0 && x < CT.x1 && z > CT.zb && z < CT.edge) return CT.beamBot - 0.1;   // 穿堂校門側：挑空到 3F（邊梁底）
     const up = RC[f][k] >= 0 && !(RC[f][k] >= 1000) ? LY(f) + FH - SLAB : (covered(f, k) ? LY(f) + FH - SLAB : Infinity);
     return up;
   };

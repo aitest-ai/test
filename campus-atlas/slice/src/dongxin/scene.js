@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { Batch } from '../scene/batch.js';
 
 export function buildDongxinScene(m, MS, opts = {}) {
-  const T = THREE, { D, SC, CELL, GW, GH, WX0, WZ0, FH, NF, NL, UP, DN, LY, RANK, ci, cj, BYFLOOR, STAIRS, NAV, RC, CORR, PLACES, STR_N, clampN } = m;
+  const T = THREE, { D, SC, CELL, GW, GH, WX0, WZ0, FH, NF, NL, UP, DN, LY, RANK, ci, cj, BYFLOOR, STAIRS, NAV, RC, CORR, PLACES, STR_N, clampN, FLOOR, EDGES, CT } = m;
   const clamp = clampN, RAMP = m.RAMP;
   const FONT = '"Noto Sans TC","PingFang TC","Microsoft JhengHei","Noto Sans CJK TC",sans-serif';
   const SLAB = 0.3, WALL_H = FH - SLAB, DOOR_H = 2.35, DOOR_HALF = CELL * 2;
@@ -25,10 +25,10 @@ export function buildDongxinScene(m, MS, opts = {}) {
   M.acc = MS.acc;
   const GB = { x0: 1130 * SC, x1: 1360 * SC, z: 1022 * SC };            // 校門：警衛室東側的藍色伸縮門（平面圖粉紅線處）
   const GATE = PLACES.find(p => p.name === '校門');
-  const UNIT = new T.BoxGeometry(1, 1, 1), CYL = new T.CylinderGeometry(0.5, 0.5, 1, 12);
+  const UNIT = new T.BoxGeometry(1, 1, 1), CYL = new T.CylinderGeometry(0.5, 0.5, 1, 16);
   const root = new T.Group(); root.name = 'dongxin';
   const world = root;
-  const PILLARS = [], CAN = [], UNDER = [], FG = [];
+  const PILLARS = m.PILLARS.slice(), CAN = [], UNDER = [], FG = [];
   for (let f = 0; f < NL; f++) { const g = new T.Group(); g.name = 'F' + f; FG.push(g); root.add(g); }
   let groundMesh = null, groundBox = null;
 
@@ -54,6 +54,21 @@ export function buildDongxinScene(m, MS, opts = {}) {
     };
   }
 
+  // 圓柱（S2，照片 atrium_column_cropped / mufeng_corridor_2f）：清水混凝土、無塗裝，每約 0.25 m 一道水平模板縫（照片量測，見紀錄）（以世界高度畫線，實例化圓柱也連續）
+  const colMat = lam('#b3b4b0'); colMat.name = 'column';
+  colMat.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vWY;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvec4 cwp=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\ncwp=instanceMatrix*cwp;\n#endif\nvWY=(modelMatrix*cwp).y;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vWY;').replace('#include <map_fragment>', '#include <map_fragment>\n{ float d=abs(fract(vWY/0.25+0.5)-0.5)*0.25, w=max(fwidth(vWY)*0.7,0.004); diffuseColor.rgb*=1.0-0.2*(1.0-smoothstep(w*0.5,w*1.5,d)); }'); };
+  colMat.customProgramCacheKey = () => 'columnFormwork';
+  // 走廊欄杆（S3，照片 mufeng_corridor_2f）：綠色直立扁鐵條（條寬約 3 cm、中心距約 5.6 cm，照片量測）；條佔 55%，遠處 mipmap 平均後仍高於 alphaTest，看起來近乎實板（與照片一致）＝ alphaTest 條紋貼圖，世界公尺 UV
+  const railBars = (() => { const t = canvasTex(32, 8, (g, w, h) => { g.clearRect(0, 0, w, h); g.fillStyle = '#fff'; g.fillRect(0, 0, 18, h); }, true); t.repeat.set(1 / 0.056, 1);
+    const mt = new T.MeshLambertMaterial({ color: M.rail.color.clone(), map: t, alphaTest: 0.5, side: T.DoubleSide }); mt.name = 'railBars'; return mt; })();
+  // 穿堂彩繪（照片 chuantang_front_cantilever：2F 橋的欄板與橋下柱子以彩色幾何壁畫包覆；圖樣為示意，非原畫）
+  let _mural = null, _muralCol = null;
+  const muralTex = () => _mural || (_mural = (() => { const mt = canvasTex(2048, 256, (g, w, h) => { g.fillStyle = '#e9e9e4'; g.fillRect(0, 0, w, h); const cols = ['#f06b8a', '#2f8fd8', '#35b7c9', '#f3d34a', '#2b4aa8', '#8fd0a8', '#f2a1b6', '#8fa7c8'];
+      const r = rng(11); for (let i = 0; i < 22; i++) { const x = i * w / 21 - 60, ww = 140 + r() * 160, hh = 80 + r() * 150; g.fillStyle = cols[(r() * cols.length) | 0]; g.beginPath(); g.moveTo(x, h); g.lineTo(x + ww / 2, h - hh); g.lineTo(x + ww, h); g.closePath(); g.fill();
+        g.strokeStyle = '#fff'; g.lineWidth = 6; g.stroke(); g.fillStyle = cols[(r() * cols.length) | 0]; g.fillRect(x + ww * 0.3, h - hh * 0.45, ww * 0.4, hh * 0.2); } }); mt.shared = false; return mt; })());
+  const muralCol = () => _muralCol || (_muralCol = new T.MeshLambertMaterial({ map: muralTex() }));
   /* ---------- 建築（自舊版移植，改用 slice 材質／Batch）---------- */
 function hasAbove(r){
   const up=UP[r.f], list=up>=0?BYFLOOR[up]:[]; const area=r.w*r.d;
@@ -69,7 +84,8 @@ function wallSegs(ib,r,y0,mat,accMat,door){
     {s:'W',ax:'z',a:r.Z0,b:r.Z1,fix:r.X0+T_/2},{s:'E',ax:'z',a:r.Z0,b:r.Z1,fix:r.X1-T_/2}];
   const OPP={N:'S',S:'N',W:'E',E:'W'};
   sides.forEach(sd=>{
-    const sm=r.stair?R('facade.stair'):(r.ribbon?R('facade.ribbon'):r.bld==='K'?R('facade.K'):r.bld==='M'?R('facade.M'):((door&&sd.s===OPP[door.side])?R('facade.J'):R('facade.J.side')));
+    const ctWall=CT&&!r.stair&&r.f<=1&&sd.ax==='z'&&(Math.abs(sd.fix-CT.xl)<0.5||Math.abs(sd.fix-CT.xr)<0.5)&&sd.b>CT.zb&&sd.a<CT.face+0.1;   // 穿堂兩側：清水混凝土（S1）
+    const sm=ctWall?M.conc:r.stair?R('facade.stair'):(r.ribbon?R('facade.ribbon'):r.bld==='K'?R('facade.K'):r.bld==='M'?R('facade.M'):((door&&sd.s===OPP[door.side])?R('facade.J'):R('facade.J.side')));
     const IN={N:1,S:-1,W:1,E:-1}[sd.s];
     const put=(a,b,y,h,m,thick)=>{ if(b-a<0.02) return; const len=b-a, c=(a+b)/2;
       if(sd.ax==='x') ib.add(m,len,h,thick,c,y,sd.fix); else ib.add(m,thick,h,len,sd.fix,y,c);
@@ -162,7 +178,7 @@ function buildStairInterior(ib,g,s,f){
 }
 function buildFloors(){
   for(let f=0;f<NL;f++){
-    const g=FG[f], ib=IB(g), y0=LY(f), UPR=(f>=1&&f<=3), GARAGE=(f===4), CEIL=[];
+    const g=FG[f], ib=FIB[f], y0=LY(f), UPR=(f>=1&&f<=3), GARAGE=(f===4), CEIL=[];
     const rooms=BYFLOOR[f].concat(STAIRS.filter(s=>s.fl.includes(f)));
     rooms.forEach(r=>{
       const isSt=!!r.stair, tp=isSt?'t':r.t, acc=M.acc[tp]||M.acc.p;
@@ -193,7 +209,7 @@ function buildFloors(){
     });
     // 走廊樓板（上層）
     if(f>0){
-      const n=NAV[f], rc=RC[f]; const run=new Map();
+      const n=FLOOR[f], rc=RC[f]; const run=new Map();
       const used=new Uint8Array(GW*GH); const rects=[];
       for(let j=0;j<GH;j++) for(let i=0;i<GW;i++){
         const k=j*GW+i; if(used[k]||!n[k]||rc[k]>=0) continue;
@@ -205,8 +221,18 @@ function buildFloors(){
       rects.forEach(([i,j,i2,j2])=>{ const w=(i2-i+1)*CELL, d=(j2-j+1)*CELL, cx=WX0+(i+(i2-i+1)/2)*CELL, cz=WZ0+(j+(j2-j+1)/2)*CELL;
         ib.add(GARAGE?M.garage:M.slabTop,w+0.02,SLAB,d+0.02,cx,y0-SLAB/2,cz); if(GARAGE) CEIL.push([w+0.02,SLAB,d+0.02,cx,-0.3,cz]); });
     }
-    // 邊緣：欄杆（上層）、柱子（全部樓層）
-    { const n=NAV[f], rc=RC[f];
+    // 柱子（S2）：model.js 的 PILLARS（已進碰撞），每層畫一段
+    for(const p of m.PILLARS){ if(f<p.f0||f>p.f1) continue; const ya=f===p.f0?p.y0:LY(f), yb=f===p.f1?p.y1:LY(f)+FH; ib.cyl(p.kind==='ctPaint'?muralCol():colMat,p.r*2,yb-ya,p.x,(ya+yb)/2,p.z);
+      if(f===0&&p.f0===0) ib.cyl(colMat,p.r*2+0.12,0.06,p.x,0.03,p.z); }   // 柱腳小圓盤
+    // 走廊外緣（S3）：深邊梁（樓板下外露 0.9 m）＋ 0.25 m 矮緣（寬 0.3 m，在走廊線外側）＋ 綠色直條欄杆（總高 1.1 m）
+    if(f>0&&!GARAGE) for(const e of EDGES[f]){ const len=e.b-e.a; if(len<0.1) continue; const c=(e.a+e.b)/2;
+      const put=(mt,off,th,y,h,L=len,cc=c)=>{ const q=e.fix+e.out*off; if(e.ax==='x') ib.add(mt,L,h,th,cc,y,q); else ib.add(mt,th,h,L,q,y,cc); };
+      put(M.conc,0.15,0.3,y0-0.9+1.15/2,1.15);
+      put(railBars,0.15,0.03,y0+0.25+0.85/2,0.85); put(M.rail,0.15,0.06,y0+1.08,0.05); put(M.rail,0.15,0.05,y0+0.3,0.04);
+      for(const [pe,sg] of [[e.a,-1],[e.b,1]]){ const ax_=pe+sg*0.15, oz=e.fix+e.out*0.15, x_=e.ax==='x'?ax_:oz, z_=e.ax==='x'?oz:ax_, ii=ci(x_), jj=cj(z_);   // 凸角：補上角落那一格的邊梁
+        if(ii>=0&&jj>=0&&ii<GW&&jj<GH&&FLOOR[f][jj*GW+ii]&&RC[f][jj*GW+ii]<0) continue; put(M.conc,0.15,0.3,y0-0.9+1.15/2,1.15,0.3,ax_); } }
+    // 邊緣：B1 停車場的牆與柱（沿用舊做法，第三輪檢查點 3 再改）
+    if(GARAGE){ const n=NAV[f], rc=RC[f];
       const inC=(i,j)=>{ if(i<0||j<0||i>=GW||j>=GH) return false; const k=j*GW+i; return rc[k]<0&&n[k]&&(f>0||CORR[0][k]); };
       const edge=(i,j)=>{ if(i<0||j<0||i>=GW||j>=GH) return true; const k=j*GW+i; return !inC(i,j)&&rc[k]<0; };
       const seg=(ax,fix,a,b)=>{ const len=b-a; if(len<0.1) return; const c=(a+b)/2;
@@ -215,7 +241,7 @@ function buildFloors(){
         const q=Math.max(1,Math.round(len/5.5));
         for(let t=0;t<=q;t++){ const p=a+len*t/q, px=ax==='x'?p:fix, pz=ax==='x'?fix:p;
           let yb=y0; if(UPR){ let ok=false; for(const [dx,dz] of [[0,0],[0.25,0],[-0.25,0],[0,0.25],[0,-0.25]]){ const ii=ci(px+dx), jj=cj(pz+dz); if(ii<0||jj<0||ii>=GW||jj>=GH) continue; const kk=jj*GW+ii; if(RC[f-1][kk]>=0||CORR[f-1][kk]) ok=true; } if(!ok) yb=0; }
-          ib.cyl(M.conc,0.34,y0+FH-0.15-yb,px,(yb+y0+FH-0.15)/2,pz); PILLARS.push({f,x:px,z:pz}); } };
+          ib.cyl(M.conc,0.34,y0+FH-0.15-yb,px,(yb+y0+FH-0.15)/2,pz); PILLARS.push({f0:f,f1:f,r:0.17,x:px,z:pz}); } };
       for(let j=0;j<GH;j++){ let sN=-1,sS=-1;
         for(let i=0;i<=GW;i++){
           const fr=inC(i,j), eN=fr&&edge(i,j-1), eS=fr&&edge(i,j+1);
@@ -227,12 +253,16 @@ function buildFloors(){
           const fr=inC(i,j), eW=fr&&edge(i-1,j), eE=fr&&edge(i+1,j);
           if(eW&&sW<0) sW=j; if(!eW&&sW>=0){ seg('z',WX0+i*CELL,WZ0+sW*CELL,WZ0+j*CELL); sW=-1; }
           if(eE&&sE<0) sE=j; if(!eE&&sE>=0){ seg('z',WX0+(i+1)*CELL,WZ0+sE*CELL,WZ0+j*CELL); sE=-1; }
-        } }
+        } } }
+    { const rc=RC[f];
       // 雨遮（頂層走廊或上方無結構的走廊）
       const can=new T.Group(); can.name='CAN'+f; CAN[f]=can; world.add(can); const cb=IB(can); UNDER[f]=new Uint8Array(GW*GH); CEIL.forEach(c=>cb.add(M.slab,...c));
       const used=new Uint8Array(GW*GH), cov=new Uint8Array(GW*GH);
-      for(let k=0;k<GW*GH;k++){ if(!(rc[k]<0&&n[k]&&(f>0||CORR[0][k]))) continue;
-        const up=UP[f], above=GARAGE||(up>=0&&(NAV[up][k]||RC[up][k]>=0)); if(above) UNDER[f][k]=1; else { cov[k]=1; UNDER[f][k]=1; } }
+      const fl=FLOOR[f];
+      for(let k=0;k<GW*GH;k++){ if(!(rc[k]<0&&fl[k]&&(f>0||CORR[0][k]))) continue;
+        const up=UP[f], above=GARAGE||(up>=0&&(FLOOR[up][k]||RC[up][k]>=0)); if(above) UNDER[f][k]=1; else { cov[k]=1; UNDER[f][k]=1; } }
+      if(f===0&&CT) for(let k=0;k<GW*GH;k++){ const x=WX0+(k%GW+0.5)*CELL, z=WZ0+(((k/GW)|0)+0.5)*CELL;   // 穿堂：挑空到 3F，不做一層高的雨遮（S1）
+        if(x>CT.x0-0.3&&x<CT.x1+0.3&&z>CT.zb&&z<CT.edge+3.0){ cov[k]=0; if(z>CT.zb+0.3) UNDER[f][k]=0; } }
       { // 屋簷深度限制：只留離「房間／上層結構」3 m 內的雨遮（川堂等開闊處不做大片頂蓋；照片中川堂雨遮進深有限）
         const EAVE=Math.round(3.0/CELL), dist=new Int16Array(GW*GH).fill(-1), q=[];
         for(let k=0;k<GW*GH;k++) if(rc[k]>=0||(UNDER[f][k]&&!cov[k])){ dist[k]=0; q.push(k); }
@@ -248,10 +278,34 @@ function buildFloors(){
         cb.add(M.roof,w+0.5,0.2,d+0.5,cx,y0+FH-0.1,cz); }
       cb.flush();
     }
-    ib.flush();
   }
 }
 
+/* ---------- 穿堂（S1）：校門側懸挑框架＋3F 樓板延伸、玻璃角窗房、2F 彩繪橋欄板（尺寸見 model.js 的 CT 與執行紀錄） ---------- */
+function buildChuantang(){
+  if(!CT) return; const C=CT, x0=C.x0, x1=C.x1, ibs=FIB;   // 併進各樓層的批次（不增加 draw call）
+  // 垂直方塊依樓層切段放進各樓層群組（鳥瞰剖切時跟著樓層顯示／隱藏）
+  const vbox=(mt,xa,xb,za,zb,ya,yb)=>{ for(let f=0;f<NF;f++){ const a=Math.max(ya,LY(f)), b=Math.min(yb,LY(f)+FH); if(b-a>0.01) ibs[f].add(mt,xb-xa,b-a,zb-za,(xa+xb)/2,(a+b)/2,(za+zb)/2); } };
+  const top=4*FH;
+  // 兩側清水混凝土牆（左：家長會辦公室東牆往前延伸；右：玻璃角窗房外側），從地面到邊梁頂
+  vbox(M.conc,x0,C.xl,C.face-0.3,C.edge,0,C.beamTop); vbox(M.conc,C.box.x1,x1,C.face-0.3,C.edge,0,C.beamTop);
+  // 3F 樓板延伸（懸挑板）與前緣邊梁（梁底 7.2 m，S1 校門側淨高 ≥ 7 m）
+  vbox(M.slab,x0,x1,C.face-0.3,C.edge,C.soffit,2*FH); vbox(M.conc,x0,x1,C.edge-0.35,C.edge,C.beamBot,C.beamTop);
+  // 3F–4F 紅磚量體前緣：照片（chuantang_from_above）中板緣只比上方磚牆凸出約 0.75 m
+  const zf=C.edge-0.75; vbox(R('facade.J'),x0,x1,C.face-0.3,zf,C.beamTop,top); vbox(M.wall,x0+0.3,x1-0.3,C.face-0.3,zf-0.3,C.beamTop,top-0.01);
+  ibs[3].add(R('roof.J')||M.roof,x1-x0+0.2,SLAB,zf-C.face+0.5,(x0+x1)/2,top-SLAB/2,(C.face+zf)/2-0.1);
+  // 玻璃角窗房（1–2F）：灰框、玻璃、窗下淺藍灰實板（照片 chuantang_front_glassbox_col）
+  const B=C.box, spand=M.band;   // 窗下實板：沿用飾帶材質（不多一個 draw call）
+  vbox(M.glass,B.x0+0.05,B.x1,B.z1-0.06,B.z1,0,C.soffit); vbox(M.glass,B.x0,B.x0+0.06,B.z0,B.z1,0,C.soffit);
+  for(const [ya,yb] of [[0,0.6],[3.3,4.6]]){ vbox(spand,B.x0,B.x1,B.z1-0.08,B.z1+0.01,ya,yb); vbox(spand,B.x0-0.01,B.x0+0.08,B.z0,B.z1,ya,yb); }
+  const nx=Math.round((B.x1-B.x0)/1.15), nz=Math.round((B.z1-B.z0)/1.0);
+  for(let k=0;k<=nx;k++){ const x=B.x0+(B.x1-B.x0)*k/nx; vbox(M.frame,x-0.04,x+0.04,B.z1-0.1,B.z1+0.02,0,C.soffit); }
+  for(let k=0;k<=nz;k++){ const z=B.z0+(B.z1-B.z0)*k/nz; vbox(M.frame,B.x0-0.02,B.x0+0.1,z-0.04,z+0.04,0,C.soffit); }
+  for(const y of [0.6,2.2,3.3,4.6,6.2]){ vbox(M.frame,B.x0,B.x1,B.z1-0.1,B.z1+0.02,y-0.04,y+0.04); vbox(M.frame,B.x0-0.02,B.x0+0.1,B.z0,B.z1,y-0.04,y+0.04); }
+  ibs[0].add(M.wall,B.x1-B.x0,0.05,B.z1-B.z0,(B.x0+B.x1)/2,0.025,(B.z0+B.z1)/2);
+  // 2F 橋的南側彩繪欄板（含邊梁外側），朝校門
+  const pl=new T.Mesh(new T.PlaneGeometry(C.xr-C.xl,2.0),new T.MeshBasicMaterial({map:muralTex(),side:T.DoubleSide})); pl.position.set((C.xl+C.xr)/2,FH-0.9+1.0,C.zb+0.31); FG[1].add(pl);
+}
 /* ---------- 地面、圍牆、樹 ---------- */
 function buildGround(){
   const base=new T.Mesh(new T.PlaneGeometry(1400,1400),new T.MeshBasicMaterial({color:0xd5d8d5})); base.rotation.x=-Math.PI/2; base.position.set(80,-0.06,40); world.add(base);
@@ -296,13 +350,6 @@ function buildDecor(){
     g.font='400 30px sans-serif'; g.fillText('Taipei Municipal Dongxin Elementary School',60,222); });
   tex.shared=false; const plate=new T.Mesh(new T.PlaneGeometry(5.4,1.35),new T.MeshBasicMaterial({map:tex}));
   plate.position.set(gx[1]+3.2,1.35,gz-0.3+0.27); world.add(plate);
-  // 川堂二樓欄板：彩色幾何壁畫（朝向挑空的川堂）
-  { const mt=canvasTex(2048,256,(g,w,h)=>{ g.fillStyle='#e9e9e4'; g.fillRect(0,0,w,h); const cols=['#f06b8a','#2f8fd8','#35b7c9','#f3d34a','#2b4aa8','#8fd0a8','#f2a1b6','#8fa7c8'];
-      const r=rng(11); for(let i=0;i<22;i++){ const x=i*w/21-60, ww=140+r()*160, hh=80+r()*150; g.fillStyle=cols[(r()*cols.length)|0]; g.beginPath(); g.moveTo(x,h); g.lineTo(x+ww/2,h-hh); g.lineTo(x+ww,h); g.closePath(); g.fill();
-        g.strokeStyle='#fff'; g.lineWidth=6; g.stroke(); g.fillStyle=cols[(r()*cols.length)|0]; g.fillRect(x+ww*0.3,h-hh*0.45,ww*0.4,hh*0.2); } });
-    mt.shared=false; const mm=new T.MeshBasicMaterial({map:mt,side:T.DoubleSide});
-    const z0=455*SC, x0=1065*SC, x1=1235*SC; const pl=new T.Mesh(new T.PlaneGeometry(x1-x0,1.15),mm); pl.position.set((x0+x1)/2,FH+0.62,z0+0.06); world.add(pl);
-    const z1=562*SC; const p2=new T.Mesh(new T.PlaneGeometry(x1-x0,1.15),mm); p2.position.set((x0+x1)/2,FH+0.62,z1-0.06); world.add(p2); }
   // 梯塔時鐘（最靠近校門的梯間，南面）
   const st=STAIRS.slice().sort((a,b)=>Math.hypot(a.cx-GATE.x,a.cz-GATE.z)-Math.hypot(b.cx-GATE.x,b.cz-GATE.z))[0];
   const ck=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#f4f2ea'; g.beginPath(); g.arc(128,128,120,0,7); g.fill(); g.strokeStyle='#333'; g.lineWidth=8; g.stroke();
@@ -413,6 +460,7 @@ function buildSigns(){
     const pw=Math.min(8,K.sr.w*0.95), pnl=new T.Mesh(new T.PlaneGeometry(pw,pw*448/1024),new T.MeshBasicMaterial({map:cv})); pnl.position.set(K.sr.cx,colTop(K.sr)*FH-1.9,K.sr.Z1+0.07); world.add(pnl); }
 }
   m.ROOMS.forEach(r=>{ if(['潛能教室','電腦教室','音樂教室'].includes(r.name)) r.ribbon=true; });
-  buildGround(); buildFloors(); buildFence(); buildDecor(); buildTrees(); buildRamp(); buildSigns();
+  const FIB = FG.map(g => IB(g));   // 各樓層共用的方塊批次（buildFloors、buildChuantang 都加進來，最後一次合併）
+  buildGround(); buildFloors(); buildChuantang(); FIB.forEach(b => b.flush()); buildFence(); buildDecor(); buildTrees(); buildRamp(); buildSigns();
   return { root, FG, CAN, UNDER, PILLARS, get groundMesh() { return groundMesh; }, get groundBox() { return groundBox; }, GATE, ACC, GB };
 }
