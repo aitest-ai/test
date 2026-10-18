@@ -4,6 +4,7 @@ import * as THREE from 'three';
 // 全部屬「示意」：房間名稱暫定、尺寸為圖面推得近似值。
 import { Batch } from '../scene/batch.js';
 import * as BGU from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import PLANTERS from '../../data/planters.dongxin.json';
 
 export function buildDongxinScene(m, MS, opts = {}) {
   const T = THREE, { D, SC, CELL, GW, GH, WX0, WZ0, FH, NF, NL, UP, DN, LY, RANK, ci, cj, BYFLOOR, STAIRS, NAV, RC, CORR, PLACES, STR_N, clampN, FLOOR, EDGES, CT, STAGE, SLIDE } = m;
@@ -132,7 +133,7 @@ function wallSegs(ib,r,y0,mat,accMat,door){
       else { ib.add(M.conc,T_,0.35,w,sd.fix,y0+wh-0.17,c); ib.add(M.conc,0.35,wh,0.35,sd.fix,y0+wh/2,sd.a+0.17); ib.add(M.conc,0.35,wh,0.35,sd.fix,y0+wh/2,sd.b-0.17); }
       return; }
     if(!r.stair&&door&&sd.s===door.side){ corridorFace(ib,sd,r,door,y0,wh); return; }
-    if(r.bld==='J'&&!r.ribbon&&!ctWall&&exterior&&!(door&&door.side===sd.s)&&r.f<4){   // 集賢樓外牆：深凹窗洞（S4）
+    if(r.bld==='J'&&!r.ribbon&&!ctWall&&exterior&&r.name!=='警衛室'&&!(door&&door.side===sd.s)&&r.f<4){   // 集賢樓外牆：深凹窗洞（S4）
       const skip=(u)=>outRoom(u)||(sd.ax==='x'&&CT&&sd.s==='S'&&r.f>=2&&u>CT.x0-0.6&&u<CT.x1+0.6);
       const seed=Math.round(sd.fix*10)*31+Math.round(sd.a*10)*7+r.f*131, fb=FINBOX&&r.f===2&&sd.s==='N'&&sd.ax==='x'&&Math.abs(sd.fix-FINBOX.wall)<0.5;
       if(fb){ recessFacade(ib,sm,'x',sd.fix,sd.a,FINBOX.x0,y0,wh,OUT,seed,!hasAbove(r),skip); recessFacade(ib,sm,'x',sd.fix,FINBOX.x1,sd.b,y0,wh,OUT,seed+7,!hasAbove(r),skip); return; }   // 鰭片量體段由 buildFinBox 畫
@@ -320,16 +321,13 @@ function buildFloors(){
       for(const [pe,sg] of [[e.a,-1],[e.b,1]]){ const ax_=pe+sg*0.15, oz=e.fix+e.out*0.15, x_=e.ax==='x'?ax_:oz, z_=e.ax==='x'?oz:ax_, ii=ci(x_), jj=cj(z_);   // 凸角：補上角落那一格的邊梁
         if(ii>=0&&jj>=0&&ii<GW&&jj<GH&&FLOOR[f][jj*GW+ii]&&RC[f][jj*GW+ii]<0) continue; put(M.conc,0.15,0.3,y0-0.9+1.15/2,1.15,0.3,ax_); } }
     // 邊緣：B1 停車場的牆與柱（沿用舊做法，第三輪檢查點 3 再改）
-    if(GARAGE){ const n=NAV[f], rc=RC[f];
+    if(GARAGE){ const n=FLOOR[f], rc=RC[f];   // FLOOR：未放柱的範圍（柱不是牆）
       const inC=(i,j)=>{ if(i<0||j<0||i>=GW||j>=GH) return false; const k=j*GW+i; return rc[k]<0&&n[k]&&(f>0||CORR[0][k]); };
       const edge=(i,j)=>{ if(i<0||j<0||i>=GW||j>=GH) return true; const k=j*GW+i; return !inC(i,j)&&rc[k]<0; };
       const seg=(ax,fix,a,b)=>{ const len=b-a; if(len<0.1) return; const c=(a+b)/2;
         if(GARAGE){ if(ax==='x') ib.add(M.conc,len,FH-0.2,0.3,c,y0+(FH-0.2)/2,fix); else ib.add(M.conc,0.3,FH-0.2,len,fix,y0+(FH-0.2)/2,c); }
         else if(f>0){ if(ax==='x') ib.add(M.rail,len,1.05,0.07,c,y0+0.53,fix); else ib.add(M.rail,0.07,1.05,len,fix,y0+0.53,c); }
-        const q=Math.max(1,Math.round(len/5.5));
-        for(let t=0;t<=q;t++){ const p=a+len*t/q, px=ax==='x'?p:fix, pz=ax==='x'?fix:p;
-          let yb=y0; if(UPR){ let ok=false; for(const [dx,dz] of [[0,0],[0.25,0],[-0.25,0],[0,0.25],[0,-0.25]]){ const ii=ci(px+dx), jj=cj(pz+dz); if(ii<0||jj<0||ii>=GW||jj>=GH) continue; const kk=jj*GW+ii; if(RC[f-1][kk]>=0||CORR[f-1][kk]) ok=true; } if(!ok) yb=0; }
-          ib.cyl(M.conc,0.34,y0+FH-0.15-yb,px,(yb+y0+FH-0.15)/2,pz); PILLARS.push({f0:f,f1:f,r:0.17,x:px,z:pz}); } };
+      };   // 停車場的柱改為格狀方柱（buildGarage，S12）
       for(let j=0;j<GH;j++){ let sN=-1,sS=-1;
         for(let i=0;i<=GW;i++){
           const fr=inC(i,j), eN=fr&&edge(i,j-1), eS=fr&&edge(i,j+1);
@@ -408,19 +406,22 @@ function buildFinBox(){
   const a=0.6, dx=Math.sin(a)*0.22, dz=Math.cos(a)*0.22;
   for(let x=F.x0+0.7;x<=F.x1-0.5;x+=0.9){ const zc=F.z0+0.2; ib.quad(M.conc,[x-dx,ya,zc-dz],[x+dx,ya,zc+dz],[x+dx,yb,zc+dz],[x-dx,yb,zc-dz]); }
 }
-/* ---------- 蒙萌園中庭遊戲塔（S11）：黃色塔身＋頂部小屋＋紅黃相間螺旋滑梯（幾何近似，一個網格、頂點色，示意） ---------- */
+/* ---------- 小物件（頂點色，同一樓層群組合併成一個網格＝一個 draw call）：遊戲塔、校門樹雕、旗桿、短柱燈、樹的竹架、停車場標線／管線／燈 ---------- */
+const PROPS=[[],[],[],[],[]], C3=(h)=>new T.Color(h);
+function vcAdd(f,g,col){ g=g.index?g.toNonIndexed():g; const n=g.attributes.position.count, c=new Float32Array(n*3); for(let i=0;i<n;i++) (typeof col==='function'?col(i,n):col).toArray(c,i*3);
+  g.setAttribute('color',new T.BufferAttribute(c,3)); for(const k of Object.keys(g.attributes)) if(!['position','normal','color'].includes(k)) g.deleteAttribute(k); PROPS[f].push(g); }
+const vcBox=(f,x0,y0,z0,x1,y1,z1,c)=>vcAdd(f,new T.BoxGeometry(x1-x0,y1-y0,z1-z0).translate((x0+x1)/2,(y0+y1)/2,(z0+z1)/2),c);
+function vcStick(f,a,b,r,c,seg=6){ const A=new T.Vector3(...a), B=new T.Vector3(...b), L=A.distanceTo(B), g=new T.CylinderGeometry(r,r,L,seg,1);
+  g.applyMatrix4(new T.Matrix4().makeRotationFromQuaternion(new T.Quaternion().setFromUnitVectors(new T.Vector3(0,1,0),B.clone().sub(A).normalize()))); g.translate((A.x+B.x)/2,(A.y+B.y)/2,(A.z+B.z)/2); vcAdd(f,g,c); }
+function flushProps(){ const mt=lam('#ffffff',{vertexColors:true}); PROPS.forEach((parts,f)=>{ if(!parts.length) return; const mesh=new T.Mesh(BGU.mergeGeometries(parts),mt); mesh.name='props_F'+f; FG[f].add(mesh); }); }
+// 蒙萌園中庭遊戲塔（S11）：黃色塔身＋頂部小屋＋紅黃相間螺旋滑梯（幾何近似，示意）
 function buildSlide(){
-  const S_=m.SLIDE; if(!S_) return; const parts=[], Y=new T.Color('#e8c11c'), Rd=new T.Color('#d8452f'), mtx=new T.Matrix4();
-  const add=(g,col)=>{ g=g.index?g.toNonIndexed():g; const n=g.attributes.position.count, c=new Float32Array(n*3); for(let i=0;i<n;i++) col(i,n).toArray(c,i*3); g.setAttribute('color',new T.BufferAttribute(c,3)); g.deleteAttribute('uv'); parts.push(g); };
-  const tx=S_.x-0.5, tz=S_.z-0.5;
-  add(new T.BoxGeometry(1.2,5.2,1.2).applyMatrix4(mtx.makeTranslation(tx,2.6,tz)),()=>Y);                // 塔身
-  add(new T.BoxGeometry(1.6,1.3,1.6).applyMatrix4(mtx.makeTranslation(tx,5.85,tz)),()=>Y);               // 頂部小屋
+  const S_=m.SLIDE; if(!S_) return; const Y=C3('#e8c11c'), Rd=C3('#d8452f'), tx=S_.x-0.5, tz=S_.z-0.5;
+  vcBox(0,tx-0.6,0,tz-0.6,tx+0.6,5.2,tz+0.6,Y); vcBox(0,tx-0.8,5.2,tz-0.8,tx+0.8,6.5,tz+0.8,Y);
   const cx=S_.x+0.35, cz=S_.z+0.35, turns=1.6, R0=0.95, pts=[];
   for(let k=0;k<=48;k++){ const t=k/48, a=t*turns*Math.PI*2+2.4; pts.push(new T.Vector3(cx+Math.cos(a)*R0,4.9-t*4.4,cz+Math.sin(a)*R0)); }
   pts.push(new T.Vector3(cx+Math.cos(2.4+turns*Math.PI*2)*R0+0.6,0.35,cz+Math.sin(2.4+turns*Math.PI*2)*R0+0.6));
-  const tube=new T.TubeGeometry(new T.CatmullRomCurve3(pts),96,0.38,10,false);
-  add(tube,(i,n)=>(Math.floor(i/(n/12))%2?Rd:Y));                                                         // 紅黃相間
-  const { mergeGeometries } = BGU; const mesh=new T.Mesh(mergeGeometries(parts),lam('#ffffff',{vertexColors:true})); mesh.name='play_tower'; FG[0].add(mesh);
+  vcAdd(0,new T.TubeGeometry(new T.CatmullRomCurve3(pts),96,0.38,10,false),(i,n)=>(Math.floor(i/(n/12))%2?Rd:Y));
 }
 /* ---------- 時鐘梯塔外部與牆面（S10）：B 端兩角牆墩（清水混凝土）＋灰色落水管；實牆內側金色樓層數字、廣播喇叭、防空避難標示 ---------- */
 function buildTower(){
@@ -442,6 +443,54 @@ function buildTower(){
   for(const [k,u,v,y,w,h,ax] of TDET){ const pg=new T.PlaneGeometry(w,h), uv=pg.attributes.uv; for(let i=0;i<uv.count;i++) uv.setX(i,(k+uv.getX(i))/8);
     if(ax==='v') pg.rotateY(Math.PI); else pg.rotateY(-Math.PI/2*s.sgn); const q=s.P(u,v,y); pg.translate(q.x,q.y,q.z); parts.push(pg); }
   if(parts.length){ const mesh=new T.Mesh(BGU.mergeGeometries(parts),new T.MeshBasicMaterial({map:at,alphaTest:0.4})); mesh.name='tower_signs'; world.add(mesh); }
+}
+/* ---------- 警衛室（S7）：橘紅磚小亭＋綠色雨遮（北側門口、東側面向校門），照片無直接證據的尺寸為估計 ---------- */
+function buildGuard(){
+  const g=BYFLOOR[0].find(r=>r.name==='警衛室'); if(!g) return; const ib=FIB[0], y=2.65, D=1.1;
+  ib.add(M.rail,g.w+D+0.3,0.12,D,(g.X0-0.3+g.X1+D)/2,y,g.Z0-D/2); ib.add(M.rail,D,0.12,g.d+0.3,g.X1+D/2,y,(g.Z0+g.Z1+0.3)/2);
+  ib.add(M.rail,g.w+D+0.3,0.28,0.06,(g.X0-0.3+g.X1+D)/2,y-0.08,g.Z0-D); ib.add(M.rail,0.06,0.28,g.d+D+0.3,g.X1+D,y-0.08,(g.Z0-D+g.Z1+0.3)/2);
+}
+/* ---------- 廣場花壇（S8）：設計圖底圖抽出的花壇輪廓（scripts/extract_planters.py → data/planters.dongxin.json）
+   ＝ 高 0.3 m、寬 0.25 m 的灰色花崗石曲線緣；沿花壇外側每約 9 m 一支黑色短柱燈；花壇區內的樹加竹架（照片 jixian_facade_courtyard、chuantang_looking_to_gate） ---------- */
+function buildPlanters(){
+  const ib=FIB[0], H=0.3, w=0.125, dark=C3('#2b2d2f'), cap=C3('#d9dcd6');
+  const inPoly=(pts,x,z)=>{ let c=false; for(let i=0,j=pts.length-1;i<pts.length;j=i++){ const [xi,zi]=pts[i], [xj,zj]=pts[j]; if(((zi>z)!==(zj>z))&&x<(xj-xi)*(z-zi)/(zj-zi)+xi) c=!c; } return c; };
+  for(const p of PLANTERS.planters){ const P=p.pts, n=P.length, segs=p.closed?n:n-1; let acc=4.5;
+    for(let k=0;k<segs;k++){ const [ax,az]=P[k], [bx,bz]=P[(k+1)%n], L=Math.hypot(bx-ax,bz-az); if(L<1e-3) continue; const nx=-(bz-az)/L*w, nz=(bx-ax)/L*w;
+      ib.quad(M.conc,[ax-nx,H,az-nz],[bx-nx,H,bz-nz],[bx+nx,H,bz+nz],[ax+nx,H,az+nz],false);
+      ib.quad(M.conc,[ax+nx,0,az+nz],[bx+nx,0,bz+nz],[bx+nx,H,bz+nz],[ax+nx,H,az+nz]); ib.quad(M.conc,[ax-nx,0,az-nz],[bx-nx,0,bz-nz],[bx-nx,H,bz-nz],[ax-nx,H,az-nz]);
+      acc+=L; if(acc>9&&p.closed){ acc=0; let ox=nx/w*0.5, oz=nz/w*0.5; const mx=(ax+bx)/2, mz=(az+bz)/2; if(inPoly(P,mx+ox,mz+oz)){ ox=-ox; oz=-oz; }
+        const bxp=mx+ox, bzp=mz+oz; if(!(CT&&bxp>CT.x0&&bxp<CT.x1&&bzp>CT.face&&bzp<CT.edge)){ vcStick(0,[bxp,0,bzp],[bxp,0.85,bzp],0.08,dark,10); vcStick(0,[bxp,0.85,bzp],[bxp,0.95,bzp],0.07,cap,10); } } } }
+}
+function buildTreeSupports(){
+  const bam=C3('#9b7b4e'), [rx0,rz0,rx1,rz1]=PLANTERS.region;
+  for(const t of TREES_KEPT){ const x=t[0]*SC, z=t[1]*SC; if(x<rx0||x>rx1||z<rz0||z>rz1) continue;   // 竹架（三腳）
+    for(let k=0;k<3;k++){ const a=k*2.094+0.4; vcStick(0,[x+Math.cos(a)*1.0,0,z+Math.sin(a)*1.0],[x+Math.cos(a)*0.12,1.8,z+Math.sin(a)*0.12],0.035,bam,5); } }
+}
+/* ---------- 地下停車場（S12，無實景照片，台灣常見校園地下停車場樣式，示意）：方柱（model.js 的 GCOLS，已進碰撞）＋柱腳黃黑警示帶、
+   灰色環氧樹脂地坪（材質 garage）上的白色停車格與編號、黃色車道虛線、天花管線與日光燈、綠色「出口」指示 ---------- */
+function buildGarage(){
+  const G=m.GCOLS; if(!G||!G.box) return; const ib=FIB[4], yF=LY(4), yC=-SLAB, Wt=C3('#e9e9e2'), Yl=C3('#e7bb1f'), Bk=C3('#262626'), Gy=C3('#9a9fa3'), Lt=C3('#fbfbf4'), Gn=C3('#2e9b54');
+  const free=(x,z)=>{ const i=ci(x), j=cj(z); return i>=0&&j>=0&&i<GW&&j<GH&&NAV[4][j*GW+i]===1; };
+  for(const c of G){ ib.add(M.conc,0.6,yC-yF,0.6,c.x,(yF+yC)/2,c.z); for(let k=0;k<6;k++) vcBox(4,c.x-0.31,yF+k*0.15,c.z-0.31,c.x+0.31,yF+(k+1)*0.15,c.z+0.31,k%2?Bk:Yl); }
+  const rows=G.rows, B=G.box, nums=[]; let no=1;
+  for(let r=0;r+1<rows.length;r+=2){ const za=rows[r], zb=rows[r+1], zm=(za+zb)/2;
+    for(let cx=B.x0+4.0;cx<B.x1-1;cx+=8.1) for(let q=0;q<3;q++){ const bx=cx+0.3+q*2.5;
+      for(const [z0,z1,fz] of [[za,zm,za+0.9],[zm,zb,zb-0.9]]){ const ok=[[bx+0.2,z0+0.3],[bx+2.3,z0+0.3],[bx+0.2,z1-0.3],[bx+2.3,z1-0.3],[bx+1.25,(z0+z1)/2]].every(([x,z])=>free(x,z)); if(!ok) continue;
+        vcBox(4,bx,yF+0.003,z0,bx+0.1,yF+0.008,z1,Wt); vcBox(4,bx+2.4,yF+0.003,z0,bx+2.5,yF+0.008,z1,Wt); vcBox(4,bx,yF+0.003,zm-0.05,bx+2.5,yF+0.008,zm+0.05,Wt);
+        nums.push([no++,bx+1.25,fz]); } } }
+  const aisles=[(B.z0+rows[0])/2]; for(let r=1;r+1<rows.length;r+=2) aisles.push((rows[r]+rows[r+1])/2);
+  for(const az of aisles){ for(let x=B.x0+1;x<B.x1-1;x+=3.5) if(free(x,az)&&free(x+2,az)) vcBox(4,x,yF+0.003,az-0.06,x+2,yF+0.008,az+0.06,Yl);
+    vcStick(4,[B.x0+0.5,yC-0.35,az+1.2],[B.x1-0.5,yC-0.35,az+1.2],0.09,Gy,8); vcStick(4,[B.x0+0.5,yC-0.25,az+1.6],[B.x1-0.5,yC-0.25,az+1.6],0.05,Gy,6);
+    for(let x=B.x0+2;x<B.x1-1;x+=4) if(free(x,az)) vcBox(4,x-0.6,yC-0.12,az-0.08,x+0.6,yC-0.05,az+0.08,Lt); }
+  // 編號與「出口」：圖集（白色數字 0–9、綠底白字出口）合併成一個網格
+  const at=canvasTex(1024,128,(g,w,h)=>{ g.clearRect(0,0,w,h); g.font='700 100px '+FONT; g.textAlign='center'; g.textBaseline='middle'; g.fillStyle='#f2f2ea';
+    for(let d=0;d<10;d++) g.fillText(String(d),d*64+32,68); g.fillStyle='#2e9b54'; g.fillRect(640,8,376,112); g.fillStyle='#fff'; g.font='700 72px '+FONT; g.fillText('出口 EXIT',828,66); });
+  at.shared=false; const parts=[];
+  const plane=(u0,u1,w,h,setup)=>{ const pg=new T.PlaneGeometry(w,h), uv=pg.attributes.uv; for(let i=0;i<uv.count;i++) uv.setX(i,u0+uv.getX(i)*(u1-u0)); setup(pg); parts.push(pg); };
+  for(const [n,x,z] of nums){ const t=String(n).padStart(3,'0'); [...t].forEach((ch,k)=>plane(+ch*64/1024,(+ch+1)*64/1024,0.32,0.6,pg=>{ pg.rotateX(-Math.PI/2); pg.translate(x+(k-1)*0.3,yF+0.01,z); })); }
+  for(const st of STAIRS) if(st.fl.includes(4)){ const e=st.ent; plane(640/1024,1,1.2,0.38,pg=>{ pg.translate(e.x,yC-0.6,e.z); }); vcBox(4,e.x-0.62,yC-0.8,e.z-0.04,e.x+0.62,yC-0.4,e.z-0.01,Gn); }
+  if(parts.length){ const mesh=new T.Mesh(BGU.mergeGeometries(parts),new T.MeshBasicMaterial({map:at,alphaTest:0.4,side:T.DoubleSide})); mesh.name='garage_signs'; FG[4].add(mesh); }
 }
 /* ---------- 司令台（S9）：開放式抬高平台＋斜坡＋不鏽鋼扶手＋鋼柱斜撐的折板雨遮（model.js 的 STAGE；尺寸為照片估計） ---------- */
 // 斜置的方塊（斜撐、斜扶手）：p→q 的方形斷面桿件，四個側面用 Batch.quad（併進樓層批次，不另增 draw call）
@@ -497,17 +546,24 @@ function buildGround(){
 // 地面細節：把圖片型鋪面紋理（材質角色 ground.detail）以世界公尺鋪在底圖上，只作用在底圖的「鋪面色」（低彩度、非綠、非線條），
 // 草地、跑道、球場保留底圖原色。細節除以貼圖平均色，只加明暗紋理、不改底圖色調；遠處 mipmap 平均後自然淡出。
 // 只有圖片載入成功才開啟（程式化備援或換膜沒有圖片時，地面與原本完全相同）。
+// 校門側廣場與穿堂地坪（S8，照片 chuantang_front_glassbox_col：淺灰大塊石英磚約 0.6 m 見方、細縫）的範圍 [x0,z0,x1,z1]（m）
+const PLAZA=[[69.0,42.3,112.0,72.0],[80.1,21.2,93.2,42.4]];   // 校門內側一帶照片為灰色連鎖磚（gate_inside_sculpture_wall），不在大磚範圍
 function groundDetail(mat, det){
   const tx=det&&det.map; if(!tx||!tx.userData.image) return;
-  const U={uDet:{value:tx},uDetK:{value:0},uDetScale:{value:tx.repeat},uDetMean:{value:new T.Vector3(1,1,1)}};
+  const U={uDet:{value:tx},uDetK:{value:0},uDetScale:{value:tx.repeat},uDetMean:{value:new T.Vector3(1,1,1)},uPlA:{value:new T.Vector4(...PLAZA[0])},uPlB:{value:new T.Vector4(...PLAZA[1])}};
   tx.userData.ready.then(r=>{ if(r.ok){ U.uDetMean.value.set(...r.mean); U.uDetK.value=opts.groundDetail??0.45; } });
   mat.onBeforeCompile=(sh)=>{ Object.assign(sh.uniforms,U);
     sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 vWXZ;').replace('#include <begin_vertex>','#include <begin_vertex>\nvWXZ=(modelMatrix*vec4(transformed,1.0)).xz;');
-    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vWXZ;uniform sampler2D uDet;uniform float uDetK;uniform vec2 uDetScale;uniform vec3 uDetMean;')
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vWXZ;uniform sampler2D uDet;uniform float uDetK;uniform vec2 uDetScale;uniform vec3 uDetMean;uniform vec4 uPlA,uPlB;')
       .replace('#include <map_fragment>',`#include <map_fragment>
       { vec3 pc=diffuseColor.rgb; float mx=max(pc.r,max(pc.g,pc.b)), mn=min(pc.r,min(pc.g,pc.b)), sat=(mx-mn)/max(mx,1e-3);
         float w=(1.0-smoothstep(0.13,0.22,sat))*(1.0-smoothstep(0.0,0.04,pc.g-pc.r))*smoothstep(0.5,0.65,mx);
-        vec3 d=texture2D(uDet,vWXZ*uDetScale).rgb/uDetMean; diffuseColor.rgb*=mix(vec3(1.0),d,w*uDetK); }`); };
+        vec3 d=texture2D(uDet,vWXZ*uDetScale).rgb/uDetMean;
+        bool pl=(all(greaterThan(vWXZ,uPlA.xy))&&all(lessThan(vWXZ,uPlA.zw)))||(all(greaterThan(vWXZ,uPlB.xy))&&all(lessThan(vWXZ,uPlB.zw)));
+        if(pl&&uDetK>0.0){ float wp=(1.0-smoothstep(0.0,0.04,pc.g-pc.r))*smoothstep(0.45,0.6,mx);   // 校門側廣場、穿堂：淺灰大磚 0.6 m（S8），底圖暖色調降為淺灰
+          vec2 gq=abs(fract(vWXZ/0.6+0.5)-0.5)*0.6; float ln=1.0-smoothstep(0.004,0.012,min(gq.x,gq.y)); float l=dot(pc,vec3(0.3,0.59,0.11));
+          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(l*0.93,l*0.95,l*0.96)*(1.0-0.22*ln),wp); }
+        else diffuseColor.rgb*=mix(vec3(1.0),d,w*uDetK); }`); };
   mat.customProgramCacheKey=()=>'groundDetail';
 }
 function buildDecor(){
@@ -533,6 +589,20 @@ function buildDecor(){
     const lid=new T.Mesh(UNIT,M.conc); lid.scale.set(wS+0.3,0.2,dS+0.3); lid.position.set(st.cx,4*FH+1.8,st.cz); world.add(lid);
     const base=new T.Mesh(UNIT,lv); base.scale.set(wS,2.2,0.18); base.position.set(st.cx,1.2,st.Z1+0.12); world.add(base); }
 }
+function gateSculpture(wx,wz){
+  const Sv=C3('#c9ccce'), r=rng(23), birds=[C3('#e0533b'),C3('#f0c22e'),C3('#3d7fd0'),C3('#f08a2a'),C3('#7bc46a')], tips=[];
+  // 樹雕：牆頂偏東（由校內看在牆的左半），主幹往上分枝 4 層，枝條在牆面方向展開（鏤空的樹冠輪廓）
+  const grow=(p,a,len,rad,d)=>{ const q=[p[0]+Math.cos(a)*len,p[1]+Math.sin(a)*len*0.75,p[2]+(r()-0.5)*0.25]; vcStick(0,p,q,rad,Sv,6);
+    if(d===0){ tips.push(q); return; } const n=d>2?2:2+(r()<0.5?1:0); for(let k=0;k<n;k++) grow(q,a+(k-(n-1)/2)*0.9+(r()-0.5)*0.4,len*0.78,rad*0.72,d-1); };
+  const base=[wx+1.2,2.4,wz]; grow(base,Math.PI/2+0.35,1.25,0.11,4);   // 照片：樹雕寬約為牆長的一半（≈3.5 m）、高約 1.6 m（估計）
+  tips.forEach((t,k)=>{ if(k%3) return; const c=birds[k%birds.length]; vcAdd(0,new T.SphereGeometry(0.11,8,6).translate(t[0],t[1]+0.08,t[2]),c); vcAdd(0,new T.ConeGeometry(0.035,0.09,6).rotateZ(-Math.PI/2).translate(t[0]+0.13,t[1]+0.1,t[2]),C3('#f0b030')); });
+  // 旗桿＋國旗（牆前、校內側）
+  const fx=wx-0.9, fz=wz-1.1; vcStick(0,[fx,0,fz],[fx,6.5,fz],0.045,C3('#d4d7d9'),10); vcBox(0,fx-0.25,0,fz-0.25,fx+0.25,0.12,fz+0.25,C3('#55595c'));
+  const red=C3('#d02a2a'), blue=C3('#1f3c99'); vcBox(0,fx+0.05,5.4,fz-0.01,fx+1.55,6.4,fz+0.01,red); vcBox(0,fx+0.05,5.9,fz-0.015,fx+0.8,6.4,fz+0.015,blue);
+  vcAdd(0,new T.CircleGeometry(0.12,12).translate(fx+0.42,6.15,fz+0.02),C3('#ffffff'));
+  // 黑色短柱燈（牆前）
+  for(const dx of [-3.2,3.0]){ vcStick(0,[wx+dx,0,wz-1.4],[wx+dx,0.85,wz-1.4],0.08,C3('#2b2d2f'),10); }
+}
 function buildFence(){
   const ib=IB(world), P=D.site.map(p=>[p[0]*SC,p[1]*SC]); const n=P.length;
   const gateX=[(745-90)*SC,(745+90)*SC];
@@ -553,17 +623,19 @@ function buildFence(){
     const gz=GB.z, B=M.fence, xa=GB.x0+(GB.x1-GB.x0)*0.4, xb=GB.x1, gw=xb-xa, gx=(xa+xb)/2;
     ib.add(B,gw,0.1,0.1,gx,0.25,gz); ib.add(B,gw,0.1,0.1,gx,1.9,gz); ib.add(B,gw,0.08,0.08,gx,1.0,gz);
     for(let q=0;q<=Math.round(gw/0.25);q++) ib.add(B,0.05,1.7,0.05,xa+q*0.25,1.05,gz);
-    ib.add(M.conc,6,2.4,0.5,GB.x1+3.2,1.2,gz-0.3);
-    ib.add(M.rail,0.3,3.2,0.3,GB.x1+5.2,1.6,gz-0.3);
+    // 校門地標（照片 gate_inside_sculpture_wall.jpg）：淺灰清水混凝土矮牆（高 2.4 m、長 7 m，估計）＋牆頂銀色鏤空樹雕與彩色小鳥＋不鏽鋼旗桿（國旗）
+    ib.add(M.conc,7,2.4,0.5,GB.x1+3.2,1.2,gz-0.3);
+    gateSculpture(GB.x1+3.2,gz-0.3);
   }
   ib.flush();
 }
+const TREES_KEPT=[];
 function buildTrees(){
   const SG=STAGE, inBox=(x,z,a)=>x>a.x0&&x<a.x1&&z>a.z0&&z<a.z1;
   const list=D.trees.filter(t=>{ const x=t[0]*SC, z=t[1]*SC;   // 不長在司令台、穿堂框架、遊戲塔上
     if(SG&&inBox(x,z,{x0:SG.canopy.x0-1,x1:SG.canopy.x1+1,z0:SG.canopy.z0-1,z1:SG.face})) return false;
     if(CT&&inBox(x,z,{x0:CT.x0-1.5,x1:CT.x1+1.5,z0:CT.zb,z1:CT.edge+1.5})) return false;
-    if(SLIDE&&Math.hypot(x-SLIDE.x,z-SLIDE.z)<3.5) return false; return true; }), n=list.length; if(!n) return;
+    if(SLIDE&&Math.hypot(x-SLIDE.x,z-SLIDE.z)<3.5) return false; return true; }), n=list.length; TREES_KEPT.push(...list); if(!n) return;
   const trunk=new T.InstancedMesh(new T.CylinderGeometry(0.16,0.24,1,6),M.trunk,n);
   const crown=new T.InstancedMesh(new T.IcosahedronGeometry(1,1),lam('#ffffff'),n);
   const r=rng(7), m=new T.Matrix4(), q=new T.Quaternion(), p=new T.Vector3(), s=new T.Vector3(), c=new T.Color();
@@ -609,6 +681,12 @@ function buildRamp(){
   [[xa-0.35,-1],[xb+0.35,1]].forEach(([x,sg_])=>{ const gq=new T.BufferGeometry(), x2=x+sg_*6.5, z2=zs+8, t=0.18;
     gq.setAttribute('position',new T.BufferAttribute(new Float32Array([x-t,0.012,zs, x+t,0.012,zs, x2+t,0.012,z2, x2-t,0.012,z2]),3)); gq.setIndex([0,2,1,0,3,2]);
     const mq=new T.Mesh(gq,red); mq.material.side=T.DoubleSide; world.add(mq); });
+  // 黃黑警示緣石（坡面兩側，每 0.6 m 換色）＋入口門型遮雨棚（S12，台灣常見樣式，示意）
+  { const Yl=C3('#e7bb1f'), Bk=C3('#262626'), yAt=(z)=>-drop*(zs-z)/L; let k=0;
+    for(let z=zs-0.3;z>R.z0+0.3;z-=0.6,k++) for(const x of [xa+0.42,xb-0.42]) vcBox(0,x-0.11,yAt(z)-0.05,z-0.3,x+0.11,yAt(z)+0.15,z+0.3,k%2?Bk:Yl);
+    const z0c=zc+0.2, z1c=zc+5.2, gy=C3('#c9ced1'), st=C3('#8d9499');
+    for(const x of [xa-0.35,xb+0.35]) for(const z of [z0c+0.2,z1c-0.2]) vcStick(0,[x,0,z],[x,4.0,z],0.09,st,8);
+    vcBox(0,xa-0.6,4.0,z0c,xb+0.6,4.15,z1c,gy); vcBox(0,xa-0.6,3.75,z1c-0.08,xb+0.6,4.15,z1c,st); vcBox(0,xa-0.6,3.75,z0c,xb+0.6,4.15,z0c+0.08,st); }
   // 交通錐
   const cone=lam('#ee6a1e'); [xa-0.9,xb+0.9].forEach(x=>{ const c=new T.Mesh(new T.CylinderGeometry(0.02,0.16,0.7,10),cone); c.position.set(x,0.35,zs+0.4); world.add(c); });
   ib.flush();
@@ -633,6 +711,6 @@ function buildSigns(){
 }
   m.ROOMS.forEach(r=>{ if(['潛能教室','電腦教室','音樂教室'].includes(r.name)) r.ribbon=true; });
   const FIB = FG.map(g => IB(g));   // 各樓層共用的方塊批次（buildFloors、buildChuantang 都加進來，最後一次合併）
-  buildGround(); buildFloors(); buildChuantang(); buildStage(); buildFinBox(); buildSlide(); buildTower(); FIB.forEach(b => b.flush()); buildFence(); buildDecor(); buildTrees(); buildRamp(); buildSigns();
-  return { root, FG, CAN, UNDER, PILLARS, WINDOWS, FINBOX, get groundMesh() { return groundMesh; }, get groundBox() { return groundBox; }, GATE, ACC, GB };
+  buildGround(); buildFloors(); buildChuantang(); buildStage(); buildFinBox(); buildSlide(); buildTower(); buildGuard(); buildPlanters(); buildGarage(); FIB.forEach(b => b.flush()); buildFence(); buildDecor(); buildTrees(); buildTreeSupports(); buildRamp(); buildSigns(); flushProps();
+  return { root, FG, CAN, UNDER, PILLARS, WINDOWS, FINBOX, PLANTERS: PLANTERS.planters.length, get groundMesh() { return groundMesh; }, get groundBox() { return groundBox; }, GATE, ACC, GB };
 }

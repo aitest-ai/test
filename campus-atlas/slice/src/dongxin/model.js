@@ -300,11 +300,20 @@ const SLIDE=(()=>{ let best=null; const x0=300*SC, x1=560*SC, z0=760*SC, z1=980*
     const c=Math.hypot(cxm(i)-mx,czm(j)-mz); if(!best||d>best.d||(d===best.d&&c<best.c)) best={d,c,x:cxm(i),z:czm(j)}; }   // 同樣空曠時取最靠近中庭中心
   return best&&best.d>=6?{x:best.x,z:best.z,r:1.7}:null; })();
 if(SLIDE) blockDisk(0,SLIDE.x,SLIDE.z,SLIDE.r);
+// 地下停車場柱（S12，無實景照片，依台灣常見校園地下停車場）：0.6 m 方柱，沿 x 每 8.1 m（三格車位 2.7 m）；
+// 沿 z 以「背靠背兩排車位 10 m＋車道 6.5 m」為一組，柱在車位前緣（間距 10／6.5 m 交替，平均約 8 m）。柱心在格角、佔 2×2 格，進碰撞。
+const inStairRect=(x,z,pad)=>STAIRS.some(s=>x>s.X0-pad&&x<s.X1+pad&&z>s.Z0-pad&&z<s.Z1+pad);
+const GCOLS=[];
+{ const f=4, nav=NAV[f]; let i0=GW,i1=0,j0=GH,j1=0; for(let j=0;j<GH;j++) for(let i=0;i<GW;i++) if(nav[j*GW+i]){ i0=Math.min(i0,i); i1=Math.max(i1,i); j0=Math.min(j0,j); j1=Math.max(j1,j); }
+  if(i1>i0){ const X0_=WX0+i0*CELL, X1_=WX0+(i1+1)*CELL, Z0_=WZ0+j0*CELL, Z1_=WZ0+(j1+1)*CELL, rows=[];
+    for(let z=Z0_+6.5;z<Z1_-1;){ rows.push(z); z+=10; if(z<Z1_-1) rows.push(z); z+=6.5; }
+    const clear=(x,z,r)=>{ for(let j=cj(z-r);j<=cj(z+r);j++) for(let i=ci(x-r);i<=ci(x+r);i++){ if(i<0||j<0||i>=GW||j>=GH||!nav[j*GW+i]) return false; } return true; };
+    for(const zr of rows) for(let x=X0_+4.0;x<X1_-1;x+=8.1){ const cx=cornerX(x), cz=cornerZ(zr); if(!clear(cx,cz,1.3)||inStairRect(cx,cz,1.8)) continue; GCOLS.push({x:cx,z:cz}); blockDisk(f,cx,cz,0.3); }
+    GCOLS.rows=rows; GCOLS.box={x0:X0_,x1:X1_,z0:Z0_,z1:Z1_}; } }
 // 柱子（S2）：清水混凝土圓柱，貫穿多層（同一位置每層一段，視覺連續）。走廊柱直徑 0.6 m，柱心放在格角 → 正好佔 2×2 格（0.605 m），
 // 穿堂前排 0.9 m（佔 4×4 格）、橋下 0.75 m。柱子進碰撞：佔到的格子設為不可走（淨空場、A*、膠囊碰撞都看得到）。
 // 走廊柱沿走廊外緣（與欄杆同一線），間距 ≤ 4.8 m（照片估計），由上往下生成：上層的柱一路往下延伸到遇到房間為止。
 const COL_D=0.6, COL_STEP=4.8, PILLARS=[], EDGES=[];
-const inStairRect=(x,z,pad)=>STAIRS.some(s=>x>s.X0-pad&&x<s.X1+pad&&z>s.Z0-pad&&z<s.Z1+pad);
 const inCT=(x,z)=>CT&&x>CT.x0-0.4&&x<CT.x1+0.4&&z>CT.zb-0.6&&z<CT.edge+0.4;
 function blockDisk(f,x,z,r){ for(let j=cj(z-r);j<=cj(z+r);j++) for(let i=ci(x-r);i<=ci(x+r);i++){ if(i<0||j<0||i>=GW||j>=GH) continue;
   const x0=WX0+i*CELL, z0=WZ0+j*CELL, px=clampN(x,x0,x0+CELL), pz=clampN(z,z0,z0+CELL); if(Math.hypot(x-px,z-pz)<r-0.01) NAV[f][j*GW+i]=0; } }
@@ -439,5 +448,5 @@ D.places.forEach(p=>{
 if(STAGE){ const P_=STAGE.plat; PLACES.push({name:'司令台',code:'',t:'p',f:0,label:'戶外',x:(P_.x0+P_.x1)/2,z:(P_.z0+P_.z1)/2,y:STAGE.PH}); }   // y：站在平台上的高度
 { const c=nearestCell(0,(RAMP.x0+RAMP.x1)/2,RAMP.z1+1.5,40); PLACES.push({name:'停車場入口',code:'',t:'p',f:0,label:'戶外',x:c>=0?cxm(c%GW):(RAMP.x0+RAMP.x1)/2,z:c>=0?czm((c/GW)|0):RAMP.z1+1.5}); }
 return { BLD,RAMP,D,SC,CELL,GX0,GY0,GW,GH,WX0,WZ0,FH,NF,NL,UP,DN,LY,RANK,clampN,ci,cj,cxm,czm,TYPE_LABEL,levelLabel,
-  ROOMS,PLACES,STAIRS,BYFLOOR,CORR,WALK0,NAV,FLOOR,EDGES,PILLARS,CT,STAGE,PLATMASK,SLIDE,TOWER,ERO,RC,STR_A,STR_B,STR_N,freeAt,roomAt,canStand,nearestCell,losOK,astar,planRoute,pickDoor };
+  ROOMS,PLACES,STAIRS,BYFLOOR,CORR,WALK0,NAV,FLOOR,EDGES,PILLARS,CT,STAGE,PLATMASK,SLIDE,TOWER,GCOLS,ERO,RC,STR_A,STR_B,STR_N,freeAt,roomAt,canStand,nearestCell,losOK,astar,planRoute,pickDoor };
 }

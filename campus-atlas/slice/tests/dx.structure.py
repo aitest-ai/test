@@ -7,6 +7,7 @@
 #   S6 鰭片量體：3F 量體正面（鰭片外緣）比 4F 磚面凸出 1.0–1.9 m（設計圖 3F 北牆凸出 1.55 m＋鰭片 0.35 m，扣 4F 磚外皮 0.25 m；照片估計 1.2–1.5 m）。
 #   S9 司令台：平台上方雨遮淨高 ≥ 2.6 m；校門 → 司令台 自動導覽走斜坡上到平台（高 1.1 m）。
 #   S10 梯級：每跑 13 階、級高 0.150 m。
+#   S12 停車場方柱：≥ 20 根，膠囊不可穿（16 方向）；S8 花壇緣 ≥ 5 組。
 #   AO：簽章與烘焙一致（--stale-ok：Phase 0 中途 AO 尚未重烘，改為確認「簽章不符 → 不套用」）。
 # 用法：python3 tests/dx.structure.py [--stale-ok]
 import asyncio, os, sys, json, threading, http.server, socketserver, functools
@@ -53,6 +54,8 @@ PROBE = r"""(()=>{ const d=__dx, T=d.THREE, m=d.m, CT=m.CT, W=d.world, R=W.R, ou
   const F=d.scn.FINBOX; if(F){ const xm=(F.x0+F.x1)/2+0.45, a=cast([xm,m.LY(2)+1.0,F.z0-3],[0,0,1],6), b=cast([xm,m.LY(3)+2.3,F.z0-3],[0,0,1],6); out.finProj=(a!==null&&b!==null)?+(b-a).toFixed(2):null; }
   // S9 平台上方淨空
   const SG=m.STAGE; if(SG){ const P=SG.plat, cl=[]; for(let x=P.x0+0.5;x<P.x1;x+=1.5) for(let z=P.z0+0.5;z<P.z1;z+=1.5){ const h=cast([x,SG.PH+0.05,z],[0,1,0],10); cl.push(h===null?99:+(h+0.05).toFixed(2)); } out.stageClear=Math.min(...cl); }
+  const GC=m.GCOLS||[]; let gm=0; for(const c of GC) for(let k=0;k<16;k++){ const a=k/16*Math.PI*2, dd=0.3+R-0.02; if(!W.hit(c.x+Math.cos(a)*dd,c.z+Math.sin(a)*dd,m.LY(4))) { gm++; break; } }
+  out.gcols=GC.length; out.gcolMiss=gm; out.planters=d.scn.planters;
   out.strN=m.STR_N; out.riser=+(m.FH/(2*m.STR_N)).toFixed(3);
   return out; })()"""
 async def main():
@@ -75,6 +78,8 @@ async def main():
         check('S6 3F 鰭片量體凸出 1.0–1.9 m', r.get('finProj') is not None and 1.0 <= r['finProj'] <= 1.9, r.get('finProj'))
         check('S9 司令台平台上方雨遮淨高 ≥ 2.6 m', r.get('stageClear', 0) >= 2.6, r.get('stageClear'))
         check('S10 梯級：每跑 13 階、級高 0.150 m', r['strN'] == 13 and abs(r['riser'] - 0.15) < 1e-6, (r['strN'], r['riser']))
+        check('S8 花壇緣 ≥ 5 組（由設計圖底圖抽出）', r['planters'] >= 5, r['planters'])
+        check('S12 停車場方柱 ≥ 20 根且不可穿', r['gcols'] >= 20 and r['gcolMiss'] == 0, f"{r['gcols']} 根，漏 {r['gcolMiss']}")
         # 穿堂南北通行：校門 → 運動場 自動導覽
         await pg.evaluate('__dx.unfreeze()')
         res = await pg.evaluate("""(()=>{ const d=__dx, t=n=>d.TARGETS.find(x=>x.name===n), CT=d.m.CT; d.cancelRoute(); d.teleportTo(t('校門')); d.setDest(t('運動場')); d.startRoute(true);

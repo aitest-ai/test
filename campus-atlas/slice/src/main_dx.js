@@ -98,7 +98,7 @@ window.__dx = { S, m, world, nav, setDest: guide.setDest, startRoute: guide.star
   view(p, t, fov = 60) { frozen = true; dx.FG.forEach(g => g.visible = true); dx.CAN.forEach(g => g && (g.visible = true)); stage.ch.group.visible = false;
     camera.fov = fov; camera.updateProjectionMatrix(); camera.position.set(...p); camera.up.set(0, 1, 0); camera.lookAt(...t); stage.lighting.update({ ...S, x: t[0], z: t[2] }, false); stage.render(); camera.fov = 60; camera.updateProjectionMatrix(); },
   unfreeze() { frozen = false; },
-  scn: { WINDOWS: dx.WINDOWS, FINBOX: dx.FINBOX },   // 結構驗收用（窗洞、鰭片量體）
+  scn: { WINDOWS: dx.WINDOWS, FINBOX: dx.FINBOX, planters: dx.PLANTERS },   // 結構驗收用（窗洞、鰭片量體）
   setShadows: (v) => stage.lighting.setShadows(v), _scene: stage.scene, lightmap: stage.lm, ao: () => ({ status: stage.ao.status, ms: Math.round(stage.ao.ms) }), aoReady: () => stage.ao.ready.then(() => ({ status: stage.ao.status })),
   // 量測用：GPU 資源數與貼圖記憶體估計（RGBA8 × mipmap 4/3；壓縮貼圖依區塊格式估）
   memInfo() { const seen = new Set(); let bytes = 0, n = 0;
