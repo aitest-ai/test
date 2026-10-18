@@ -27,8 +27,22 @@ button{font:inherit;color:inherit;cursor:pointer}
 #joyknob{position:absolute;left:36px;top:36px;width:48px;height:48px;border-radius:50%;background:rgba(23,48,43,.55)}
 @media (pointer:coarse){#joy{display:block}#where{bottom:200px}}
 #help{position:fixed;inset:0;display:grid;place-items:center;background:rgba(15,30,26,.45);z-index:20}.card{background:#fff;border-radius:16px;padding:22px 24px;max-width:480px;width:calc(100% - 28px);font-size:14px;line-height:1.7}.card h2{margin:0 0 6px}.note{background:#fff3dc;border-radius:10px;padding:8px 10px;color:#7a4a05}
-@media (max-width:760px){#panel{transform:translateX(-110%);width:min(82vw,300px)}#panel.open{transform:none}.badge{display:none}#modes{bottom:12px}#info{bottom:70px}#floors{top:auto;bottom:70px;transform:none;right:10px;flex-direction:column}}
+/* 清單面板：寬度 < 1100 px 預設收合（約佔兩成寬度、擋住場景），☰ 打開、✕ 或選了項目後關閉；≥ 1100 px 維持常駐 */
+.phead{display:none;align-items:center;justify-content:space-between;padding:0 2px}.phead b{font-size:14px}
+#pclose{width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:15px}
+@media (max-width:1099px){#panel{transform:translateX(-110%);width:min(82vw,300px);z-index:11;box-shadow:0 6px 24px rgba(0,0,0,.18)}#panel.open{transform:none}.phead{display:flex}}
+@media (max-width:760px){.badge{display:none}#modes{bottom:12px}#info{bottom:70px}#floors{top:auto;bottom:70px;transform:none;right:10px;flex-direction:column}}
 button{white-space:nowrap}
-@media (max-width:760px){#info{width:calc(100% - 24px);justify-content:space-between;flex-wrap:wrap;bottom:68px}#info>div:first-child{flex:1 1 140px;min-width:0}#modes{max-width:calc(100% - 20px)}#modes button{padding:7px 9px;font-size:12px}#spd{display:none}#floors{bottom:140px}#where{bottom:16px;left:10px}}
+/* 手機直式（≤ 760 px）：底部是視角列；左下搖桿、右下樓層鈕各佔一角；資訊卡在搖桿上方、讓出樓層鈕那一欄；
+   位置標籤與導覽狀態移到頂列下方左側（右上是小地圖），彼此不重疊（tests/dx.layout.py 檢查） */
+@media (max-width:760px){
+  #info{left:12px;right:72px;width:auto;transform:none;max-width:none;justify-content:space-between;flex-wrap:wrap;bottom:64px}#info>div:first-child{flex:1 1 140px;min-width:0}
+  #modes{max-width:calc(100% - 20px)}#modes button{padding:7px 9px;font-size:12px}#spd{display:none}
+  #floors{bottom:64px;gap:4px;padding:5px}#floors button{width:44px;height:36px}
+  #where{top:60px;left:10px;bottom:auto}
+  #status{top:96px;left:10px;right:122px;transform:none;max-width:none;justify-content:space-between}
+  #toast{top:172px}
+}
+@media (max-width:760px) and (pointer:coarse){#joy{left:16px;bottom:64px}#info{bottom:196px}}
 #mini{position:fixed;right:12px;top:62px;width:150px;height:150px;border-radius:16px;border:2px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.25);z-index:8;background:#2b2f33}
 @media (max-width:760px){#mini{width:104px;height:104px;top:60px;right:8px}}

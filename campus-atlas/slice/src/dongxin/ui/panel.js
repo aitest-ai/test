@@ -15,7 +15,7 @@ export function createPanel(ctx) {
     const groups = [['戶外・地點', TARGETS.filter(t => t.t === 'p')], ...lvlOrder.map(f => [levelLabel(f), TARGETS.filter(t => t.t !== 'p' && t.f === f)])];
     for (const [title, arr] of groups) { const rs = arr.filter(r => !q || norm(r.name).includes(q) || norm(title).includes(q) || (r.bldName && norm(r.bldName).includes(q)) || (q.endsWith('樓') && norm(title) === (q.slice(0, -1) + 'f')));
       if (!rs.length) continue; const h = document.createElement('div'); h.className = 'grp'; h.textContent = title; box.appendChild(h);
-      rs.forEach(r => { const b = document.createElement('button'); b.className = 'item' + (S.selected === r ? ' on' : ''); b.textContent = r.name; if (r.bldName) { const sp = document.createElement('small'); sp.textContent = ' ' + r.bldName; sp.style.opacity = '.55'; b.appendChild(sp); } b.onclick = () => { ctx.guide.setDest(r); if (innerWidth < 760) $('#panel').classList.remove('open'); }; box.appendChild(b); }); } }
+      rs.forEach(r => { const b = document.createElement('button'); b.className = 'item' + (S.selected === r ? ' on' : ''); b.textContent = r.name; if (r.bldName) { const sp = document.createElement('small'); sp.textContent = ' ' + r.bldName; sp.style.opacity = '.55'; b.appendChild(sp); } b.onclick = () => { ctx.guide.setDest(r); if (innerWidth < 1100) $('#panel').classList.remove('open'); }; box.appendChild(b); }); } }
   function updateFloorButtons() { const cur = curF(); document.querySelectorAll('#floors button').forEach(b => { const k = b.dataset.k; b.classList.toggle('on', k === 'all' ? (S.mode === 'bird' && S.viewFloor === null) : (S.mode === 'bird' ? S.viewFloor === +k : cur === +k)); }); }
   function setMode(mo) { S.mode = mo; document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.m === mo)); updateFloorButtons(); }
   function cycleMode() { setMode(MODES[(MODES.indexOf(S.mode) + 1) % 3]); }
@@ -46,7 +46,7 @@ export function createPanel(ctx) {
     $('#q').addEventListener('input', renderList);
     $('#go').onclick = () => g.startRoute(true); $('#tp').onclick = () => { if (S.selected) { g.teleportTo(S.selected); toast('已傳送到 ' + S.selected.name); } };
     $('#stop').onclick = () => g.cancelRoute(); $('#clr').onclick = () => g.setDest(null);
-    $('#pbtn').onclick = () => $('#panel').classList.toggle('open');
+    $('#pbtn').onclick = () => $('#panel').classList.toggle('open'); $('#pclose').onclick = () => $('#panel').classList.remove('open');
     $('#helpbtn').onclick = () => $('#help').hidden = !$('#help').hidden; $('#helpclose').onclick = () => $('#help').hidden = true;
     $('#spd').onclick = () => { S.speedK = S.speedK === 1 ? 1.6 : S.speedK === 1.6 ? 0.6 : 1; $('#spd').textContent = '速度 ' + Math.round(S.speedK * 100) + '%'; };
   }

@@ -84,8 +84,14 @@ async def main():
         # 小地圖有內容
         px=await ev("""(()=>{const c=document.getElementById('mini'),g=c.getContext('2d'),d=g.getImageData(0,0,c.width,c.height).data;const s=new Set();for(let i=0;i<d.length;i+=40)s.add(d[i]+','+d[i+1]+','+d[i+2]);return s.size})()""")
         chk('小地圖有繪製內容',px>20,px)
+        PV="(()=>{const r=document.querySelector('#panel').getBoundingClientRect();return r.right>0&&r.left<innerWidth})()"
+        chk('桌機 1280px：清單預設顯示',await ev(PV))
         # 手機
         await pg.set_viewport_size({'width':390,'height':780}); await ev('__dx.advance(0.4)'); await shot('13_mobile')
+        # 版面：桌機（1280）清單常駐；小視窗（< 1100 px）清單預設收合（第二輪 D）
+        c2=await b.new_context(viewport={'width':1000,'height':700}); p2=await c2.new_page(); p2.on('pageerror',lambda e: log['pageerrors'].append(str(e)))
+        await p2.goto(f'http://127.0.0.1:{PORT}/dongxin.html'); await p2.wait_for_function('window.__dx',timeout=40000); await p2.wait_for_timeout(400)
+        chk('小視窗 1000px：清單預設收合',not await p2.evaluate(PV)); await c2.close()
         chk('無 pageerror',len(log['pageerrors'])==0,log['pageerrors'][:3])
         errs=[c for c in log['console'] if c.startswith('error') or c.startswith('requestfailed')]; chk('console 無 error／請求失敗',len(errs)==0,errs[:3])
         await b.close()
