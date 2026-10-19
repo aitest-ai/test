@@ -403,7 +403,7 @@ function buildChuantang(){
   // 垂直方塊依樓層切段放進各樓層群組（鳥瞰剖切時跟著樓層顯示／隱藏）
   const vbox=(mt,xa,xb,za,zb,ya,yb)=>{ for(let f=0;f<NF;f++){ const a=Math.max(ya,LY(f)), b=Math.min(yb,LY(f)+FH); if(b-a>0.01) ibs[f].add(mt,xb-xa,b-a,zb-za,(xa+xb)/2,(a+b)/2,(za+zb)/2); } };
   const top=4*FH;
-  // 兩側清水混凝土牆（左：家長會辦公室東牆往前延伸；右：玻璃角窗房外側），從地面到邊梁頂
+  // 兩側清水混凝土牆（左：健康中心東牆往前延伸；右：玻璃角窗房外側），從地面到邊梁頂
   vbox(M.conc,x0,C.xl,C.face-0.3,C.edge,0,C.beamTop); vbox(M.conc,C.box.x1,x1,C.face-0.3,C.edge,0,C.beamTop);
   // 3F 樓板延伸（懸挑板）與前緣邊梁（梁底 7.2 m，S1 校門側淨高 ≥ 7 m）
   vbox(M.slab,x0,x1,C.zb,C.edge,C.soffit,2*FH);   // 3F 板從 2F 橋南緣一路蓋到前緣（前排柱位於其下） vbox(M.conc,x0,x1,C.edge-0.35,C.edge,C.beamBot,C.beamTop);

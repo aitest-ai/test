@@ -263,7 +263,7 @@ const byName=(f,n)=>BYFLOOR[f].find(r=>r.name===n);
 const cornerX=v=>WX0+Math.round((v-WX0)/CELL)*CELL, cornerZ=v=>WZ0+Math.round((v-WZ0)/CELL)*CELL;
 // 穿堂（S1）：貫穿集賢樓的南北向通道。校門側（南）雙層挑空到 3F 樓板；中段 2F 是連通兩側走廊的彩繪橋；操場側（北）只有一層高。
 // 校門側由懸挑框架承托 3F：前排兩根大圓柱、厚邊梁、兩側清水混凝土牆；右側是凸出的 1–2F 灰框玻璃角窗房。
-const CT=(()=>{ const L=byName(0,'家長會辦公室'), Rr=byName(0,'學務處'), N0=byName(0,'總務處'), N1=byName(0,'健康中心'); if(!L||!Rr||!N0||!N1) return null;
+const CT=(()=>{ const L=byName(0,'健康中心'), Rr=byName(0,'學務處'), N0=byName(0,'總務處'), N1=byName(0,'家長會辦公室');   // 總務處正對面＝家長會辦公室（使用者更正）；穿堂南段西側房＝健康中心 if(!L||!Rr||!N0||!N1) return null;
   const face=Math.max(L.Z1,Rr.Z1);                        // 1–2F 南面牆線
   const xs=[cornerX(N0.X1),cornerX(N1.X0)];               // 柱列：與北段通道兩側牆線同一軸（照片量得前排柱心距 ≈ 8.7 m，北段通道淨寬 8.77 m）
   let zb=-1e9; { const i=ci((xs[0]+xs[1])/2); for(let j=0;j<GH;j++){ const k=j*GW+i, z=WZ0+(j+1)*CELL; if(z<face&&NAV[1][k]&&RC[1][k]<0) zb=Math.max(zb,z); } }   // 2F 橋的南緣
