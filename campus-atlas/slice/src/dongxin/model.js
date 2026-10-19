@@ -43,6 +43,7 @@ function recomp(o){ o.X0=WX0+o.i0*CELL; o.X1=WX0+(o.i1+1)*CELL; o.Z0=WZ0+o.j0*CE
   BYFLOOR.forEach(l=>l.forEach(recomp));
 })();
 ROOMS.forEach(r=>{ if(['潛能教室','電腦教室','音樂教室'].includes(r.name)&&r.x0/SC>800){ r.keep=true; r.forceDoor='N'; } });
+ROOMS.forEach(r=>{ if(r.name==='家長會辦公室') r.forceDoor='N'; });   // 北牆（朝走廊、總務處對面）其實是門，不是牆（使用者更正）
 // 相對位置（使用者實測回報，Phase 0.5）：前一間 → 牆 → 樓梯 → 電腦教室／潛能教室／音樂教室／（1F）儲藏室；
 // 這幾間整間在梯塔之後（往警衛室方向），門開在梯塔外側；走廊側的牆從前一間一路連到它，沒有縫隙
 (function(){ const s4=STAIRS.find(s=>s.id==='S4'); if(!s4) return;
