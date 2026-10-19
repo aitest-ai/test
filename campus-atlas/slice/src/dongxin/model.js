@@ -276,8 +276,10 @@ const CT=(()=>{ const L=byName(0,'家長會辦公室'), Rr=byName(0,'學務處')
 // 位置：集賢樓操場側穿堂出口旁（照片：由操場看向集賢樓，平台在穿堂出口左側＝東側），平台邊與穿堂東牆線之間留斜坡口。
 // 物理：平台與斜坡是解析式表面（同樓梯），1F 格網在這一區由解析式表面接管（PLATMASK）；導航格網保留平台／斜坡可走，四周留一圈不可走（只能從斜坡上下）。
 const STAGE=(()=>{ const H=byName(0,'健康中心'); if(!H) return null;
-  const face=H.Z0, x0=cornerX(H.X0), PH=1.1;
-  const plat={x0:x0+2.1,x1:x0+12.1,z0:cornerZ(face-8.2),z1:cornerZ(face-3.2)};               // 10 m × 5 m（任務檔估計；照片無尺）
+  const PH=1.1, G=(D.rooms[0]||[]).find(a=>a[0]==='司令台');
+  // 位置與大小一律取設計圖上的方框（使用者回報：司令台應在方框位置）；若資料沒有才退回照片估計
+  const plat=G?{x0:G[2]*SC,x1:(G[2]+G[4])*SC,z0:G[3]*SC,z1:(G[3]+G[5])*SC}:{x0:cornerX(H.X0)+2.1,x1:cornerX(H.X0)+12.1,z0:cornerZ(H.Z0-8.2),z1:cornerZ(H.Z0-3.2)};
+  const face=plat.z1+3.2, x0=plat.x0-2.1;     // face：斜坡後方的封邊線（原本是健康中心牆線，現在跟著平台走）
   const ramp={x0:x0,x1:plat.x1,z0:plat.z1+0.6,z1:plat.z1+2.0,top:plat.x1-2.0};             // 寬 1.4 m，坡段 x0→top 上升 1.1 m（約 1:9），top→x1 為上平台
   const canopy={x0:x0-1.2,x1:plat.x1+0.8,z0:plat.z0-3.4,z1:face-0.25,yBack:4.9,yFront:4.15,drop:0.75,ridge:0.55};   // 照片 sling_platform_canopy：鋼柱頂約在 2F 窗台下緣（≈4.4 m）、雨遮低、前緣下垂封邊深、遠超出平台（第三輪 B 降低；估計）
   const cols=[[x0-0.35,face-1.0],[x0+6.6,face-1.0]];                                          // 鋼柱（含斜撐），在斜坡後方
