@@ -46,10 +46,14 @@ ROOMS.forEach(r=>{ if(['潛能教室','電腦教室','音樂教室'].includes(r.
 // 相對位置（使用者實測回報，Phase 0.5）：前一間 → 牆 → 樓梯 → 電腦教室／潛能教室／音樂教室／（1F）儲藏室；
 // 這幾間整間在梯塔之後（往警衛室方向），門開在梯塔外側；走廊側的牆從前一間一路連到它，沒有縫隙
 (function(){ const s4=STAIRS.find(s=>s.id==='S4'); if(!s4) return;
-  ROOMS.forEach(r=>{ if(!['電腦教室','潛能教室','音樂教室','儲藏室'].includes(r.name)||r.X0>64||r.X0<60||!s4.fl.includes(r.f)||r.f>3) return;
+  ROOMS.forEach(r=>{ if(!['電腦教室','潛能教室','音樂教室','儲藏室'].includes(r.name)||r.X0>64||r.X0<60||!s4.fl.includes(r.f)||r.f>3||r.f===0) return;   // 1F 教師會與儲藏室之間是通往蒙萌園的走廊，不封
     r.j0=s4.j1+1; recomp(r);
     let prev=null; for(const q of BYFLOOR[r.f]){ if(q===r||q.X0>64||q.X1<r.X0+2||q.Z1>r.Z0+1.5||q.Z1<r.Z0-8||q.Z0>=r.Z0) continue; if(!prev||q.Z1>prev.Z1) prev=q; }
-    if(prev){ prev.j1=r.j0-1; recomp(prev); } }); })();
+    if(prev){ prev.j1=r.j0-1; recomp(prev); } });
+  // 外牆對齊：潛能教室（2F）、電腦教室（3F）、音樂教室（4F）同一格局，外緣（西、南、東）取同一組格線；2F 這一欄其他房間西緣一併對齊
+  const ref=ROOMS.find(q=>q.name==='音樂教室'&&q.f===3&&q.X0>60&&q.X0<64);
+  if(ref){ ROOMS.forEach(r=>{ if(['潛能教室','電腦教室'].includes(r.name)&&r.X0>60&&r.X0<64){ r.i0=ref.i0; r.i1=ref.i1; r.j1=ref.j1; recomp(r); } });
+    BYFLOOR[1].forEach(r=>{ if(r.X0>62.3&&r.X0<62.9&&!r.stair){ r.i0=ref.i0; recomp(r); } }); } })();
 (function trimToCorridor(){ // 房間不得吃進走廊：外緣整排大多是走廊格就往內縮（保持走廊連續）
   for(let f=0;f<4;f++){ const cm=CORR[f];
     for(const r of BYFLOOR[f]){ if(r.solid||r.keep) continue;
