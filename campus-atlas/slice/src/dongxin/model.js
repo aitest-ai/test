@@ -361,6 +361,7 @@ for(let f=0;f<NL;f++){ const n=FLOOR[f], rc=RC[f], E=[]; EDGES[f]=E;
     for(const e of EDGES[f]){ const len=e.b-e.a; if(len<0.5) continue; const q=Math.max(1,Math.round(len/COL_STEP));
       for(let t=0;t<=q;t++){ const p=e.ax==='x'?cornerX(e.a+len*t/q):cornerZ(e.a+len*t/q), x=e.ax==='x'?p:e.fix, z=e.ax==='x'?e.fix:p;
         if(inStairRect(x,z,0.6)||inCT(x,z)||near(f,x,z)) continue;
+        if(CT&&Math.abs(z-CT.north.z0)<0.6&&x>CT.north.x0+0.8&&x<CT.north.x1-0.8) continue;   // 穿堂北口正中間實際沒有柱子（使用者回報）
         if(f===0){ const up=cellsAround(x,z); if(!up.some(k=>k>=0&&(FLOOR[1][k]||RC[1][k]>=0))) continue; }   // 1F 只在上方有結構處立柱（純雨遮是懸挑，不立柱）
         if(nearDoor(f,x,z)) continue;
         let g=f; while(g>0&&!roomUnder(g-1,x,z)&&!nearDoor(g-1,x,z)) g--;

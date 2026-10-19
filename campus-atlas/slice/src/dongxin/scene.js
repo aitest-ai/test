@@ -139,7 +139,9 @@ function wallSegs(ib,r,y0,mat,accMat,door){
       return; }
     if(!r.stair&&door&&sd.s===door.side){ corridorFace(ib,sd,r,door,y0,wh); return; }
     if(r.bld==='J'&&!r.ribbon&&!ctWall&&exterior&&r.name!=='警衛室'&&!(door&&door.side===sd.s)&&r.f<4){   // 集賢樓外牆：深凹窗洞（S4）
-      const skip=(u)=>outRoom(u)||(sd.ax==='x'&&CT&&sd.s==='S'&&r.f>=2&&u>CT.x0-0.6&&u<CT.x1+0.6);
+      // 穿堂（兩側通道）左右兩側的紅磚牆：整面紅磚、沒有對外窗（使用者回報）
+      const passageWall=!!CT&&sd.ax==='z'&&sd.a<CT.face+0.3&&sd.b>CT.north.z0-0.3&&[CT.xl,CT.xs[0],CT.xs[1],CT.xr].some(x=>Math.abs(sd.fix-x)<0.6);
+      const skip=(u)=>passageWall||outRoom(u)||(sd.ax==='x'&&CT&&sd.s==='S'&&r.f>=2&&u>CT.x0-0.6&&u<CT.x1+0.6);
       const seed=Math.round(sd.fix*10)*31+Math.round(sd.a*10)*7+r.f*131, fb=FINBOX&&r.f===2&&sd.s==='N'&&sd.ax==='x'&&Math.abs(sd.fix-FINBOX.wall)<0.5;
       if(fb){ recessFacade(ib,sm,'x',sd.fix,sd.a,FINBOX.x0,y0,wh,OUT,seed,!hasAbove(r),skip); recessFacade(ib,sm,'x',sd.fix,FINBOX.x1,sd.b,y0,wh,OUT,seed+7,!hasAbove(r),skip); return; }   // 鰭片量體段由 buildFinBox 畫
       recessFacade(ib,sm,sd.ax,sd.fix,sd.a,sd.b,y0,wh,OUT,seed,!hasAbove(r),skip); return; }
