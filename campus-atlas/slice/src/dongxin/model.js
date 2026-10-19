@@ -268,7 +268,7 @@ const CT=(()=>{ const L=byName(0,'家長會辦公室'), Rr=byName(0,'學務處')
   const xs=[cornerX(N0.X1),cornerX(N1.X0)];               // 柱列：與北段通道兩側牆線同一軸（照片量得前排柱心距 ≈ 8.7 m，北段通道淨寬 8.77 m）
   let zb=-1e9; { const i=ci((xs[0]+xs[1])/2); for(let j=0;j<GH;j++){ const k=j*GW+i, z=WZ0+(j+1)*CELL; if(z<face&&NAV[1][k]&&RC[1][k]<0) zb=Math.max(zb,z); } }   // 2F 橋的南緣
   const zc=cornerZ(face+2.1), edge=zc+1.0;                // 前排柱心在牆線外 2.1 m；板緣只越過柱心 1.0 m（柱外緣再出 0.5 m）
-  return { xl:L.X1, xr:Rr.X0, face, zb:cornerZ(zb), zc, edge, xs, wallT:0.6, box:{x0:Rr.X0,x1:Rr.X0+4.6,z0:face,z1:face+2.0},
+  return { xl:L.X1, xr:Rr.X0, face, zb:cornerZ(zb), zc, edge, xs, px:[82.12,91.16], pz:[33.21,41.72] /* 設計圖上留的柱位（圓點）*/, wallT:0.6, box:{x0:Rr.X0,x1:Rr.X0+4.6,z0:face,z1:face+2.0},
     soffit:2*FH-SLAB_, beamBot:2*FH-0.6, beamTop:2*FH+0.3, gateClear:2*FH-0.6, fieldClear:FH-SLAB_, north:{x0:N0.X1,x1:N1.X0,z0:N0.Z0,z1:N0.Z1},
     get x0(){ return this.xl-this.wallT; }, get x1(){ return this.box.x1+this.wallT; } };
 })();
@@ -367,7 +367,7 @@ for(let f=0;f<NL;f++){ const n=FLOOR[f], rc=RC[f], E=[]; EDGES[f]=E;
         let g=f; while(g>0&&!roomUnder(g-1,x,z)&&!nearDoor(g-1,x,z)) g--;
         let bad=false; for(let h=g;h<=f&&!bad;h++) bad=pocket(h,x,z); if(bad) continue;
         const P={x,z,r:COL_D/2,f0:g,f1:f,y0:LY(g),y1:LY(f)+FH-0.15,kind:'corr'}; PILLARS.push(P); for(let h=g;h<=f;h++) blockDisk(h,x,z,P.r); } } }
-  if(CT){ CT.xs.forEach((x,k)=>{ PILLARS.push({x,z:CT.zc,r:0.45,f0:0,f1:1,y0:0,y1:CT.soffit,kind:'ct'}); PILLARS.push({x,z:CT.zb,r:0.375,f0:0,f1:1,y0:0,y1:CT.soffit,kind:k===0?'ctPaint':'ctIn'}); }); }
+  if(CT){ CT.px.forEach((x,k)=>{ PILLARS.push({x,z:CT.pz[1],r:0.45,f0:0,f1:1,y0:0,y1:CT.soffit,kind:'ct'}); PILLARS.push({x,z:CT.pz[0],r:0.375,f0:0,f1:0,y0:0,y1:FH-SLAB_,kind:k===0?'ctPaint':'ctIn'}); }); }
   for(const p of PILLARS) if(p.kind!=='corr') for(let g=p.f0;g<=p.f1;g++) blockDisk(g,p.x,p.z,p.r);
   if(CT){ blockRect(0,CT.x0,CT.face,CT.xl,CT.edge); blockRect(0,CT.box.x0,CT.box.z0,CT.box.x1,CT.box.z1); blockRect(0,CT.box.x1,CT.face,CT.x1,CT.edge); }   // 框架兩側牆、玻璃角窗房
 }
